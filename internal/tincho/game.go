@@ -13,6 +13,7 @@ import (
 
 var ErrRoomNotFound = errors.New("room not found")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")
+var ErrGameAlreadyStarted = errors.New("game already started")
 
 type Player struct {
 	ID      string
@@ -61,51 +62,42 @@ func (r *Room) Start() {
 }
 
 func (r *Room) doAction(action Action) {
-			// TODO: Check action is performed by the player whose turn it is
-			switch action.Type {
-			case ActionStart:
-				r.StartGame()
-			case ActionDraw:
-				var data DrawAction
-				if err := json.Unmarshal(action.Data, &data); err != nil {
-					log.Println(err)
+	// TODO: Check action is performed by the player whose turn it is
+	switch action.Type {
+	case ActionStart:
+		r.doStartGame(action)
+	case ActionDraw:
+		if err := r.doDraw(action); err != nil {
+			log.Println(err)
 			return
-				}
-				r.DrawCard(data.Source)
-				r.PassTurn()
-			case ActionDiscard:
-				var data DiscardAction
-				if err := json.Unmarshal(action.Data, &data); err != nil {
-					log.Println(err)
-			return // TODO: Send error message to client
-				}
-				if err := r.DiscardCard(data.Card); err != nil {
-					log.Println(err)
-			return // TODO: Send error message to client
-				}
-				r.PassTurn()
-			case ActionCut:
-				var data CutAction
-				if err := json.Unmarshal(action.Data, &data); err != nil {
-					log.Println(err)
-			return // TODO: Send error message to client
-				}
-				r.Cut(data.WithCount, data.Declared)
-				r.PassTurn()
-			case ActionPeekOwnCard:
+		}
+	case ActionDiscard:
+		if err := r.doDiscard(action); err != nil {
+			log.Println(err)
+			return
+		}
+	case ActionCut:
+		if err := r.doCut(action); err != nil {
+			log.Println(err)
+			return
+		}
+	case ActionPeekOwnCard:
 		return
-			case ActionPeekCartaAjena:
+	case ActionPeekCartaAjena:
 		return
-			case ActionSwapCards:
+	case ActionSwapCards:
 		return
-			default:
-				log.Println("unknown action")
-			}
+	default:
+		log.Println("unknown action")
+	}
 }
 
 func (r *Room) AddPlayer(p Player) error {
+	// TODO: Implement reconnection with auth
+	if r.Playing {
+		return fmt.Errorf("%w: %s", ErrGameAlreadyStarted, r.ID)
+	}
 	if _, exists := r.GetPlayer(p.ID); exists {
-		// TODO: Implement reconnection with auth
 		return fmt.Errorf("%w: %s in %s", ErrPlayerAlreadyInRoom, p.ID, r.ID)
 	}
 	r.Players = append(r.Players, p)
@@ -140,6 +132,7 @@ func (r *Room) watchPlayer(player Player) {
 				log.Println(err)
 				return // TODO: Prevent disconnect
 			}
+			action.Player = player.ID
 			r.Actions <- action
 		case <-r.Context.Done():
 			log.Printf("Stopping watch loop for player %s", player.ID)

@@ -1,6 +1,9 @@
 package tincho
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type ActionType string
 
@@ -15,8 +18,9 @@ const (
 )
 
 type Action struct {
-	Type ActionType      `json:"type"`
-	Data json.RawMessage `json:"payload"`
+	Type   ActionType      `json:"type"`
+	Data   json.RawMessage `json:"data"`
+	Player string
 }
 
 type DrawSource string
@@ -39,12 +43,47 @@ type CutAction struct {
 	Declared  int  `json:"declared"`
 }
 
-func (r *Room) StartGame() {}
+func (r *Room) PassTurn() {}
+
+func (r *Room) doStartGame(action Action) error {
+	r.Playing = true
+	return nil
+}
+
+func (r *Room) doDraw(action Action) error {
+	var data DrawAction
+	if err := json.Unmarshal(action.Data, &data); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	r.DrawCard(data.Source)
+	r.PassTurn()
+	return nil
+}
 
 func (r *Room) DrawCard(source DrawSource) {}
 
-func (r *Room) PassTurn() {}
+func (r *Room) doDiscard(action Action) error {
+	var data DiscardAction
+	if err := json.Unmarshal(action.Data, &data); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	if err := r.DiscardCard(data.Card); err != nil {
+		return fmt.Errorf("DiscardCard: %w", err)
+	}
+	r.PassTurn()
+	return nil
+}
 
 func (r *Room) DiscardCard(card Card) error { return nil }
+
+func (r *Room) doCut(action Action) error {
+	var data CutAction
+	if err := json.Unmarshal(action.Data, &data); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	r.Cut(data.WithCount, data.Declared)
+	r.PassTurn()
+	return nil
+}
 
 func (r *Room) Cut(withCount bool, decaled int) {}
