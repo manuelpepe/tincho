@@ -114,6 +114,19 @@ func (r *Room) DiscardTopCard() error {
 	return nil
 }
 
+func (r *Room) Deal() error {
+	for i := 0; i < 4; i++ {
+		for pid := range r.Players {
+			card, err := r.DrawPile.Draw()
+			if err != nil {
+				return err
+			}
+			r.Players[pid].Hand = append(r.Players[pid].Hand, card)
+		}
+	}
+	return nil
+}
+
 func (r *Room) AddPlayer(p Player) error {
 	// TODO: Implement reconnection with auth
 	if r.Playing {
