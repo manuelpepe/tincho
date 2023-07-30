@@ -36,7 +36,6 @@ func NewRoom(roomID string) Room {
 	return Room{
 		ID:      roomID,
 		Playing: false,
-		Players: make([]Player, 0),
 		Deck:    NewDeck(),
 		Actions: make(chan Action),
 	}
@@ -66,6 +65,7 @@ func (r *Room) Start() {
 
 func (r *Room) AddPlayer(p Player) error {
 	if _, exists := r.GetPlayer(p.ID); exists {
+		// TODO: Implement reconnection with auth
 		return fmt.Errorf("%w: %s in %s", ErrPlayerAlreadyInRoom, p.ID, r.ID)
 	}
 	r.Players = append(r.Players, p)
@@ -114,7 +114,7 @@ func NewGame() Game {
 // NewRoom creates a new room with an unused random ID and no players.
 func (g *Game) NewRoom() string {
 	roomID := generateRandomString(6)
-	for exists := true; exists; _, exists = g.GetRoom(roomID) {
+	for exists := true; exists; _, exists = g.GetRoomIndex(roomID) {
 		roomID = generateRandomString(6)
 	}
 	room := NewRoom(roomID)
@@ -123,21 +123,21 @@ func (g *Game) NewRoom() string {
 	return roomID
 }
 
-func (g *Game) GetRoom(roomID string) (*Room, bool) {
-	for _, room := range g.rooms {
+func (g *Game) GetRoomIndex(roomID string) (int, bool) {
+	for idx, room := range g.rooms {
 		if room.ID == roomID {
-			return &room, true
+			return idx, true
 		}
 	}
-	return &Room{}, false
+	return 0, false
 }
 
 func (g *Game) JoinRoom(roomID string, player Player) error {
-	room, exists := g.GetRoom(roomID)
+	roomix, exists := g.GetRoomIndex(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
 	}
-	if err := room.AddPlayer(player); err != nil {
+	if err := g.rooms[roomix].AddPlayer(player); err != nil {
 		return fmt.Errorf("JoinRoom: %w", err)
 	}
 	return nil
