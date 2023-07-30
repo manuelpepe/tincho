@@ -18,6 +18,7 @@ type Card struct {
 }
 
 type Deck []Card
+type Hand []Card
 
 func NewDeck() Deck {
 	deck := make([]Card, 0, 50)

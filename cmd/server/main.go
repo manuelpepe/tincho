@@ -18,7 +18,6 @@ func main() {
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
-	// r.HandleFunc("/echo", handlers.Echo)
 	log.Println("Listening on port 5555")
 	log.Fatal(http.ListenAndServe(":5555", r))
 }

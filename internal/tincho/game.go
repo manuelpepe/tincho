@@ -16,6 +16,7 @@ var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 
 type Player struct {
 	ID      string
+	Hand    Hand
 	socket  *websocket.Conn
 	Updates chan Update
 }
@@ -50,24 +51,56 @@ func (r *Room) Start() {
 	for {
 		select {
 		case action := <-r.Actions:
-			fmt.Printf("%+v\n", action)
-			switch action.Type {
-			case ActionStart:
-				log.Println("start")
-			case ActionDraw:
-				log.Println("draw")
-			case ActionDiscard:
-				log.Println("discard")
-			case ActionCut:
-				log.Println("cut")
-			default:
-				log.Println("unknown action")
-			}
+			fmt.Printf("Recieved: %+v\n", action)
+			r.doAction(action)
 		case <-r.Context.Done():
 			log.Printf("Stopping room %s", r.ID)
 			return
 		}
 	}
+}
+
+func (r *Room) doAction(action Action) {
+			// TODO: Check action is performed by the player whose turn it is
+			switch action.Type {
+			case ActionStart:
+				r.StartGame()
+			case ActionDraw:
+				var data DrawAction
+				if err := json.Unmarshal(action.Data, &data); err != nil {
+					log.Println(err)
+			return
+				}
+				r.DrawCard(data.Source)
+				r.PassTurn()
+			case ActionDiscard:
+				var data DiscardAction
+				if err := json.Unmarshal(action.Data, &data); err != nil {
+					log.Println(err)
+			return // TODO: Send error message to client
+				}
+				if err := r.DiscardCard(data.Card); err != nil {
+					log.Println(err)
+			return // TODO: Send error message to client
+				}
+				r.PassTurn()
+			case ActionCut:
+				var data CutAction
+				if err := json.Unmarshal(action.Data, &data); err != nil {
+					log.Println(err)
+			return // TODO: Send error message to client
+				}
+				r.Cut(data.WithCount, data.Declared)
+				r.PassTurn()
+			case ActionPeekOwnCard:
+		return
+			case ActionPeekCartaAjena:
+		return
+			case ActionSwapCards:
+		return
+			default:
+				log.Println("unknown action")
+			}
 }
 
 func (r *Room) AddPlayer(p Player) error {
