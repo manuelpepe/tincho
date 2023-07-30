@@ -16,7 +16,6 @@ var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 
 type Player struct {
 	ID      string
-	Name    string
 	socket  *websocket.Conn
 	Updates chan Update
 }
