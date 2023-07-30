@@ -43,7 +43,9 @@ type CutAction struct {
 	Declared  int  `json:"declared"`
 }
 
-func (r *Room) PassTurn() {}
+func (r *Room) PassTurn() {
+	r.CurrentTurn = (r.CurrentTurn + 1) % len(r.Players)
+}
 
 func (r *Room) doStartGame(action Action) error {
 	r.Playing = true
