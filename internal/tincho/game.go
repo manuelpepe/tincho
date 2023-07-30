@@ -1,10 +1,12 @@
 package tincho
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -13,13 +15,15 @@ var ErrRoomNotFound = errors.New("room not found")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 
 type Player struct {
-	ID     string
-	Name   string
-	socket *websocket.Conn
+	ID      string
+	Name    string
+	socket  *websocket.Conn
+	Updates chan Update
 }
 
 // Room represents an ongoing game and contains all necessary state to represent it.
 type Room struct {
+	Context context.Context
 	ID      string
 	Players []Player
 	Deck    Deck
@@ -34,6 +38,7 @@ type Room struct {
 
 func NewRoom(roomID string) Room {
 	return Room{
+		Context: context.Background(),
 		ID:      roomID,
 		Playing: false,
 		Deck:    NewDeck(),
@@ -59,6 +64,9 @@ func (r *Room) Start() {
 			default:
 				log.Println("unknown action")
 			}
+		case <-r.Context.Done():
+			log.Printf("Stopping room %s", r.ID)
+			return
 		}
 	}
 }
@@ -70,6 +78,7 @@ func (r *Room) AddPlayer(p Player) error {
 	}
 	r.Players = append(r.Players, p)
 	go r.watchPlayer(p)
+	go r.updatePlayer(p)
 	return nil
 }
 
@@ -82,20 +91,47 @@ func (r *Room) GetPlayer(playerID string) (Player, bool) {
 	return Player{}, false
 }
 
+// watchPlayer functions as a goroutine that watches for messages from a given player.
 func (r *Room) watchPlayer(player Player) {
 	log.Printf("Watching player %s on room %s", player.ID, r.ID)
+	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	for {
-		_, message, err := player.socket.ReadMessage()
-		if err != nil {
-			log.Println(err)
+		select {
+		case <-tick.C:
+			_, message, err := player.socket.ReadMessage()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			var action Action
+			if err := json.Unmarshal(message, &action); err != nil {
+				log.Println(err)
+				return // TODO: Prevent disconnect
+			}
+			r.Actions <- action
+		case <-r.Context.Done():
+			log.Printf("Stopping watch loop for player %s", player.ID)
 			return
 		}
-		var action Action
-		if err := json.Unmarshal(message, &action); err != nil {
-			log.Println(err)
-			return // TODO: Prevent disconnect
+
+	}
+}
+
+// updatePlayer functions as a goroutine that sends updates to a given player.
+func (r *Room) updatePlayer(player Player) {
+	log.Printf("Updating player %s on room %s", player.ID, r.ID)
+	for {
+		select {
+		case update := <-player.Updates:
+			log.Printf("Sending update to player %s: %+v", player.ID, update)
+			if err := player.socket.WriteJSON(update); err != nil {
+				log.Println(err)
+				return
+			}
+		case <-r.Context.Done():
+			log.Printf("Stopping update loop for player %s", player.ID)
+			return
 		}
-		r.Actions <- action
 	}
 }
 
