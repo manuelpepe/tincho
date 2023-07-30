@@ -17,6 +17,9 @@ type Room struct {
 	DrawPile    Deck
 	DiscardPile Deck
 
+	// the last card drawn that has not been stored into a player's hand
+	PendingStorage Card
+
 	// actions recieved from all players
 	Actions chan Action
 
@@ -151,7 +154,7 @@ func (r *Room) watchPlayer(player Player) {
 				log.Println(err)
 				return // TODO: Prevent disconnect
 			}
-			action.Player = player.ID
+			action.PlayerID = player.ID
 			r.Actions <- action
 		case <-r.Context.Done():
 			log.Printf("Stopping watch loop for player %s", player.ID)

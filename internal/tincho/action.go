@@ -18,9 +18,9 @@ const (
 )
 
 type Action struct {
-	Type   ActionType      `json:"type"`
-	Data   json.RawMessage `json:"data"`
-	Player string
+	Type     ActionType      `json:"type"`
+	Data     json.RawMessage `json:"data"`
+	PlayerID string
 }
 
 type DrawSource string
@@ -35,7 +35,8 @@ type DrawAction struct {
 }
 
 type DiscardAction struct {
-	Card Card `json:"card"`
+	// cardPosition = -1 means the card pending storage
+	CardPosition int `json:"cardPosition"`
 }
 
 type CutAction struct {
@@ -69,18 +70,20 @@ func (r *Room) doDraw(action Action) error {
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
-	r.TargetedUpdate(action.Player, Update{
+	r.TargetedUpdate(action.PlayerID, Update{
 		Type: UpdateTypeDraw,
 		Data: json.RawMessage(mesageWithInfo),
 	})
 	messageNoInfo, err := json.Marshal(UpdateDrawData{
 		Source: data.Source,
 	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
 	r.BroadcastUpdate(Update{
 		Type: UpdateTypeDraw,
 		Data: json.RawMessage(messageNoInfo),
 	})
-	r.PassTurn()
 	return nil
 }
 
@@ -90,7 +93,19 @@ func (r *Room) DrawCard(source DrawSource) (Card, error) {
 			return Card{}, fmt.Errorf("ReshufflePiles: %w", err)
 		}
 	}
-	return r.DrawPile.Draw()
+	var card Card
+	var err error
+	switch source {
+	case DrawSourcePile:
+		card, err = r.DrawPile.Draw()
+	case DrawSourceDiscard:
+		card, err = r.DiscardPile.Draw()
+	}
+	if err != nil {
+		return Card{}, fmt.Errorf("Draw from %s: %w", source, err)
+	}
+	r.PendingStorage = card
+	return card, nil
 }
 
 func (r *Room) doDiscard(action Action) error {
@@ -98,14 +113,33 @@ func (r *Room) doDiscard(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	if err := r.DiscardCard(data.Card); err != nil {
+	if err := r.DiscardCard(action.PlayerID, data.CardPosition); err != nil {
 		return fmt.Errorf("DiscardCard: %w", err)
 	}
 	r.PassTurn()
 	return nil
 }
 
-func (r *Room) DiscardCard(card Card) error { return nil }
+func (r *Room) DiscardCard(playerID string, card int) error {
+	if card == -1 {
+		r.DiscardPile = append(r.DiscardPile, r.PendingStorage)
+		r.PendingStorage = Card{}
+		return nil
+	}
+	player, exists := r.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("Unkown player: %s", playerID)
+	}
+	if card < -1 || card >= len(player.Hand) {
+		return fmt.Errorf("invalid card position: %d", card)
+	}
+	// add card to top of start of discard pile
+	r.DiscardPile = append([]Card{player.Hand[card]}, r.DiscardPile...)
+	// remove card from hand and replace with stored card
+	player.Hand[card] = r.PendingStorage
+	r.PendingStorage = Card{}
+	return nil
+}
 
 func (r *Room) doCut(action Action) error {
 	var data CutAction
