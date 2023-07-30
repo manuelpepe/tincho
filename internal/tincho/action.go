@@ -93,19 +93,23 @@ func (r *Room) DrawCard(source DrawSource) (Card, error) {
 			return Card{}, fmt.Errorf("ReshufflePiles: %w", err)
 		}
 	}
-	var card Card
-	var err error
-	switch source {
-	case DrawSourcePile:
-		card, err = r.DrawPile.Draw()
-	case DrawSourceDiscard:
-		card, err = r.DiscardPile.Draw()
-	}
+	card, err := r.drawFromSource(source)
 	if err != nil {
-		return Card{}, fmt.Errorf("Draw from %s: %w", source, err)
+		return Card{}, fmt.Errorf("drawFromSource: %w", err)
 	}
 	r.PendingStorage = card
 	return card, nil
+}
+
+func (r *Room) drawFromSource(source DrawSource) (Card, error) {
+	switch source {
+	case DrawSourcePile:
+		return r.DrawPile.Draw()
+	case DrawSourceDiscard:
+		return r.DiscardPile.Draw()
+	default:
+		return Card{}, fmt.Errorf("invalid source: %s", source)
+	}
 }
 
 func (r *Room) doDiscard(action Action) error {
