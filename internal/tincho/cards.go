@@ -1,6 +1,11 @@
 package tincho
 
-import "math/rand"
+import (
+	"errors"
+	"math/rand"
+)
+
+var ErrEmptyDeck = errors.New("empty deck")
 
 type Suit string
 
@@ -43,4 +48,13 @@ func (d *Deck) Shuffle() {
 	rand.Shuffle(len(*d), func(i, j int) {
 		(*d)[i], (*d)[j] = (*d)[j], (*d)[i]
 	})
+}
+
+func (d *Deck) Draw() (Card, error) {
+	if len(*d) == 0 {
+		return Card{}, ErrEmptyDeck
+	}
+	card := (*d)[0]
+	*d = (*d)[1:]
+	return card, nil
 }

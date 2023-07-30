@@ -14,6 +14,7 @@ const (
 	UpdateTypeSwapCards      UpdateType = "effect_swap_card"
 	UpdateTypeDiscard        UpdateType = "discard"
 	UpdateTypeCut            UpdateType = "cut"
+	UpdateShuffledPiles      UpdateType = "shuffled_piles"
 )
 
 type Update struct {
@@ -33,6 +34,7 @@ type UpdateStartData struct{}
 
 type UpdateDrawData struct {
 	Source DrawSource `json:"source"`
+	Card   Card       `json:"card"`
 }
 
 type UpdatePeekOwnCardData struct {

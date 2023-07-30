@@ -47,6 +47,7 @@ func (r *Room) PassTurn() {}
 
 func (r *Room) doStartGame(action Action) error {
 	r.Playing = true
+	r.BroadcastUpdate(Update{Type: UpdateTypeStart})
 	return nil
 }
 
@@ -55,12 +56,40 @@ func (r *Room) doDraw(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	r.DrawCard(data.Source)
+	card, err := r.DrawCard(data.Source)
+	if err != nil {
+		return fmt.Errorf("DrawCard: %w", err)
+	}
+	mesageWithInfo, err := json.Marshal(UpdateDrawData{
+		Source: data.Source,
+		Card:   card,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.TargetedUpdate(action.Player, Update{
+		Type: UpdateTypeDraw,
+		Data: json.RawMessage(mesageWithInfo),
+	})
+	messageNoInfo, err := json.Marshal(UpdateDrawData{
+		Source: data.Source,
+	})
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeDraw,
+		Data: json.RawMessage(messageNoInfo),
+	})
 	r.PassTurn()
 	return nil
 }
 
-func (r *Room) DrawCard(source DrawSource) {}
+func (r *Room) DrawCard(source DrawSource) (Card, error) {
+	if len(r.DrawPile) == 0 {
+		if err := r.ReshufflePiles(); err != nil {
+			return Card{}, fmt.Errorf("ReshufflePiles: %w", err)
+		}
+	}
+	return r.DrawPile.Draw()
+}
 
 func (r *Room) doDiscard(action Action) error {
 	var data DiscardAction
