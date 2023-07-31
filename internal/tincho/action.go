@@ -50,6 +50,9 @@ func (r *Room) PassTurn() {
 
 func (r *Room) doStartGame(action Action) error {
 	r.Playing = true
+	if err := r.Deal(); err != nil {
+		return fmt.Errorf("Deal: %w", err)
+	}
 	r.BroadcastUpdate(Update{Type: UpdateTypeStart})
 	return nil
 }
@@ -89,7 +92,7 @@ func (r *Room) doDraw(action Action) error {
 
 func (r *Room) DrawCard(source DrawSource) (Card, error) {
 	if len(r.DrawPile) == 0 {
-		if err := r.ReshufflePiles(); err != nil {
+		if err := r.CyclePiles(); err != nil {
 			return Card{}, fmt.Errorf("ReshufflePiles: %w", err)
 		}
 	}

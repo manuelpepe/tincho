@@ -62,7 +62,10 @@ func (r *Room) doAction(action Action) {
 	// TODO: Check action is performed by the player whose turn it is
 	switch action.Type {
 	case ActionStart:
-		r.doStartGame(action)
+		if err := r.doStartGame(action); err != nil {
+			log.Println(err)
+			return
+		}
 	case ActionDraw:
 		if err := r.doDraw(action); err != nil {
 			log.Println(err)
@@ -104,7 +107,7 @@ func (r *Room) TargetedUpdate(player string, update Update) {
 	}
 }
 
-func (r *Room) ReshufflePiles() error {
+func (r *Room) CyclePiles() error {
 	r.DrawPile = r.DiscardPile
 	r.DrawPile.Shuffle()
 	r.DiscardPile = make(Deck, 0)
@@ -121,6 +124,7 @@ func (r *Room) DiscardTopCard() error {
 }
 
 func (r *Room) Deal() error {
+	r.DrawPile.Shuffle()
 	for i := 0; i < 4; i++ {
 		for pid := range r.Players {
 			card, err := r.DrawPile.Draw()

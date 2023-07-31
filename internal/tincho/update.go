@@ -5,8 +5,7 @@ import "encoding/json"
 type UpdateType string
 
 const (
-	UpdatePlayerJoined       UpdateType = "player_joined"
-	UpdatePlayerLeft         UpdateType = "player_left"
+	UpdatePlayersChanged     UpdateType = "players_changed"
 	UpdateTypeStart          UpdateType = "start"
 	UpdateTypeDraw           UpdateType = "draw"
 	UpdateTypePeekOwnCard    UpdateType = "effect_peek_own"
