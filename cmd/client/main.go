@@ -53,7 +53,7 @@ func main() {
 
 	// read from websocket into channel
 	done := make(chan struct{})
-	recieved := make(chan any)
+	recieved := make(chan tincho.Update)
 	go func() {
 		defer close(done)
 		for {
@@ -84,7 +84,7 @@ func main() {
 			}
 			log.Println("sent: ", cmd)
 		case rcvd := <-recieved:
-			log.Printf("recieved: %+v\n", rcvd)
+			logUpdate(rcvd)
 		case <-interrupt:
 			log.Println("interrupt")
 
@@ -101,6 +101,20 @@ func main() {
 			}
 			return
 		}
+	}
+}
+
+func logUpdate(update tincho.Update) {
+	switch update.Type {
+	case tincho.UpdateTypeStart:
+		var data tincho.UpdateStartData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			log.Println(err)
+		}
+		log.Printf("game started\n")
+	default:
+		log.Printf("unknown update type: %s\n", update.Type)
+		log.Printf("data: %+v\n", update)
 	}
 }
 
