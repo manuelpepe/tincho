@@ -18,6 +18,15 @@ type Player struct {
 	Updates chan Update
 }
 
+func NewPlayer(id string, socket *websocket.Conn) Player {
+	return Player{
+		ID:      id,
+		Hand:    make(Hand, 0),
+		socket:  socket,
+		Updates: make(chan Update),
+	}
+}
+
 // Game is the object keeping state of all games.
 // Contains a map of rooms, where the key is the room ID.
 type Game struct {

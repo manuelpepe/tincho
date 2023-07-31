@@ -70,8 +70,5 @@ func upgradeToPlayer(w http.ResponseWriter, r *http.Request, playerID string) (P
 	if err != nil {
 		return Player{}, fmt.Errorf("error upgrading connection: %w", err)
 	}
-	return Player{
-		ID:     playerID,
-		socket: ws,
-	}, nil
+	return NewPlayer(playerID, ws), nil
 }

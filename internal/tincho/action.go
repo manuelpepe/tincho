@@ -120,7 +120,9 @@ func (r *Room) doDiscard(action Action) error {
 	if err := r.DiscardCard(action.PlayerID, data.CardPosition); err != nil {
 		return fmt.Errorf("DiscardCard: %w", err)
 	}
+	// TODO: Broadcast discard
 	r.PassTurn()
+	// TODO: Broadcast pass turn
 	return nil
 }
 
@@ -151,7 +153,6 @@ func (r *Room) doCut(action Action) error {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
 	r.Cut(data.WithCount, data.Declared)
-	r.PassTurn()
 	return nil
 }
 

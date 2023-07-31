@@ -25,16 +25,20 @@ type Room struct {
 
 	// index of the player whose turn it is
 	CurrentTurn int
+
+	// channel used to update goroutine state
+	PlayersChanged chan []Player
 }
 
 func NewRoom(roomID string) Room {
 	return Room{
-		Context:     context.Background(),
-		ID:          roomID,
-		Playing:     false,
-		DrawPile:    NewDeck(),
-		DiscardPile: make(Deck, 0),
-		Actions:     make(chan Action),
+		Context:        context.Background(),
+		ID:             roomID,
+		Playing:        false,
+		DrawPile:       NewDeck(),
+		DiscardPile:    make(Deck, 0),
+		Actions:        make(chan Action),
+		PlayersChanged: make(chan []Player),
 	}
 }
 
@@ -42,6 +46,8 @@ func NewRoom(roomID string) Room {
 func (r *Room) Start() {
 	for {
 		select {
+		case players := <-r.PlayersChanged:
+			r.Players = players
 		case action := <-r.Actions:
 			fmt.Printf("Recieved: %+v\n", action)
 			r.doAction(action)
@@ -136,8 +142,9 @@ func (r *Room) AddPlayer(p Player) error {
 		return fmt.Errorf("%w: %s in %s", ErrPlayerAlreadyInRoom, p.ID, r.ID)
 	}
 	r.Players = append(r.Players, p)
-	go r.watchPlayer(p)
-	go r.updatePlayer(p)
+	r.PlayersChanged <- r.Players
+	go r.watchPlayer(&p)
+	go r.updatePlayer(&p)
 	return nil
 }
 
@@ -151,15 +158,15 @@ func (r *Room) GetPlayer(playerID string) (Player, bool) {
 }
 
 // watchPlayer functions as a goroutine that watches for messages from a given player.
-func (r *Room) watchPlayer(player Player) {
-	log.Printf("Watching player %s on room %s", player.ID, r.ID)
+func (r *Room) watchPlayer(player *Player) {
+	log.Printf("Watching player %+v on room %s", player, r.ID)
 	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	for {
 		select {
 		case <-tick.C:
 			_, message, err := player.socket.ReadMessage()
 			if err != nil {
-				log.Println(err)
+				log.Printf("Error reading message from player %s: %s", player.ID, err)
 				return
 			}
 			var action Action
@@ -178,7 +185,7 @@ func (r *Room) watchPlayer(player Player) {
 }
 
 // updatePlayer functions as a goroutine that sends updates to a given player.
-func (r *Room) updatePlayer(player Player) {
+func (r *Room) updatePlayer(player *Player) {
 	log.Printf("Updating player %s on room %s", player.ID, r.ID)
 	for {
 		select {
