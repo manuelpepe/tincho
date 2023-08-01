@@ -13,6 +13,7 @@ var ErrGameAlreadyStarted = errors.New("game already started")
 
 type Player struct {
 	ID      string          `json:"id"`
+	Points  int             `json:"points"`
 	Hand    Hand            `json:"-"`
 	socket  *websocket.Conn `json:"-"`
 	Updates chan Update     `json:"-"`
@@ -24,6 +25,7 @@ func NewPlayer(id string, socket *websocket.Conn) Player {
 		Hand:    make(Hand, 0),
 		socket:  socket,
 		Updates: make(chan Update),
+		Points:  0,
 	}
 }
 

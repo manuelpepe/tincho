@@ -194,8 +194,75 @@ func (r *Room) doCut(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	r.Cut(data.WithCount, data.Declared)
+	player, exists := r.GetPlayer(action.PlayerID)
+	if !exists {
+		return fmt.Errorf("Unkown player: %s", action.PlayerID)
+	}
+	pointsForCutter, err := r.Cut(player, data.WithCount, data.Declared)
+	if err != nil {
+		return fmt.Errorf("Cut: %w", err)
+	}
+	r.updatePlayerPoints(player, pointsForCutter)
+	if err := r.broadcastCut(player, data.WithCount, data.Declared); err != nil {
+		return fmt.Errorf("broadcastCut: %w", err)
+	}
+	if r.IsWinConditionMet() {
+		r.BroadcastUpdate(Update{Type: UpdateTypeEndGame})
+	}
 	return nil
 }
 
-func (r *Room) Cut(withCount bool, decaled int) {}
+func (r *Room) Cut(player Player, withCount bool, declared int) (int, error) {
+	// check player has the lowest hand
+	playerSum := player.Hand.Sum()
+	for _, p := range r.Players {
+		if p.ID != player.ID && p.Hand.Sum() <= playerSum {
+			return playerSum + 20, nil // absolute fail
+		}
+	}
+	if !withCount {
+		return 0, nil // wins
+	}
+	if declared == playerSum {
+		return -10, nil // wins + bonus
+	}
+	return playerSum + 10, nil // loss + bonus
+}
+
+func (r *Room) updatePlayerPoints(winner Player, pointsForWinner int) {
+	for _, p := range r.Players {
+		var value int
+		if p.ID == winner.ID {
+			value = pointsForWinner
+		} else {
+			value = winner.Hand.Sum()
+		}
+		p.Points += value
+	}
+}
+
+func (r *Room) broadcastCut(player Player, withCount bool, declared int) error {
+	updateData, err := json.Marshal(UpdateCutData{
+		WithCount: withCount,
+		Declared:  declared,
+		Player:    player.ID,
+		Players:   r.Players,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeCut,
+		Data: json.RawMessage(updateData),
+	})
+	return nil
+}
+
+func (r *Room) IsWinConditionMet() bool {
+	for _, p := range r.Players {
+		if p.Points > 100 {
+			return true
+		}
+	}
+	return false
+}

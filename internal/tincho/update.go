@@ -62,10 +62,10 @@ type UpdateDiscardData struct {
 const UpdateTypeCut UpdateType = "cut"
 
 type UpdateCutData struct {
-	WithCount bool   `json:"withCount"`
-	Declared  int    `json:"declared"`
-	Success   bool   `json:"success"`
-	Player    string `json:"player"`
+	WithCount bool     `json:"withCount"`
+	Declared  int      `json:"declared"`
+	Player    string   `json:"player"`
+	Players   []Player `json:"players"`
 }
 
 const UpdateTypeShuffledPiles UpdateType = "shuffled_piles"
@@ -81,3 +81,5 @@ const UpdateTypeTurn UpdateType = "turn"
 type UpdateTurnData struct {
 	Player string `json:"player"`
 }
+
+const UpdateTypeEndGame UpdateType = "end_game"
