@@ -59,26 +59,33 @@ func (r *Room) Start() {
 }
 
 func (r *Room) doAction(action Action) {
-	// TODO: Check action is performed by the player whose turn it is
+	if action.PlayerID != r.Players[r.CurrentTurn].ID {
+		log.Printf("Player %s tried to perform action %s out of turn", action.PlayerID, action.Type)
+		return
+	}
 	switch action.Type {
 	case ActionStart:
 		if err := r.doStartGame(action); err != nil {
 			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionDraw:
 		if err := r.doDraw(action); err != nil {
 			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionDiscard:
 		if err := r.doDiscard(action); err != nil {
 			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionCut:
 		if err := r.doCut(action); err != nil {
 			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionPeekOwnCard:
@@ -113,6 +120,20 @@ func (r *Room) TargetedUpdate(player string, update Update) {
 			return
 		}
 	}
+}
+
+func (r *Room) TargetedError(player string, err error) {
+	data, err := json.Marshal(UpdateErrorData{
+		Message: err.Error(),
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	r.TargetedUpdate(player, Update{
+		Type: UpdateTypeError,
+		Data: data,
+	})
 }
 
 func (r *Room) CyclePiles() error {

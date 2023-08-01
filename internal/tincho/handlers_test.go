@@ -48,18 +48,31 @@ func TestHandlers_BasicGame(t *testing.T) {
 	defer ws1.Close()
 	defer ws2.Close()
 
+	// p1 starts game
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionStart}))
 	u1 := assertRecieved(t, ws1, UpdateTypeStartRound)
 	u2 := assertRecieved(t, ws2, UpdateTypeStartRound)
 	assertDataMatches(t, u1, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
 	assertDataMatches(t, u2, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
 
-	data := ActionDrawData{Source: DrawSourcePile}
-	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionDraw, Data: safeMarshal(t, data)}))
+	// p1 draws
+	assert.NoError(t, ws1.WriteJSON(Action{
+		Type: ActionDraw,
+		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
 	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Card: g.rooms[0].DrawPile[8]})
 	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile})
+
+	// p1 tries to draw again and fails
+	assert.NoError(t, ws1.WriteJSON(Action{
+		Type: ActionDraw,
+		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+	}))
+	u1 = assertRecieved(t, ws1, UpdateTypeError)
+	assertDataMatches(t, u1, UpdateErrorData{Message: ErrPendingDiscard.Error()})
+
 }
 
 func safeMarshal(t *testing.T, v interface{}) []byte {

@@ -2,6 +2,7 @@ package tincho
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -45,6 +46,8 @@ type ActionCutData struct {
 	Declared  int  `json:"declared"`
 }
 
+var ErrPendingDiscard = errors.New("someone needs to discard first")
+
 func (r *Room) PassTurn() {
 	r.CurrentTurn = (r.CurrentTurn + 1) % len(r.Players)
 }
@@ -68,6 +71,9 @@ func (r *Room) doStartGame(action Action) error {
 }
 
 func (r *Room) doDraw(action Action) error {
+	if r.PendingStorage != (Card{}) {
+		return ErrPendingDiscard
+	}
 	var data ActionDrawData
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)

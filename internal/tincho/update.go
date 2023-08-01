@@ -68,3 +68,9 @@ type UpdateCutData struct {
 }
 
 const UpdateShuffledPiles UpdateType = "shuffled_piles"
+
+const UpdateTypeError UpdateType = "error"
+
+type UpdateErrorData struct {
+	Message string `json:"message"`
+}
