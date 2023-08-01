@@ -12,10 +12,10 @@ var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
 type Player struct {
-	ID      string
-	Hand    Hand
-	socket  *websocket.Conn
-	Updates chan Update
+	ID      string          `json:"id"`
+	Hand    Hand            `json:"-"`
+	socket  *websocket.Conn `json:"-"`
+	Updates chan Update     `json:"-"`
 }
 
 func NewPlayer(id string, socket *websocket.Conn) Player {

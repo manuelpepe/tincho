@@ -39,7 +39,7 @@ func TestHandlers_PlayersJoinRoom(t *testing.T) {
 	assert.Equal(t, 2, len(g.rooms[0].Players))
 }
 
-func TestHandlers_GameStarts(t *testing.T) {
+func TestHandlers_BasicGame(t *testing.T) {
 	g, s := NewServer()
 	roomID := g.NewRoom()
 	ws1 := NewSocket(s, "p1", roomID)
@@ -49,15 +49,24 @@ func TestHandlers_GameStarts(t *testing.T) {
 	defer ws2.Close()
 
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionStart}))
+	u1 := assertRecieved(t, ws1, UpdateTypeStartRound)
+	u2 := assertRecieved(t, ws2, UpdateTypeStartRound)
 
+	assertDataMatches(t, u1, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
+	assertDataMatches(t, u2, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
+}
+
+func assertRecieved(t *testing.T, ws *websocket.Conn, updateType UpdateType) Update {
 	var update Update
-	_, message, err := ws1.ReadMessage()
+	_, message, err := ws.ReadMessage()
 	assert.NoError(t, err)
 	assert.NoError(t, json.Unmarshal(message, &update))
-	assert.Equal(t, UpdateTypeStart, update.Type)
+	assert.Equal(t, updateType, update.Type)
+	return update
+}
 
-	_, message, err = ws2.ReadMessage()
-	assert.NoError(t, err)
-	assert.NoError(t, json.Unmarshal(message, &update))
-	assert.Equal(t, UpdateTypeStart, update.Type)
+func assertDataMatches[G any](t *testing.T, update Update, expected G) {
+	var value G
+	assert.NoError(t, json.Unmarshal(update.Data, &value))
+	assert.Equal(t, expected, value)
 }

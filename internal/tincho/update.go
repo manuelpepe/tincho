@@ -5,8 +5,8 @@ import "encoding/json"
 type UpdateType string
 
 const (
-	UpdatePlayersChanged     UpdateType = "players_changed"
-	UpdateTypeStart          UpdateType = "start"
+	UpdateTypePlayersChanged UpdateType = "players_changed"
+	UpdateTypeStartRound     UpdateType = "start_round"
 	UpdateTypeDraw           UpdateType = "draw"
 	UpdateTypePeekOwnCard    UpdateType = "effect_peek_own"
 	UpdateTypePeekCartaAjena UpdateType = "effect_peek_carta_ajena"
@@ -21,15 +21,13 @@ type Update struct {
 	Data json.RawMessage `json:"data"`
 }
 
-type UpdatePlayerJoinedData struct {
-	Player Player `json:"player"`
+type UpdatePlayersChangedData struct {
+	Players []Player `json:"players"`
 }
 
-type UpdatePlayerLeftData struct {
-	Player Player `json:"player"`
+type UpdateStartRoundData struct {
+	Players []Player `json:"players"`
 }
-
-type UpdateStartData struct{}
 
 type UpdateDrawData struct {
 	Source DrawSource `json:"source"`

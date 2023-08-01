@@ -106,8 +106,8 @@ func main() {
 
 func logUpdate(update tincho.Update) {
 	switch update.Type {
-	case tincho.UpdateTypeStart:
-		var data tincho.UpdateStartData
+	case tincho.UpdateTypeStartRound:
+		var data tincho.UpdateStartRoundData
 		if err := json.Unmarshal(update.Data, &data); err != nil {
 			log.Println(err)
 		}

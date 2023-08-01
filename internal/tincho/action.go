@@ -53,7 +53,16 @@ func (r *Room) doStartGame(action Action) error {
 	if err := r.Deal(); err != nil {
 		return fmt.Errorf("Deal: %w", err)
 	}
-	r.BroadcastUpdate(Update{Type: UpdateTypeStart})
+	data, err := json.Marshal(UpdateStartRoundData{
+		Players: r.Players,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeStartRound,
+		Data: json.RawMessage(data),
+	})
 	return nil
 }
 
