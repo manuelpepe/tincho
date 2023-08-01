@@ -7,20 +7,18 @@ import (
 
 type ActionType string
 
-const (
-	ActionStart          ActionType = "start"
-	ActionDraw           ActionType = "draw"
-	ActionPeekOwnCard    ActionType = "effect_peek_own"
-	ActionPeekCartaAjena ActionType = "effect_peek_carta_ajena"
-	ActionSwapCards      ActionType = "effect_swap_card"
-	ActionDiscard        ActionType = "discard"
-	ActionCut            ActionType = "cut"
-)
-
 type Action struct {
 	Type     ActionType      `json:"type"`
 	Data     json.RawMessage `json:"data"`
 	PlayerID string
+}
+
+const ActionStart ActionType = "start"
+
+const ActionDraw ActionType = "draw"
+
+type DrawAction struct {
+	Source DrawSource `json:"source"`
 }
 
 type DrawSource string
@@ -30,14 +28,17 @@ const (
 	DrawSourceDiscard DrawSource = "discard"
 )
 
-type DrawAction struct {
-	Source DrawSource `json:"source"`
-}
+const ActionPeekOwnCard ActionType = "effect_peek_own"
+const ActionPeekCartaAjena ActionType = "effect_peek_carta_ajena"
+const ActionSwapCards ActionType = "effect_swap_card"
+const ActionDiscard ActionType = "discard"
 
 type DiscardAction struct {
 	// cardPosition = -1 means the card pending storage
 	CardPosition int `json:"cardPosition"`
 }
+
+const ActionCut ActionType = "cut"
 
 type CutAction struct {
 	WithCount bool `json:"withCount"`
