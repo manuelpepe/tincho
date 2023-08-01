@@ -58,9 +58,12 @@ func (r *Room) Start() {
 	}
 }
 
+var ErrNotYourTurn = fmt.Errorf("not your turn")
+
 func (r *Room) doAction(action Action) {
 	if action.PlayerID != r.Players[r.CurrentTurn].ID {
 		log.Printf("Player %s tried to perform action %s out of turn", action.PlayerID, action.Type)
+		r.TargetedError(action.PlayerID, ErrNotYourTurn)
 		return
 	}
 	switch action.Type {
