@@ -83,10 +83,10 @@ func (r *Room) doDraw(action Action) error {
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
-	r.BroadcastUpdate(Update{
+	r.BroadcastUpdateExcept(Update{
 		Type: UpdateTypeDraw,
 		Data: json.RawMessage(messageNoInfo),
-	})
+	}, action.PlayerID)
 	return nil
 }
 

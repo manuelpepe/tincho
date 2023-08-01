@@ -98,6 +98,14 @@ func (r *Room) BroadcastUpdate(update Update) {
 	}
 }
 
+func (r *Room) BroadcastUpdateExcept(update Update, player string) {
+	for _, p := range r.Players {
+		if p.ID != player {
+			p.Updates <- update
+		}
+	}
+}
+
 func (r *Room) TargetedUpdate(player string, update Update) {
 	for _, p := range r.Players {
 		if p.ID == player {
