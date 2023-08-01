@@ -54,8 +54,9 @@ type UpdateSwapCardsData struct {
 const UpdateTypeDiscard UpdateType = "discard"
 
 type UpdateDiscardData struct {
-	CardPosition int  `json:"cardPosition"`
-	Card         Card `json:"card"`
+	Player       string `json:"player"`
+	CardPosition int    `json:"cardPosition"`
+	Card         Card   `json:"card"`
 }
 
 const UpdateTypeCut UpdateType = "cut"
@@ -67,10 +68,16 @@ type UpdateCutData struct {
 	Player    string `json:"player"`
 }
 
-const UpdateShuffledPiles UpdateType = "shuffled_piles"
+const UpdateTypeShuffledPiles UpdateType = "shuffled_piles"
 
 const UpdateTypeError UpdateType = "error"
 
 type UpdateErrorData struct {
 	Message string `json:"message"`
+}
+
+const UpdateTypeTurn UpdateType = "turn"
+
+type UpdateTurnData struct {
+	Player string `json:"player"`
 }

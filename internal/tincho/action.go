@@ -48,8 +48,19 @@ type ActionCutData struct {
 
 var ErrPendingDiscard = errors.New("someone needs to discard first")
 
-func (r *Room) PassTurn() {
+func (r *Room) PassTurn() error {
 	r.CurrentTurn = (r.CurrentTurn + 1) % len(r.Players)
+	data, err := json.Marshal(UpdateTurnData{
+		Player: r.Players[r.CurrentTurn].ID,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeTurn,
+		Data: json.RawMessage(data),
+	})
+	return nil
 }
 
 func (r *Room) doStartGame(action Action) error {
@@ -139,9 +150,21 @@ func (r *Room) doDiscard(action Action) error {
 	if err := r.DiscardCard(action.PlayerID, data.CardPosition); err != nil {
 		return fmt.Errorf("DiscardCard: %w", err)
 	}
-	// TODO: Broadcast discard
-	r.PassTurn()
-	// TODO: Broadcast pass turn
+	updateData, err := json.Marshal(UpdateDiscardData{
+		Player:       action.PlayerID,
+		CardPosition: data.CardPosition,
+		Card:         r.DiscardPile[0],
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeDiscard,
+		Data: json.RawMessage(updateData),
+	})
+	if err := r.PassTurn(); err != nil {
+		return fmt.Errorf("PassTurn: %w", err)
+	}
 	return nil
 }
 

@@ -73,6 +73,21 @@ func TestHandlers_BasicGame(t *testing.T) {
 	u1 = assertRecieved(t, ws1, UpdateTypeError)
 	assertDataMatches(t, u1, UpdateErrorData{Message: ErrPendingDiscard.Error()})
 
+	// p1 discards second card
+	assert.NoError(t, ws1.WriteJSON(Action{
+		Type: ActionDiscard,
+		Data: safeMarshal(t, ActionDiscardData{CardPosition: 1}),
+	}))
+	discarded := g.rooms[0].Players[0].Hand[1]
+	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
+	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: discarded})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: discarded})
+
+	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
+	u2 = assertRecieved(t, ws2, UpdateTypeTurn)
+	assertDataMatches(t, u1, UpdateTurnData{Player: "p2"})
+	assertDataMatches(t, u2, UpdateTurnData{Player: "p2"})
 }
 
 func safeMarshal(t *testing.T, v interface{}) []byte {
