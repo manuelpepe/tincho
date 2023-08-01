@@ -17,7 +17,7 @@ const ActionStart ActionType = "start"
 
 const ActionDraw ActionType = "draw"
 
-type DrawAction struct {
+type ActionDrawData struct {
 	Source DrawSource `json:"source"`
 }
 
@@ -33,14 +33,14 @@ const ActionPeekCartaAjena ActionType = "effect_peek_carta_ajena"
 const ActionSwapCards ActionType = "effect_swap_card"
 const ActionDiscard ActionType = "discard"
 
-type DiscardAction struct {
+type ActionDiscardData struct {
 	// cardPosition = -1 means the card pending storage
 	CardPosition int `json:"cardPosition"`
 }
 
 const ActionCut ActionType = "cut"
 
-type CutAction struct {
+type ActionCutData struct {
 	WithCount bool `json:"withCount"`
 	Declared  int  `json:"declared"`
 }
@@ -68,7 +68,7 @@ func (r *Room) doStartGame(action Action) error {
 }
 
 func (r *Room) doDraw(action Action) error {
-	var data DrawAction
+	var data ActionDrawData
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
@@ -76,6 +76,7 @@ func (r *Room) doDraw(action Action) error {
 	if err != nil {
 		return fmt.Errorf("DrawCard: %w", err)
 	}
+	r.PendingStorage = card
 	mesageWithInfo, err := json.Marshal(UpdateDrawData{
 		Source: data.Source,
 		Card:   card,
@@ -110,7 +111,6 @@ func (r *Room) DrawCard(source DrawSource) (Card, error) {
 	if err != nil {
 		return Card{}, fmt.Errorf("drawFromSource: %w", err)
 	}
-	r.PendingStorage = card
 	return card, nil
 }
 
@@ -126,7 +126,7 @@ func (r *Room) drawFromSource(source DrawSource) (Card, error) {
 }
 
 func (r *Room) doDiscard(action Action) error {
-	var data DiscardAction
+	var data ActionDiscardData
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
@@ -161,7 +161,7 @@ func (r *Room) DiscardCard(playerID string, card int) error {
 }
 
 func (r *Room) doCut(action Action) error {
-	var data CutAction
+	var data ActionCutData
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}

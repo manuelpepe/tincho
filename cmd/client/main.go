@@ -135,19 +135,19 @@ func parse(cmd string) []byte {
 		data = nil
 	case "draw":
 		action = tincho.Action{Type: tincho.ActionDraw}
-		data = tincho.DrawAction{Source: tincho.DrawSourcePile}
+		data = tincho.ActionDrawData{Source: tincho.DrawSourcePile}
 	case "disc 0":
 		action = tincho.Action{Type: tincho.ActionDiscard}
-		data = tincho.DiscardAction{CardPosition: 0}
+		data = tincho.ActionDiscardData{CardPosition: 0}
 	case "disc 1":
 		action = tincho.Action{Type: tincho.ActionDiscard}
-		data = tincho.DiscardAction{CardPosition: 1}
+		data = tincho.ActionDiscardData{CardPosition: 1}
 	case "disc 2":
 		action = tincho.Action{Type: tincho.ActionDiscard}
-		data = tincho.DiscardAction{CardPosition: 2}
+		data = tincho.ActionDiscardData{CardPosition: 2}
 	case "disc 3":
 		action = tincho.Action{Type: tincho.ActionDiscard}
-		data = tincho.DiscardAction{CardPosition: 3}
+		data = tincho.ActionDiscardData{CardPosition: 3}
 	default:
 		return nil
 	}
