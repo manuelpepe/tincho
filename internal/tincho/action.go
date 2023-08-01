@@ -48,8 +48,11 @@ type ActionCutData struct {
 
 var ErrPendingDiscard = errors.New("someone needs to discard first")
 
-func (r *Room) PassTurn() error {
+func (r *Room) PassTurn() {
 	r.CurrentTurn = (r.CurrentTurn + 1) % len(r.Players)
+}
+
+func (r *Room) broadcastPassTurn() error {
 	data, err := json.Marshal(UpdateTurnData{
 		Player: r.Players[r.CurrentTurn].ID,
 	})
@@ -94,27 +97,10 @@ func (r *Room) doDraw(action Action) error {
 		return fmt.Errorf("DrawCard: %w", err)
 	}
 	r.PendingStorage = card
-	mesageWithInfo, err := json.Marshal(UpdateDrawData{
-		Source: data.Source,
-		Card:   card,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	r.PendingEffect = r.getCardEffect(card)
+	if err := r.broadcastDraw(action, data); err != nil {
+		return fmt.Errorf("broadcastDraw: %w", err)
 	}
-	r.TargetedUpdate(action.PlayerID, Update{
-		Type: UpdateTypeDraw,
-		Data: json.RawMessage(mesageWithInfo),
-	})
-	messageNoInfo, err := json.Marshal(UpdateDrawData{
-		Source: data.Source,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.BroadcastUpdateExcept(Update{
-		Type: UpdateTypeDraw,
-		Data: json.RawMessage(messageNoInfo),
-	}, action.PlayerID)
 	return nil
 }
 
@@ -142,6 +128,46 @@ func (r *Room) drawFromSource(source DrawSource) (Card, error) {
 	}
 }
 
+func (r *Room) getCardEffect(card Card) CardEffect {
+	switch card.Value {
+	case 7:
+		return CardEffectPeekOwnCard
+	case 8:
+		return CardEffectPeekCartaAjena
+	case 9:
+		return CardEffectSwapCards
+	default:
+		return CardEffectNone
+	}
+}
+
+func (r *Room) broadcastDraw(action Action, data ActionDrawData) error {
+	mesageWithInfo, err := json.Marshal(UpdateDrawData{
+		Source: data.Source,
+		Card:   r.PendingStorage,
+		Effect: r.PendingEffect,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.TargetedUpdate(action.PlayerID, Update{
+		Type: UpdateTypeDraw,
+		Data: json.RawMessage(mesageWithInfo),
+	})
+	messageNoInfo, err := json.Marshal(UpdateDrawData{
+		Source: data.Source,
+		Effect: r.PendingEffect,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdateExcept(Update{
+		Type: UpdateTypeDraw,
+		Data: json.RawMessage(messageNoInfo),
+	}, action.PlayerID)
+	return nil
+}
+
 func (r *Room) doDiscard(action Action) error {
 	var data ActionDiscardData
 	if err := json.Unmarshal(action.Data, &data); err != nil {
@@ -150,6 +176,38 @@ func (r *Room) doDiscard(action Action) error {
 	if err := r.DiscardCard(action.PlayerID, data.CardPosition); err != nil {
 		return fmt.Errorf("DiscardCard: %w", err)
 	}
+	if err := r.broadcastDiscard(action, data); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
+	}
+	r.PassTurn()
+	if err := r.broadcastPassTurn(); err != nil {
+		return fmt.Errorf("PassTurn: %w", err)
+	}
+	return nil
+}
+
+func (r *Room) DiscardCard(playerID string, card int) error {
+	if card == -1 {
+		r.DiscardPile = append(r.DiscardPile, r.PendingStorage)
+		r.PendingStorage = Card{}
+		r.PendingEffect = CardEffectNone
+		return nil
+	}
+	player, exists := r.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("Unkown player: %s", playerID)
+	}
+	if card < -1 || card >= len(player.Hand) {
+		return fmt.Errorf("invalid card position: %d", card)
+	}
+	r.DiscardPile = append([]Card{player.Hand[card]}, r.DiscardPile...)
+	player.Hand[card] = r.PendingStorage
+	r.PendingStorage = Card{}
+	r.PendingEffect = CardEffectNone
+	return nil
+}
+
+func (r *Room) broadcastDiscard(action Action, data ActionDiscardData) error {
 	updateData, err := json.Marshal(UpdateDiscardData{
 		Player:       action.PlayerID,
 		CardPosition: data.CardPosition,
@@ -162,30 +220,6 @@ func (r *Room) doDiscard(action Action) error {
 		Type: UpdateTypeDiscard,
 		Data: json.RawMessage(updateData),
 	})
-	if err := r.PassTurn(); err != nil {
-		return fmt.Errorf("PassTurn: %w", err)
-	}
-	return nil
-}
-
-func (r *Room) DiscardCard(playerID string, card int) error {
-	if card == -1 {
-		r.DiscardPile = append(r.DiscardPile, r.PendingStorage)
-		r.PendingStorage = Card{}
-		return nil
-	}
-	player, exists := r.GetPlayer(playerID)
-	if !exists {
-		return fmt.Errorf("Unkown player: %s", playerID)
-	}
-	if card < -1 || card >= len(player.Hand) {
-		return fmt.Errorf("invalid card position: %d", card)
-	}
-	// add card to top of start of discard pile
-	r.DiscardPile = append([]Card{player.Hand[card]}, r.DiscardPile...)
-	// remove card from hand and replace with stored card
-	player.Hand[card] = r.PendingStorage
-	r.PendingStorage = Card{}
 	return nil
 }
 

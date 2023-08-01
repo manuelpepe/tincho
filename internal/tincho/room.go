@@ -20,6 +20,9 @@ type Room struct {
 	// the last card drawn that has not been stored into a player's hand
 	PendingStorage Card
 
+	// effect pending completion, if any
+	PendingEffect CardEffect
+
 	// actions recieved from all players
 	Actions chan Action
 

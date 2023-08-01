@@ -26,6 +26,7 @@ const UpdateTypeDraw UpdateType = "draw"
 type UpdateDrawData struct {
 	Source DrawSource `json:"source"`
 	Card   Card       `json:"card"`
+	Effect CardEffect `json:"effect"`
 }
 
 const UpdateTypePeekOwnCard UpdateType = "effect_peek_own"

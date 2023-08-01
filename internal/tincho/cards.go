@@ -98,3 +98,12 @@ func (h Hand) Sum() int {
 	}
 	return sum
 }
+
+type CardEffect string
+
+const (
+	CardEffectNone           CardEffect = "none"
+	CardEffectPeekOwnCard    CardEffect = "peek_own"
+	CardEffectPeekCartaAjena CardEffect = "peek_carta_ajena"
+	CardEffectSwapCards      CardEffect = "swap_card"
+)
