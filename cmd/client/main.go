@@ -112,6 +112,14 @@ func logUpdate(update tincho.Update) {
 			log.Println(err)
 		}
 		log.Printf("game started\n")
+	case tincho.UpdateTypeDraw:
+		var data tincho.UpdateDrawData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			log.Println(err)
+		}
+		log.Printf("draw from %s\n", data.Source)
+		log.Printf("card: %+v\n", data.Card)
+
 	default:
 		log.Printf("unknown update type: %s\n", update.Type)
 		log.Printf("data: %+v\n", update)
