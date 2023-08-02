@@ -17,6 +17,8 @@ type Room struct {
 	DrawPile    Deck
 	DiscardPile Deck
 
+	closeChan chan struct{}
+
 	// the last card drawn that has not been stored into a player's hand
 	PendingStorage Card
 
@@ -33,9 +35,9 @@ type Room struct {
 	PlayersChanged chan []Player
 }
 
-func NewRoom(roomID string) Room {
+func NewRoom(ctx context.Context, roomID string) Room {
 	return Room{
-		Context:        context.Background(),
+		Context:        ctx,
 		ID:             roomID,
 		Playing:        false,
 		DrawPile:       NewDeck(),

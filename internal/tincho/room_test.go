@@ -1,13 +1,17 @@
 package tincho
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPlayersJoinRoom(t *testing.T) {
-	room := NewRoom("test")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	room := NewRoom(ctx, "test")
+	go room.Start()
 	player1 := Player{ID: "p1"}
 	player2 := Player{ID: "p2"}
 	assert.Equal(t, len(room.Players), 0)
@@ -20,7 +24,10 @@ func TestPlayersJoinRoom(t *testing.T) {
 
 func TestPlayerDrawsAndDiscards(t *testing.T) {
 	// setup
-	room := NewRoom("test")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	room := NewRoom(ctx, "test")
+	go room.Start()
 	player := Player{ID: "p1"}
 	assert.NoError(t, room.AddPlayer(player))
 	assert.NoError(t, room.Deal())

@@ -1,6 +1,7 @@
 package tincho
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -32,12 +33,14 @@ func NewPlayer(id string, socket *websocket.Conn) Player {
 // Game is the object keeping state of all games.
 // Contains a map of rooms, where the key is the room ID.
 type Game struct {
-	rooms []Room
+	context context.Context
+	rooms   []Room
 }
 
-func NewGame() Game {
+func NewGame(ctx context.Context) Game {
 	return Game{
-		rooms: make([]Room, 0),
+		context: ctx,
+		rooms:   make([]Room, 0),
 	}
 }
 
@@ -51,7 +54,7 @@ func (g *Game) getUnusedID() string {
 
 func (g *Game) NewRoom() string {
 	roomID := g.getUnusedID()
-	room := NewRoom(roomID)
+	room := NewRoom(g.context, roomID)
 	g.rooms = append(g.rooms, room)
 	go room.Start()
 	return roomID

@@ -1,6 +1,7 @@
 package tincho
 
 import (
+	"context"
 	"encoding/json"
 	"net/http/httptest"
 	"strings"
@@ -11,12 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func NewServer() (*Game, *httptest.Server) {
-	game := NewGame()
+func NewServer() (*Game, *httptest.Server, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	game := NewGame(ctx)
 	r := mux.NewRouter()
 	handlers := NewHandlers(&game)
 	r.HandleFunc("/join", handlers.JoinRoom)
-	return &game, httptest.NewServer(r)
+	return &game, httptest.NewServer(r), cancel
 }
 
 func NewSocket(server *httptest.Server, user string, room string) *websocket.Conn {
@@ -29,7 +31,8 @@ func NewSocket(server *httptest.Server, user string, room string) *websocket.Con
 }
 
 func TestHandlers_PlayersJoinRoom(t *testing.T) {
-	g, s := NewServer()
+	g, s, cancel := NewServer()
+	defer cancel()
 	roomID := g.NewRoom()
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
@@ -40,7 +43,8 @@ func TestHandlers_PlayersJoinRoom(t *testing.T) {
 }
 
 func TestHandlers_BasicGame(t *testing.T) {
-	g, s := NewServer()
+	g, s, cancel := NewServer()
+	defer cancel()
 	roomID := g.NewRoom()
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"net/http"
@@ -12,7 +13,9 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	game := tincho.NewGame()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	game := tincho.NewGame(ctx)
 	r := mux.NewRouter()
 	handlers := tincho.NewHandlers(&game)
 	r.HandleFunc("/new", handlers.NewRoom)
