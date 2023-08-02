@@ -95,10 +95,25 @@ func (r *Room) doAction(action Action) {
 			return
 		}
 	case ActionPeekOwnCard:
+		if err := r.doEffectPeekOwnCard(action); err != nil {
+			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
+			return
+		}
 		return
 	case ActionPeekCartaAjena:
+		if err := r.doEffectPeekCartaAjena(action); err != nil {
+			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
+			return
+		}
 		return
 	case ActionSwapCards:
+		if err := r.doEffectSwapCards(action); err != nil {
+			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
+			return
+		}
 		return
 	default:
 		log.Println("unknown action")

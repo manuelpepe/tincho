@@ -30,8 +30,25 @@ const (
 )
 
 const ActionPeekOwnCard ActionType = "effect_peek_own"
+
+type ActionPeekOwnCardData struct {
+	CardPosition int `json:"cardPosition"`
+}
+
 const ActionPeekCartaAjena ActionType = "effect_peek_carta_ajena"
+
+type ActionPeekCartaAjenaData struct {
+	CardPosition int    `json:"cardPosition"`
+	Player       string `json:"player"`
+}
+
 const ActionSwapCards ActionType = "effect_swap_card"
+
+type ActionSwapCardsData struct {
+	CardPositions []int    `json:"cardPositions"`
+	Players       []string `json:"players"`
+}
+
 const ActionDiscard ActionType = "discard"
 
 type ActionDiscardData struct {
@@ -188,7 +205,7 @@ func (r *Room) doDiscard(action Action) error {
 
 func (r *Room) DiscardCard(playerID string, card int) error {
 	if card == -1 {
-		r.DiscardPile = append(r.DiscardPile, r.PendingStorage)
+		r.DiscardPile = append([]Card{r.PendingStorage}, r.DiscardPile...)
 		r.PendingStorage = Card{}
 		r.PendingEffect = CardEffectNone
 		return nil
@@ -299,4 +316,139 @@ func (r *Room) IsWinConditionMet() bool {
 		}
 	}
 	return false
+}
+
+func (r *Room) doEffectPeekOwnCard(action Action) error {
+	if r.PendingEffect != CardEffectPeekOwnCard {
+		return fmt.Errorf("invalid effect: %s", r.PendingEffect)
+	}
+	var data ActionPeekOwnCardData
+	if err := json.Unmarshal(action.Data, &data); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	card, err := r.PeekCardAndDiscardPending(action.PlayerID, data.CardPosition)
+	if err != nil {
+		return fmt.Errorf("PeekCard: %w", err)
+	}
+	if err := r.sendPeekToPlayer(action.PlayerID, action.PlayerID, data.CardPosition, card); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
+	}
+	r.PassTurn()
+	if err := r.broadcastPassTurn(); err != nil {
+		return fmt.Errorf("PassTurn: %w", err)
+	}
+	return nil
+}
+
+func (r *Room) PeekCardAndDiscardPending(playerID string, cardIndex int) (Card, error) {
+	player, exists := r.GetPlayer(playerID)
+	if !exists {
+		return Card{}, fmt.Errorf("Unkown player: %s", playerID)
+	}
+	if cardIndex < 0 || cardIndex >= len(player.Hand) {
+		return Card{}, fmt.Errorf("invalid card position: %d", cardIndex)
+	}
+	r.DiscardPile = append([]Card{r.PendingStorage}, r.DiscardPile...)
+	r.PendingStorage = Card{}
+	r.PendingEffect = CardEffectNone
+	return player.Hand[cardIndex], nil
+}
+
+func (r *Room) sendPeekToPlayer(targetPlayer string, peekedPlayer string, cardIndex int, card Card) error {
+	updateData, err := json.Marshal(UpdatePeekCardData{
+		CardPosition: cardIndex,
+		Card:         card,
+		Player:       peekedPlayer,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.TargetedUpdate(targetPlayer, Update{
+		Type: UpdateTypePeekCard,
+		Data: json.RawMessage(updateData),
+	})
+	return nil
+}
+
+func (r *Room) doEffectPeekCartaAjena(action Action) error {
+	if r.PendingEffect != CardEffectPeekCartaAjena {
+		return fmt.Errorf("invalid effect: %s", r.PendingEffect)
+	}
+	var data ActionPeekCartaAjenaData
+	if err := json.Unmarshal(action.Data, &data); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	card, err := r.PeekCardAndDiscardPending(data.Player, data.CardPosition)
+	if err != nil {
+		return fmt.Errorf("PeekCard: %w", err)
+	}
+	if err := r.sendPeekToPlayer(action.PlayerID, data.Player, data.CardPosition, card); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
+	}
+	r.PassTurn()
+	if err := r.broadcastPassTurn(); err != nil {
+		return fmt.Errorf("PassTurn: %w", err)
+	}
+	return nil
+}
+
+func (r *Room) doEffectSwapCards(action Action) error {
+	if r.PendingEffect != CardEffectSwapCards {
+		return fmt.Errorf("invalid effect: %s", r.PendingEffect)
+	}
+	var data ActionSwapCardsData
+	if err := json.Unmarshal(action.Data, &data); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	if err := r.SwapCards(data.Players, data.CardPositions); err != nil {
+		return fmt.Errorf("SwapCards: %w", err)
+	}
+	if err := r.broadcastSwapCards(data.Players, data.CardPositions); err != nil {
+		return fmt.Errorf("broadcastSwapCards: %w", err)
+	}
+	r.PassTurn()
+	if err := r.broadcastPassTurn(); err != nil {
+		return fmt.Errorf("PassTurn: %w", err)
+	}
+	return nil
+}
+
+func (r *Room) SwapCards(players []string, cardPositions []int) error {
+	if len(players) != 2 {
+		return fmt.Errorf("invalid number of players: %d", len(players))
+	}
+	if len(cardPositions) != 2 {
+		return fmt.Errorf("invalid number of cards: %d", len(cardPositions))
+	}
+	player1, exists := r.GetPlayer(players[0])
+	if !exists {
+		return fmt.Errorf("Unkown player: %s", players[0])
+	}
+	player2, exists := r.GetPlayer(players[1])
+	if !exists {
+		return fmt.Errorf("Unkown player: %s", players[1])
+	}
+	if cardPositions[0] < 0 || cardPositions[0] >= len(player1.Hand) {
+		return fmt.Errorf("invalid card position: %d", cardPositions[0])
+	}
+	if cardPositions[1] < 0 || cardPositions[1] >= len(player2.Hand) {
+		return fmt.Errorf("invalid card position: %d", cardPositions[1])
+	}
+	player1.Hand[cardPositions[0]], player2.Hand[cardPositions[1]] = player2.Hand[cardPositions[1]], player1.Hand[cardPositions[0]]
+	return nil
+}
+
+func (r *Room) broadcastSwapCards(players []string, cardPositions []int) error {
+	updateData, err := json.Marshal(UpdateSwapCardsData{
+		CardPositions: cardPositions,
+		Players:       players,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeSwapCards,
+		Data: json.RawMessage(updateData),
+	})
+	return nil
 }

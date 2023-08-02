@@ -62,8 +62,8 @@ func TestHandlers_BasicGame(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Card: g.rooms[0].DrawPile[8]})
-	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile})
+	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone, Card: g.rooms[0].DrawPile[8]})
+	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone})
 
 	// p1 tries to draw again and fails
 	assert.NoError(t, ws1.WriteJSON(Action{
@@ -113,8 +113,8 @@ func TestHandlers_BasicGame(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile})
-	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Card: g.rooms[0].DrawPile[9]})
+	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone})
+	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone, Card: g.rooms[0].DrawPile[9]})
 
 }
 

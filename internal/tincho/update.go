@@ -29,17 +29,9 @@ type UpdateDrawData struct {
 	Effect CardEffect `json:"effect"`
 }
 
-const UpdateTypePeekOwnCard UpdateType = "effect_peek_own"
+const UpdateTypePeekCard UpdateType = "effect_peek"
 
-type UpdatePeekOwnCardData struct {
-	CardPosition int    `json:"cardPosition"`
-	Card         Card   `json:"card"`
-	Player       string `json:"player"`
-}
-
-const UpdateTypePeekCartaAjena UpdateType = "effect_peek_carta_ajena"
-
-type UpdatePeekCartaAjenaData struct {
+type UpdatePeekCardData struct {
 	CardPosition int    `json:"cardPosition"`
 	Card         Card   `json:"card"`
 	Player       string `json:"player"`
