@@ -35,12 +35,12 @@ type Room struct {
 	PlayersChanged chan []Player
 }
 
-func NewRoom(ctx context.Context, roomID string) Room {
+func NewRoomWithDeck(ctx context.Context, roomID string, deck Deck) Room {
 	return Room{
 		Context:        ctx,
 		ID:             roomID,
 		Playing:        false,
-		DrawPile:       NewDeck(),
+		DrawPile:       deck,
 		DiscardPile:    make(Deck, 0),
 		Actions:        make(chan Action),
 		PlayersChanged: make(chan []Player),
@@ -66,7 +66,7 @@ func (r *Room) Start() {
 var ErrNotYourTurn = fmt.Errorf("not your turn")
 
 func (r *Room) doAction(action Action) {
-	if action.PlayerID != r.Players[r.CurrentTurn].ID {
+	if r.Playing && action.PlayerID != r.Players[r.CurrentTurn].ID {
 		log.Printf("Player %s tried to perform action %s out of turn", action.PlayerID, action.Type)
 		r.TargetedError(action.PlayerID, ErrNotYourTurn)
 		return
@@ -74,6 +74,12 @@ func (r *Room) doAction(action Action) {
 	switch action.Type {
 	case ActionStart:
 		if err := r.doStartGame(action); err != nil {
+			log.Println(err)
+			r.TargetedError(action.PlayerID, err)
+			return
+		}
+	case ActionFirstPeek:
+		if err := r.doPeekTwo(action); err != nil {
 			log.Println(err)
 			r.TargetedError(action.PlayerID, err)
 			return
@@ -176,9 +182,8 @@ func (r *Room) DiscardTopCard() error {
 }
 
 func (r *Room) Deal() error {
-	r.DrawPile.Shuffle()
-	for i := 0; i < 4; i++ {
-		for pid := range r.Players {
+	for pid := range r.Players {
+		for i := 0; i < 4; i++ {
 			card, err := r.DrawPile.Draw()
 			if err != nil {
 				return err
@@ -246,7 +251,7 @@ func (r *Room) updatePlayer(player *Player) {
 	for {
 		select {
 		case update := <-player.Updates:
-			log.Printf("Sending update to player %s: %+v", player.ID, update)
+			log.Printf("Sending update to player %s: {Type:%s, Data:\"%s\"}", player.ID, update.Type, update.Data)
 			if err := player.socket.WriteJSON(update); err != nil {
 				log.Println(err)
 				return

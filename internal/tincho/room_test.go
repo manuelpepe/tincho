@@ -10,7 +10,8 @@ import (
 func TestPlayersJoinRoom(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	room := NewRoom(ctx, "test")
+	deck := NewDeck()
+	room := NewRoomWithDeck(ctx, "test", deck)
 	go room.Start()
 	player1 := Player{ID: "p1"}
 	player2 := Player{ID: "p2"}
@@ -26,7 +27,8 @@ func TestPlayerDrawsAndDiscards(t *testing.T) {
 	// setup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	room := NewRoom(ctx, "test")
+	deck := NewDeck()
+	room := NewRoomWithDeck(ctx, "test", deck)
 	go room.Start()
 	player := Player{ID: "p1"}
 	assert.NoError(t, room.AddPlayer(player))
@@ -34,10 +36,11 @@ func TestPlayerDrawsAndDiscards(t *testing.T) {
 	startDrawLen := len(room.DrawPile)
 
 	// draw
+	expected := room.DrawPile[0]
 	card, err := room.DrawCard(DrawSourcePile)
 	assert.NoError(t, err, "draw card")
 	assert.Equal(t, startDrawLen-1, len(room.DrawPile), "draw pile length")
-	assert.Equal(t, room.PendingStorage, card, "pending storage")
+	assert.Equal(t, expected, card, "pending storage")
 
 	// discard drawn card
 	assert.NoError(t, room.DiscardCard(player.ID, -1), "discard drawn card")
@@ -45,10 +48,11 @@ func TestPlayerDrawsAndDiscards(t *testing.T) {
 	assert.Equal(t, card, room.DiscardPile[0], "correct card discarded from draw")
 
 	// draw again
+	expected = room.DrawPile[0]
 	new_card, err := room.DrawCard(DrawSourcePile)
 	assert.NoError(t, err)
 	assert.Equal(t, startDrawLen-2, len(room.DrawPile))
-	assert.Equal(t, room.PendingStorage, new_card)
+	assert.Equal(t, expected, new_card)
 	assert.NotEqual(t, card, new_card)
 
 	// store card and discard from hand

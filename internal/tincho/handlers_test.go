@@ -45,7 +45,8 @@ func TestHandlers_PlayersJoinRoom(t *testing.T) {
 func TestHandlers_BasicGame(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
-	roomID := g.NewRoom()
+	deck := NewDeck()
+	roomID := g.NewRoomWithDeck(deck)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
 	defer s.Close()
@@ -54,8 +55,34 @@ func TestHandlers_BasicGame(t *testing.T) {
 
 	// p1 starts game
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionStart}))
-	u1 := assertRecieved(t, ws1, UpdateTypeStartRound)
-	u2 := assertRecieved(t, ws2, UpdateTypeStartRound)
+
+	// both players prompted to peek
+	u1 := assertRecieved(t, ws1, UpdateTypePendingFirstPeek)
+	u2 := assertRecieved(t, ws2, UpdateTypePendingFirstPeek)
+
+	// p1 peeks
+	assert.NoError(t, ws1.WriteJSON(Action{
+		Type: ActionFirstPeek,
+		Data: safeMarshal(t, ActionFirstPeekData{Positions: []int{0, 1}}),
+	}))
+	u1 = assertRecieved(t, ws1, UpdateTypePlayerPeeked)
+	u2 = assertRecieved(t, ws2, UpdateTypePlayerPeeked)
+	assertDataMatches(t, u1, UpdatePlayerPeekedData{Player: "p1", Cards: deck[:2]})
+	assertDataMatches(t, u2, UpdatePlayerPeekedData{Player: "p1", Cards: nil})
+
+	// p2 peeks
+	assert.NoError(t, ws2.WriteJSON(Action{
+		Type: ActionFirstPeek,
+		Data: safeMarshal(t, ActionFirstPeekData{Positions: []int{2, 3}}),
+	}))
+	u1 = assertRecieved(t, ws1, UpdateTypePlayerPeeked)
+	u2 = assertRecieved(t, ws2, UpdateTypePlayerPeeked)
+	assertDataMatches(t, u1, UpdatePlayerPeekedData{Player: "p2", Cards: nil})
+	assertDataMatches(t, u2, UpdatePlayerPeekedData{Player: "p2", Cards: deck[6:8]})
+
+	// both recieve game start
+	u1 = assertRecieved(t, ws1, UpdateTypeStartRound)
+	u2 = assertRecieved(t, ws2, UpdateTypeStartRound)
 	assertDataMatches(t, u1, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
 	assertDataMatches(t, u2, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
 
@@ -66,8 +93,8 @@ func TestHandlers_BasicGame(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone, Card: g.rooms[0].DrawPile[8]})
-	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone})
+	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectSwapCards, Card: deck[8]})
+	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectSwapCards})
 
 	// p1 tries to draw again and fails
 	assert.NoError(t, ws1.WriteJSON(Action{

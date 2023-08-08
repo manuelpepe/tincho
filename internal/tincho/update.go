@@ -15,6 +15,15 @@ type UpdatePlayersChangedData struct {
 	Players []Player `json:"players"`
 }
 
+const UpdateTypePendingFirstPeek UpdateType = "pending_first_peek"
+
+const UpdateTypePlayerPeeked UpdateType = "player_peeked"
+
+type UpdatePlayerPeekedData struct {
+	Player string `json:"player"`
+	Cards  []Card `json:"cards"`
+}
+
 const UpdateTypeStartRound UpdateType = "start_round"
 
 type UpdateStartRoundData struct {

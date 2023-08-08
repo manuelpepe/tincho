@@ -13,11 +13,12 @@ var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
 type Player struct {
-	ID      string          `json:"id"`
-	Points  int             `json:"points"`
-	Hand    Hand            `json:"-"`
-	socket  *websocket.Conn `json:"-"`
-	Updates chan Update     `json:"-"`
+	ID               string          `json:"id"`
+	Points           int             `json:"points"`
+	PendingFirstPeek bool            `json:"pending_first_peek"`
+	Hand             Hand            `json:"-"`
+	socket           *websocket.Conn `json:"-"`
+	Updates          chan Update     `json:"-"`
 }
 
 func NewPlayer(id string, socket *websocket.Conn) Player {
@@ -53,8 +54,14 @@ func (g *Game) getUnusedID() string {
 }
 
 func (g *Game) NewRoom() string {
+	deck := NewDeck()
+	deck.Shuffle()
+	return g.NewRoomWithDeck(deck)
+}
+
+func (g *Game) NewRoomWithDeck(deck Deck) string {
 	roomID := g.getUnusedID()
-	room := NewRoom(g.context, roomID)
+	room := NewRoomWithDeck(g.context, roomID, deck)
 	g.rooms = append(g.rooms, room)
 	go room.Start()
 	return roomID

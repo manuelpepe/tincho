@@ -16,6 +16,12 @@ type Action struct {
 
 const ActionStart ActionType = "start"
 
+const ActionFirstPeek ActionType = "first_peek"
+
+type ActionFirstPeekData struct {
+	Positions []int `json:"positions"`
+}
+
 const ActionDraw ActionType = "draw"
 
 type ActionDrawData struct {
@@ -64,6 +70,7 @@ type ActionCutData struct {
 }
 
 var ErrPendingDiscard = errors.New("someone needs to discard first")
+var ErrPlayerNotPendingFirstPeek = errors.New("player not pending first peek")
 
 func (r *Room) PassTurn() {
 	r.CurrentTurn = (r.CurrentTurn + 1) % len(r.Players)
@@ -84,20 +91,94 @@ func (r *Room) broadcastPassTurn() error {
 }
 
 func (r *Room) doStartGame(action Action) error {
-	r.Playing = true
+	r.SetAllPlayersPendingFirstPeek()
 	if err := r.Deal(); err != nil {
 		return fmt.Errorf("Deal: %w", err)
 	}
-	data, err := json.Marshal(UpdateStartRoundData{
-		Players: r.Players,
+	r.BroadcastUpdate(Update{Type: UpdateTypePendingFirstPeek})
+	return nil
+}
+
+func (r *Room) SetAllPlayersPendingFirstPeek() {
+	for i := range r.Players {
+		r.Players[i].PendingFirstPeek = true
+	}
+}
+
+func (r *Room) SetPlayerFirstPeekDone(player string) {
+	for i := range r.Players {
+		if r.Players[i].ID == player {
+			r.Players[i].PendingFirstPeek = false
+			return
+		}
+	}
+}
+
+func (r *Room) AllPlayersFirstPeeked() bool {
+	for _, p := range r.Players {
+		if p.PendingFirstPeek {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Room) doPeekTwo(action Action) error {
+	// register player as ready
+	player, exists := r.GetPlayer(action.PlayerID)
+	if !exists {
+		return fmt.Errorf("Unkown player: %s", action.PlayerID)
+	}
+	if !player.PendingFirstPeek {
+		return fmt.Errorf("%w: %s", ErrPlayerNotPendingFirstPeek, action.PlayerID)
+	}
+	// broadcast UpdateTypePlayerPeeked without cards
+	data, err := json.Marshal(UpdatePlayerPeekedData{
+		Player: action.PlayerID,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeStartRound,
+	r.BroadcastUpdateExcept(Update{
+		Type: UpdateTypePlayerPeeked,
+		Data: json.RawMessage(data),
+	}, action.PlayerID)
+
+	// target UpdateTypePlayerPeeked with cards to player
+	var peekedCards []Card
+	var actionData ActionFirstPeekData
+	if err := json.Unmarshal(action.Data, &actionData); err != nil {
+		return fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	for _, position := range actionData.Positions {
+		peekedCards = append(peekedCards, player.Hand[position])
+	}
+	data, err = json.Marshal(UpdatePlayerPeekedData{
+		Player: action.PlayerID,
+		Cards:  peekedCards,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.TargetedUpdate(action.PlayerID, Update{
+		Type: UpdateTypePlayerPeeked,
 		Data: json.RawMessage(data),
 	})
+	r.SetPlayerFirstPeekDone(action.PlayerID)
+	// if all players are ready, broadcast start
+	if r.AllPlayersFirstPeeked() {
+		r.Playing = true
+		data, err := json.Marshal(UpdateStartRoundData{
+			Players: r.Players,
+		})
+		if err != nil {
+			return fmt.Errorf("json.Marshal: %w", err)
+		}
+		r.BroadcastUpdate(Update{
+			Type: UpdateTypeStartRound,
+			Data: json.RawMessage(data),
+		})
+	}
 	return nil
 }
 
