@@ -66,11 +66,6 @@ func (r *Room) Start() {
 var ErrNotYourTurn = fmt.Errorf("not your turn")
 
 func (r *Room) doAction(action Action) {
-	if r.Playing && action.PlayerID != r.Players[r.CurrentTurn].ID {
-		log.Printf("Player %s tried to perform action %s out of turn", action.PlayerID, action.Type)
-		r.TargetedError(action.PlayerID, ErrNotYourTurn)
-		return
-	}
 	switch action.Type {
 	case ActionStart:
 		if err := r.doStartGame(action); err != nil {
@@ -78,12 +73,21 @@ func (r *Room) doAction(action Action) {
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
+		return
 	case ActionFirstPeek:
 		if err := r.doPeekTwo(action); err != nil {
 			log.Println(err)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
+		return
+	}
+	if !r.Playing || action.PlayerID != r.Players[r.CurrentTurn].ID {
+		log.Printf("Player %s tried to perform action %s out of turn", action.PlayerID, action.Type)
+		r.TargetedError(action.PlayerID, ErrNotYourTurn)
+		return
+	}
+	switch action.Type {
 	case ActionDraw:
 		if err := r.doDraw(action); err != nil {
 			log.Println(err)
