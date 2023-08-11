@@ -38,7 +38,7 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 	for _, room := range h.game.rooms {
 		rooms = append(rooms, RoomInfo{
 			ID:      room.ID,
-			Players: len(room.Players),
+			Players: len(room.state.GetPlayers()),
 		})
 	}
 	json.NewEncoder(w).Encode(rooms)

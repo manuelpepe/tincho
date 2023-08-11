@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -45,6 +47,17 @@ func NewGame(ctx context.Context) Game {
 	}
 }
 
+// Function to generate a random string with a given length
+func generateRandomString(length int) string {
+	chars := "abcdefghijklmnopqrstuvwxyz"
+	rand.Seed(time.Now().UnixNano())
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
+}
+
 func (g *Game) getUnusedID() string {
 	roomID := generateRandomString(6)
 	for exists := true; exists; _, exists = g.GetRoomIndex(roomID) {
@@ -81,8 +94,6 @@ func (g *Game) JoinRoom(roomID string, player Player) error {
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
 	}
-	if err := g.rooms[roomix].AddPlayer(player); err != nil {
-		return fmt.Errorf("JoinRoom: %w", err)
-	}
+	g.rooms[roomix].AddPlayer(player)
 	return nil
 }

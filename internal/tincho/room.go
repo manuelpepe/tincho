@@ -10,40 +10,24 @@ import (
 
 // Room represents an ongoing game and contains all necessary state to represent it.
 type Room struct {
-	Context     context.Context
-	ID          string
-	Players     []Player
-	Playing     bool
-	DrawPile    Deck
-	DiscardPile Deck
-
-	closeChan chan struct{}
-
-	// the last card drawn that has not been stored into a player's hand
-	PendingStorage Card
-
-	// effect pending completion, if any
-	PendingEffect CardEffect
+	Context context.Context
+	ID      string
+	state   *Tincho
 
 	// actions recieved from all players
-	Actions chan Action
-
-	// index of the player whose turn it is
-	CurrentTurn int
+	ActionsChan chan Action
 
 	// channel used to update goroutine state
-	PlayersChanged chan []Player
+	NewPlayersChan chan Player
 }
 
 func NewRoomWithDeck(ctx context.Context, roomID string, deck Deck) Room {
 	return Room{
 		Context:        ctx,
 		ID:             roomID,
-		Playing:        false,
-		DrawPile:       deck,
-		DiscardPile:    make(Deck, 0),
-		Actions:        make(chan Action),
-		PlayersChanged: make(chan []Player),
+		ActionsChan:    make(chan Action),
+		NewPlayersChan: make(chan Player),
+		state:          NewTinchoWithDeck(deck),
 	}
 }
 
@@ -51,10 +35,15 @@ func NewRoomWithDeck(ctx context.Context, roomID string, deck Deck) Room {
 func (r *Room) Start() {
 	for {
 		select {
-		case players := <-r.PlayersChanged:
-			r.Players = players
-		case action := <-r.Actions:
-			fmt.Printf("Recieved: %+v\n", action)
+		case player := <-r.NewPlayersChan:
+			if err := r.state.AddPlayer(player); err != nil {
+				fmt.Printf("tsm.AddPlayer: %s\n", err)
+			}
+			go r.watchPlayer(&player)
+			go r.updatePlayer(&player)
+			fmt.Printf("Player joined #%s: %+v\n", r.ID, player)
+		case action := <-r.ActionsChan:
+			fmt.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
 			r.doAction(action)
 		case <-r.Context.Done():
 			log.Printf("Stopping room %s", r.ID)
@@ -82,8 +71,8 @@ func (r *Room) doAction(action Action) {
 		}
 		return
 	}
-	if !r.Playing || action.PlayerID != r.Players[r.CurrentTurn].ID {
-		log.Printf("Player %s tried to perform action %s out of turn", action.PlayerID, action.Type)
+	if !r.state.playing || action.PlayerID != r.state.PlayerToPlay().ID {
+		log.Printf("Player %s tried to perform action '%s' out of turn", action.PlayerID, action.Type)
 		r.TargetedError(action.PlayerID, ErrNotYourTurn)
 		return
 	}
@@ -133,13 +122,13 @@ func (r *Room) doAction(action Action) {
 }
 
 func (r *Room) BroadcastUpdate(update Update) {
-	for _, player := range r.Players {
+	for _, player := range r.state.GetPlayers() {
 		player.Updates <- update
 	}
 }
 
 func (r *Room) BroadcastUpdateExcept(update Update, player string) {
-	for _, p := range r.Players {
+	for _, p := range r.state.GetPlayers() {
 		if p.ID != player {
 			p.Updates <- update
 		}
@@ -147,7 +136,7 @@ func (r *Room) BroadcastUpdateExcept(update Update, player string) {
 }
 
 func (r *Room) TargetedUpdate(player string, update Update) {
-	for _, p := range r.Players {
+	for _, p := range r.state.GetPlayers() {
 		if p.ID == player {
 			p.Updates <- update
 			return
@@ -169,52 +158,12 @@ func (r *Room) TargetedError(player string, err error) {
 	})
 }
 
-func (r *Room) CyclePiles() error {
-	r.DrawPile = r.DiscardPile
-	r.DrawPile.Shuffle()
-	r.DiscardPile = make(Deck, 0)
-	return r.DiscardTopCard()
-}
-
-func (r *Room) DiscardTopCard() error {
-	card, err := r.DrawPile.Draw()
-	if err != nil {
-		return err
-	}
-	r.DiscardPile = append(r.DiscardPile, card)
-	return nil
-}
-
-func (r *Room) Deal() error {
-	for pid := range r.Players {
-		for i := 0; i < 4; i++ {
-			card, err := r.DrawPile.Draw()
-			if err != nil {
-				return err
-			}
-			r.Players[pid].Hand = append(r.Players[pid].Hand, card)
-		}
-	}
-	return nil
-}
-
-func (r *Room) AddPlayer(p Player) error {
-	// TODO: Implement reconnection with auth
-	if r.Playing {
-		return fmt.Errorf("%w: %s", ErrGameAlreadyStarted, r.ID)
-	}
-	if _, exists := r.GetPlayer(p.ID); exists {
-		return fmt.Errorf("%w: %s in %s", ErrPlayerAlreadyInRoom, p.ID, r.ID)
-	}
-	r.Players = append(r.Players, p)
-	r.PlayersChanged <- r.Players
-	go r.watchPlayer(&p)
-	go r.updatePlayer(&p)
-	return nil
+func (r *Room) AddPlayer(p Player) {
+	r.NewPlayersChan <- p
 }
 
 func (r *Room) GetPlayer(playerID string) (Player, bool) {
-	for _, room := range r.Players {
+	for _, room := range r.state.GetPlayers() {
 		if room.ID == playerID {
 			return room, true
 		}
@@ -240,7 +189,7 @@ func (r *Room) watchPlayer(player *Player) {
 				return // TODO: Prevent disconnect
 			}
 			action.PlayerID = player.ID
-			r.Actions <- action
+			r.ActionsChan <- action
 		case <-r.Context.Done():
 			log.Printf("Stopping watch loop for player %s", player.ID)
 			return

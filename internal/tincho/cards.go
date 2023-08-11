@@ -30,6 +30,19 @@ func (c Card) IsTwelveOfDiamonds() bool {
 	return c.Suit == SuitDiamonds && c.Value == 12
 }
 
+func (c Card) GetEffect() CardEffect {
+	switch c.Value {
+	case 7:
+		return CardEffectPeekOwnCard
+	case 8:
+		return CardEffectPeekCartaAjena
+	case 9:
+		return CardEffectSwapCards
+	default:
+		return CardEffectNone
+	}
+}
+
 type Deck []Card
 type Hand []Card
 
