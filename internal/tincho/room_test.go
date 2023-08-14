@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -14,7 +15,7 @@ import (
 
 func NewServer() (*Game, *httptest.Server, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
-	game := NewGame(ctx)
+	game := NewGame(ctx, GameConfig{MaxRooms: 3, RoomTimeout: 5 * time.Minute})
 	r := mux.NewRouter()
 	handlers := NewHandlers(&game)
 	r.HandleFunc("/join", handlers.JoinRoom)
@@ -30,26 +31,51 @@ func NewSocket(server *httptest.Server, user string, room string) *websocket.Con
 	return ws
 }
 
-func TestHandlers_PlayersJoinRoom(t *testing.T) {
+func TestRoomLimit(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
-	roomID := g.NewRoom()
-	ws1 := NewSocket(s, "p1", roomID)
-	ws2 := NewSocket(s, "p2", roomID)
 	defer s.Close()
-	defer ws1.Close()
-	defer ws2.Close()
-	assert.Equal(t, 2, len(g.rooms[0].state.GetPlayers()))
+	for i := 0; i < 3; i++ {
+		_, err := g.NewRoom()
+		assert.NoError(t, err)
+	}
+	_, err := g.NewRoom()
+	assert.ErrorIs(t, err, ErrRoomsLimitReached)
+	for _, room := range g.rooms {
+		if room != nil {
+			room.Close()
+		}
+	}
+	time.Sleep(1 * time.Second) // wait for rooms to close
+	_, err = g.NewRoom()
+	assert.NoError(t, err)
 }
 
-func TestHandlers_BasicGame(t *testing.T) {
+func TestPlayersJoinRoom(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
-	deck := NewDeck()
-	roomID := g.NewRoomWithDeck(deck)
+	defer s.Close()
+	roomID, err := g.NewRoom()
+	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
+	defer ws1.Close()
+	defer ws2.Close()
+	time.Sleep(1 * time.Second) // wait for connection
+	roomix, exists := g.GetRoomIndex(roomID)
+	assert.True(t, exists)
+	assert.Equal(t, 2, g.rooms[roomix].PlayerCount())
+}
+
+func TestBasicGame(t *testing.T) {
+	g, s, cancel := NewServer()
+	defer cancel()
 	defer s.Close()
+	deck := NewDeck()
+	roomID, err := g.NewRoomWithDeck(deck)
+	assert.NoError(t, err)
+	ws1 := NewSocket(s, "p1", roomID)
+	ws2 := NewSocket(s, "p2", roomID)
 	defer ws1.Close()
 	defer ws2.Close()
 
@@ -109,11 +135,10 @@ func TestHandlers_BasicGame(t *testing.T) {
 		Type: ActionDiscard,
 		Data: safeMarshal(t, ActionDiscardData{CardPosition: 1}),
 	}))
-	discarded := g.rooms[0].state.GetPlayers()[0].Hand[1]
 	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
 	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
-	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: discarded})
-	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: discarded})
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: deck[1]})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: deck[1]})
 
 	// turn changes
 	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
@@ -146,6 +171,42 @@ func TestHandlers_BasicGame(t *testing.T) {
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
 	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone})
 	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone, Card: deck[9]})
+
+	// p2 discards drawn card card
+	assert.NoError(t, ws2.WriteJSON(Action{
+		Type: ActionDiscard,
+		Data: safeMarshal(t, ActionDiscardData{CardPosition: -1}),
+	}))
+	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
+	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p2", CardPosition: -1, Card: deck[9]})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p2", CardPosition: -1, Card: deck[9]})
+
+	// turn changes
+	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
+	u2 = assertRecieved(t, ws2, UpdateTypeTurn)
+	assertDataMatches(t, u1, UpdateTurnData{Player: "p1"})
+	assertDataMatches(t, u2, UpdateTurnData{Player: "p1"})
+
+	// p1 draws
+	assert.NoError(t, ws1.WriteJSON(Action{
+		Type: ActionDraw,
+		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+	}))
+	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
+	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
+	assertDataMatches(t, u1, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone, Card: deck[10]})
+	assertDataMatches(t, u2, UpdateDrawData{Source: DrawSourcePile, Effect: CardEffectNone})
+
+	// p1 discards second card
+	assert.NoError(t, ws1.WriteJSON(Action{
+		Type: ActionDiscard,
+		Data: safeMarshal(t, ActionDiscardData{CardPosition: 1}),
+	}))
+	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
+	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: deck[8]})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardPosition: 1, Card: deck[8]})
 
 }
 

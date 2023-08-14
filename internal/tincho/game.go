@@ -11,6 +11,7 @@ import (
 )
 
 var ErrRoomNotFound = errors.New("room not found")
+var ErrRoomsLimitReached = errors.New("rooms limit reached")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
@@ -33,17 +34,24 @@ func NewPlayer(id string, socket *websocket.Conn) Player {
 	}
 }
 
+type GameConfig struct {
+	MaxRooms    int
+	RoomTimeout time.Duration
+}
+
 // Game is the object keeping state of all games.
 // Contains a map of rooms, where the key is the room ID.
 type Game struct {
 	context context.Context
-	rooms   []Room
+	rooms   []*Room
+	cfg     GameConfig
 }
 
-func NewGame(ctx context.Context) Game {
+func NewGame(ctx context.Context, cfg GameConfig) Game {
 	return Game{
 		context: ctx,
-		rooms:   make([]Room, 0),
+		rooms:   make([]*Room, 0, cfg.MaxRooms),
+		cfg:     cfg,
 	}
 }
 
@@ -66,23 +74,27 @@ func (g *Game) getUnusedID() string {
 	return roomID
 }
 
-func (g *Game) NewRoom() string {
+func (g *Game) NewRoom() (string, error) {
 	deck := NewDeck()
 	deck.Shuffle()
 	return g.NewRoomWithDeck(deck)
 }
 
-func (g *Game) NewRoomWithDeck(deck Deck) string {
+func (g *Game) NewRoomWithDeck(deck Deck) (string, error) {
+	if g.ActiveRooms() >= g.cfg.MaxRooms {
+		return "", ErrRoomsLimitReached
+	}
 	roomID := g.getUnusedID()
-	room := NewRoomWithDeck(g.context, roomID, deck)
-	g.rooms = append(g.rooms, room)
+	ctx, cancel := context.WithTimeout(g.context, g.cfg.RoomTimeout)
+	room := NewRoomWithDeck(ctx, cancel, roomID, deck)
+	g.rooms = append(g.rooms, &room)
 	go room.Start()
-	return roomID
+	return roomID, nil
 }
 
 func (g *Game) GetRoomIndex(roomID string) (int, bool) {
 	for idx, room := range g.rooms {
-		if room.ID == roomID {
+		if room != nil && room.ID == roomID {
 			return idx, true
 		}
 	}
@@ -96,4 +108,27 @@ func (g *Game) JoinRoom(roomID string, player Player) error {
 	}
 	g.rooms[roomix].AddPlayer(player)
 	return nil
+}
+
+func (g *Game) ActiveRooms() int {
+	g.ClearClosedRooms()
+	return len(g.rooms)
+}
+
+func (g *Game) ClearClosedRooms() {
+	toRemove := make([]int, 0)
+	for idx, room := range g.rooms {
+		if room != nil && room.HasClosed() {
+			toRemove = append([]int{idx}, toRemove...)
+		}
+	}
+	for _, idx := range toRemove {
+		g.rooms = unordered_remove(g.rooms, idx)
+	}
+}
+
+func unordered_remove[T any](a []T, i int) []T {
+	a[i] = a[len(a)-1]
+	a = a[:len(a)-1]
+	return a
 }

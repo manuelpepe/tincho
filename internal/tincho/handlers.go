@@ -22,9 +22,14 @@ func NewHandlers(game *Game) Handlers {
 }
 
 func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
-	roomID := h.game.NewRoom()
-	log.Printf("New room created: %s", roomID)
-	w.Write([]byte(roomID))
+	roomID, err := h.game.NewRoom()
+	if err != nil {
+		log.Printf("Error creating room: %s", err)
+		w.Write([]byte(fmt.Sprintf("error: %s", err)))
+	} else {
+		log.Printf("New room created: %s", roomID)
+		w.Write([]byte(roomID))
+	}
 }
 
 type RoomInfo struct {

@@ -227,6 +227,7 @@ func (r *Room) doCut(action Action) error {
 	})
 	if r.state.IsWinConditionMet() {
 		r.BroadcastUpdate(Update{Type: UpdateTypeEndGame})
+		r.Close()
 	}
 	return nil
 }

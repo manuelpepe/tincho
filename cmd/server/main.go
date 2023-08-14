@@ -15,7 +15,10 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	game := tincho.NewGame(ctx)
+	game := tincho.NewGame(ctx, tincho.GameConfig{
+		MaxRooms:    10,
+		RoomTimeout: 60 * time.Minute,
+	})
 	r := mux.NewRouter()
 	handlers := tincho.NewHandlers(&game)
 	r.HandleFunc("/new", handlers.NewRoom)

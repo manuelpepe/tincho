@@ -3,6 +3,7 @@ package tincho
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -10,29 +11,45 @@ import (
 
 // Room represents an ongoing game and contains all necessary state to represent it.
 type Room struct {
-	Context context.Context
-	ID      string
-	state   *Tincho
+	Context   context.Context
+	closeRoom context.CancelFunc
+	ID        string
+	state     *Tincho
 
 	// actions recieved from all players
 	ActionsChan chan Action
 
 	// channel used to update goroutine state
 	NewPlayersChan chan Player
+
+	started bool
+	closed  bool
 }
 
-func NewRoomWithDeck(ctx context.Context, roomID string, deck Deck) Room {
+func NewRoomWithDeck(ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck) Room {
 	return Room{
 		Context:        ctx,
+		closeRoom:      ctxCancel,
 		ID:             roomID,
 		ActionsChan:    make(chan Action),
 		NewPlayersChan: make(chan Player),
 		state:          NewTinchoWithDeck(deck),
+		closed:         false,
 	}
+}
+
+func (r *Room) HasClosed() bool {
+	return r.started && r.closed
+}
+
+func (r *Room) Close() {
+	r.closeRoom()
+	r.closed = true
 }
 
 // Start initiates a goroutine that processes messages from all websocket connections.
 func (r *Room) Start() {
+	r.started = true
 	for {
 		select {
 		case player := <-r.NewPlayersChan:
@@ -47,14 +64,20 @@ func (r *Room) Start() {
 			r.doAction(action)
 		case <-r.Context.Done():
 			log.Printf("Stopping room %s", r.ID)
+			r.Close()
 			return
 		}
 	}
 }
 
 var ErrNotYourTurn = fmt.Errorf("not your turn")
+var ErrActionOnClosedRoom = errors.New("action on closed room")
 
 func (r *Room) doAction(action Action) {
+	if r.HasClosed() {
+		log.Printf("ERR: %s", ErrActionOnClosedRoom)
+		r.TargetedError(action.PlayerID, ErrActionOnClosedRoom)
+	}
 	switch action.Type {
 	case ActionStart:
 		if err := r.doStartGame(action); err != nil {
@@ -171,9 +194,13 @@ func (r *Room) GetPlayer(playerID string) (Player, bool) {
 	return Player{}, false
 }
 
+func (r *Room) PlayerCount() int {
+	return len(r.state.GetPlayers())
+}
+
 // watchPlayer functions as a goroutine that watches for messages from a given player.
 func (r *Room) watchPlayer(player *Player) {
-	log.Printf("Watching player %+v on room %s", player, r.ID)
+	log.Printf("Watching player '%s' on room '%s'", player.ID, r.ID)
 	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	for {
 		select {
