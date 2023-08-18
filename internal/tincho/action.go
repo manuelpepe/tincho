@@ -86,7 +86,16 @@ func (r *Room) doStartGame(action Action) error {
 	if err := r.state.StartGame(); err != nil {
 		return fmt.Errorf("tsm.StartGame: %w", err)
 	}
-	r.BroadcastUpdate(Update{Type: UpdateTypePendingFirstPeek})
+	data, err := json.Marshal(UpdateGameStart{
+		Players: r.state.GetPlayers(),
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeGameStart,
+		Data: json.RawMessage(data),
+	})
 	return nil
 }
 
@@ -124,16 +133,9 @@ func (r *Room) doPeekTwo(action Action) error {
 
 	// if all players are ready, broadcast start
 	if r.state.AllPlayersFirstPeeked() {
-		data, err := json.Marshal(UpdateStartRoundData{
-			Players: r.state.GetPlayers(),
-		})
-		if err != nil {
-			return fmt.Errorf("json.Marshal: %w", err)
+		if err := r.broadcastPassTurn(); err != nil {
+			return fmt.Errorf("broadcastPassTurn: %w", err)
 		}
-		r.BroadcastUpdate(Update{
-			Type: UpdateTypeStartRound,
-			Data: json.RawMessage(data),
-		})
 	}
 	return nil
 }

@@ -79,12 +79,18 @@ func TestBasicGame(t *testing.T) {
 	defer ws1.Close()
 	defer ws2.Close()
 
+	assertRecieved(t, ws1, UpdateTypePlayersChanged)
+	assertRecieved(t, ws1, UpdateTypePlayersChanged)
+	assertRecieved(t, ws2, UpdateTypePlayersChanged)
+
 	// p1 starts game
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionStart}))
 
 	// both players prompted to peek
-	u1 := assertRecieved(t, ws1, UpdateTypePendingFirstPeek)
-	u2 := assertRecieved(t, ws2, UpdateTypePendingFirstPeek)
+	u1 := assertRecieved(t, ws1, UpdateTypeGameStart)
+	u2 := assertRecieved(t, ws2, UpdateTypeGameStart)
+	assertDataMatches(t, u1, UpdateGameStart{Players: []Player{{ID: "p1", PendingFirstPeek: true}, {ID: "p2", PendingFirstPeek: true}}})
+	assertDataMatches(t, u2, UpdateGameStart{Players: []Player{{ID: "p1", PendingFirstPeek: true}, {ID: "p2", PendingFirstPeek: true}}})
 
 	// p1 peeks
 	assert.NoError(t, ws1.WriteJSON(Action{
@@ -107,10 +113,10 @@ func TestBasicGame(t *testing.T) {
 	assertDataMatches(t, u2, UpdatePlayerPeekedData{Player: "p2", Cards: deck[6:8]})
 
 	// both recieve game start
-	u1 = assertRecieved(t, ws1, UpdateTypeStartRound)
-	u2 = assertRecieved(t, ws2, UpdateTypeStartRound)
-	assertDataMatches(t, u1, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
-	assertDataMatches(t, u2, UpdateStartRoundData{Players: []Player{{ID: "p1"}, {ID: "p2"}}})
+	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
+	u2 = assertRecieved(t, ws2, UpdateTypeTurn)
+	assertDataMatches(t, u1, UpdateTurnData{Player: "p1"})
+	assertDataMatches(t, u2, UpdateTurnData{Player: "p1"})
 
 	// p1 draws
 	assert.NoError(t, ws1.WriteJSON(Action{

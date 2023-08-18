@@ -53,11 +53,9 @@ func (r *Room) Start() {
 	for {
 		select {
 		case player := <-r.NewPlayersChan:
-			if err := r.state.AddPlayer(player); err != nil {
-				fmt.Printf("tsm.AddPlayer: %s\n", err)
+			if err := r.addPlayer(player); err != nil {
+				fmt.Printf("r.addPlayer: %s\n", err)
 			}
-			go r.watchPlayer(&player)
-			go r.updatePlayer(&player)
 			fmt.Printf("Player joined #%s: %+v\n", r.ID, player)
 		case action := <-r.ActionsChan:
 			fmt.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
@@ -68,6 +66,26 @@ func (r *Room) Start() {
 			return
 		}
 	}
+}
+
+func (r *Room) addPlayer(player Player) error {
+	if err := r.state.AddPlayer(player); err != nil {
+		return fmt.Errorf("tsm.AddPlayer: %w", err)
+	}
+	go r.watchPlayer(&player)
+	go r.updatePlayer(&player)
+	data, err := json.Marshal(UpdatePlayersChanged{
+		Players: r.state.GetPlayers(),
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	update := Update{
+		Type: UpdateTypePlayersChanged,
+		Data: data,
+	}
+	r.BroadcastUpdate(update)
+	return nil
 }
 
 var ErrNotYourTurn = fmt.Errorf("not your turn")

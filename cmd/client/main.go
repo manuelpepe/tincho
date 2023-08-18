@@ -106,12 +106,6 @@ func main() {
 
 func logUpdate(update tincho.Update) {
 	switch update.Type {
-	case tincho.UpdateTypeStartRound:
-		var data tincho.UpdateStartRoundData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			log.Println(err)
-		}
-		log.Printf("game started\n")
 	case tincho.UpdateTypeDraw:
 		var data tincho.UpdateDrawData
 		if err := json.Unmarshal(update.Data, &data); err != nil {
