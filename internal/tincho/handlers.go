@@ -25,9 +25,11 @@ func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 	roomID, err := h.game.NewRoom()
 	if err != nil {
 		log.Printf("Error creating room: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("error: %s", err)))
 	} else {
 		log.Printf("New room created: %s", roomID)
+		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(roomID))
 	}
 }
@@ -46,25 +48,32 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 			Players: len(room.state.GetPlayers()),
 		})
 	}
-	json.NewEncoder(w).Encode(rooms)
+	if err := json.NewEncoder(w).Encode(rooms); err != nil {
+		log.Printf("Error encoding rooms: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := r.URL.Query().Get("room")
 	playerID := r.URL.Query().Get("player")
 	if playerID == "" || roomID == "" {
-		w.Write([]byte("ERROR"))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("missing attributes"))
 		return
 	}
 	player, err := upgradeToPlayer(w, r, playerID)
 	if err != nil {
 		log.Printf("Error upgrading connection: %s", err)
-		w.Write([]byte("ERROR"))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error upgrading connection"))
 		return
 	}
 	if err := h.game.JoinRoom(roomID, player); err != nil {
 		log.Printf("Error joining room: %s", err)
-		w.Write([]byte("ERROR"))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error joining room"))
 		return
 	}
 	log.Printf("Player %s joined room %s", playerID, roomID)
