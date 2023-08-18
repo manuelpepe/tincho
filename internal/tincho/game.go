@@ -2,6 +2,7 @@ package tincho
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -22,6 +23,20 @@ type Player struct {
 	Hand             Hand            `json:"-"`
 	socket           *websocket.Conn `json:"-"`
 	Updates          chan Update     `json:"-"`
+}
+
+func (p Player) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ID               string `json:"id"`
+		Points           int    `json:"points"`
+		PendingFirstPeek bool   `json:"pending_first_peek"`
+		CardsInHand      int    `json:"cards_in_hand"`
+	}{
+		ID:               p.ID,
+		Points:           p.Points,
+		PendingFirstPeek: p.PendingFirstPeek,
+		CardsInHand:      len(p.Hand),
+	})
 }
 
 func NewPlayer(id string, socket *websocket.Conn) Player {
