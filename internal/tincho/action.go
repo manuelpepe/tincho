@@ -152,6 +152,7 @@ func (r *Room) doDraw(action Action) error {
 
 	// target UpdateTypeDraw with card
 	mesageWithInfo, err := json.Marshal(UpdateDrawData{
+		Player: action.PlayerID,
 		Source: data.Source,
 		Card:   card,
 		Effect: card.GetEffect(),
@@ -166,6 +167,7 @@ func (r *Room) doDraw(action Action) error {
 
 	// broadcast UpdateTypeDraw without card
 	messageNoInfo, err := json.Marshal(UpdateDrawData{
+		Player: action.PlayerID,
 		Source: data.Source,
 		Effect: card.GetEffect(),
 	})

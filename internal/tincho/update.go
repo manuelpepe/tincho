@@ -37,6 +37,7 @@ type UpdateTurnData struct {
 const UpdateTypeDraw UpdateType = "draw"
 
 type UpdateDrawData struct {
+	Player string     `json:"player"`
 	Source DrawSource `json:"source"`
 	Card   Card       `json:"card"`
 	Effect CardEffect `json:"effect"`
