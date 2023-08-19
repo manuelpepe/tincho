@@ -207,8 +207,8 @@ func (t *Tincho) discardCard(player Player, card int) (Card, error) {
 
 // Cut finishes the current round and updates the points for all players.
 func (t *Tincho) Cut(withCount bool, declared int) error {
-	player := &t.players[t.currentTurn]
-	pointsForCutter, err := t.cut(*player, withCount, declared)
+	player := t.players[t.currentTurn]
+	pointsForCutter, err := t.cut(player, withCount, declared)
 	if err != nil {
 		return fmt.Errorf("Cut: %w", err)
 	}
@@ -236,15 +236,15 @@ func (t *Tincho) cut(player Player, withCount bool, declared int) (int, error) {
 	return playerSum + 10, nil // loss + bonus
 }
 
-func (t *Tincho) updatePlayerPoints(winner *Player, pointsForWinner int) {
-	for _, p := range t.players {
+func (t *Tincho) updatePlayerPoints(winner Player, pointsForWinner int) {
+	for ix := range t.players {
 		var value int
-		if p.ID == winner.ID {
+		if t.players[ix].ID == winner.ID {
 			value = pointsForWinner
 		} else {
 			value = winner.Hand.Sum()
 		}
-		p.Points += value
+		t.players[ix].Points += value
 	}
 }
 
