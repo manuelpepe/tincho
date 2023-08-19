@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Tincho</title>
+    <script type="text/javascript">
+        window.onload = function () {
+            var conn;
+            var players = {};
+
+            const msg = document.getElementById("msg");
+            const roomid = document.getElementById("room-id");
+            const username = document.getElementById("username");
+
+            const roomTitle = document.getElementById("room-title");
+            const formJoin = document.getElementById("room-join");
+            const formNew = document.getElementById("room-new");
+            const buttonStart = document.getElementById("btn-start");
+            const buttonFirstPeek = document.getElementById("btn-first-peek");
+            const buttonDraw = document.getElementById("btn-draw");
+            const buttonDiscard = document.getElementById("btn-discard");
+            const buttonCut = document.getElementById("btn-cut");
+
+            const playerList = document.getElementById("player-list");
+
+            function hide(node) {
+                node.style.display = "none";
+            }
+
+            function show(node) {
+                node.style.display = "block";
+            }
+
+            function setPlayers(new_players) {
+                console.log("players")
+                console.log(new_players)
+                players = {};
+                playerList.innerHTML = "";
+                for (let i = 0; i < new_players.length; i++) {
+                    console.log(i)
+                    console.log(new_players[i])
+                    addPlayer(new_players[i]);
+                }
+            }
+
+            function addPlayer(player) {
+                const playerNode = document.createElement("div");
+                playerNode.innerHTML = player["id"];
+                players[player] = playerNode;
+                playerList.appendChild(playerNode);
+            }
+
+            function processWSMessage(event) {
+                console.log("Received message")
+                console.log(event.data)
+                const data = JSON.parse(event.data)
+                console.log(data)
+                if (data.type == "players_changed") {
+                    setPlayers(data.data.players)
+                } else if (data.type == "game_start") {
+                    hide(buttonStart)
+                    show(buttonFirstPeek)
+                    setPlayers(data.data.players)
+                } else if (data.type == "player_peeked") {
+                    if (data.data.player == username.value) {
+                        hide(buttonFirstPeek)
+                    }
+                    // TODO: Show cards
+                } else if (data.type == "turn") {
+                    fn = data.data.player == username.value ? show : hide
+                    fn(buttonDraw)
+                    fn(buttonDiscard)
+                    fn(buttonCut)
+                }
+            }
+
+            function connectToRoom() {
+                if (!roomid.value) {
+                    return false;
+                }
+                conn = new WebSocket("ws://localhost:5555/join?room=" + roomid.value + "&player=" + username.value);
+                conn.onclose = (evt) => console.log("connection closed");
+                conn.onmessage = processWSMessage;
+                hide(formNew);
+                hide(formJoin);
+                roomTitle.innerHTML = "Room " + roomid.value;
+                show(roomTitle);
+                show(buttonStart);
+                console.log("connected to room " + roomid.value);
+                return false;
+            }
+
+            formNew.onsubmit = async (evt) => {
+                evt.preventDefault();
+                await fetch("http://localhost:5555/new")
+                    .then(response => response.text())
+                    .then(data => roomid.value = data);
+                connectToRoom();
+            };
+
+
+            formJoin.onsubmit = (evt) => {
+                evt.preventDefault();
+                connectToRoom();
+            }
+
+            buttonStart.onclick = function () {
+                if (!conn) {
+                    console.error("WS not connected");
+                    return false;
+                }
+                conn.send(JSON.stringify({
+                    "type": "start",
+                    "data": {},
+                }));
+                return false;
+            };
+
+            buttonFirstPeek.onclick = function () {
+                if (!conn) {
+                    console.error("WS not connected");
+                    return false;
+                }
+                conn.send(JSON.stringify({
+                    "type": "first_peek",
+                    "data": { "positions": [0, 1] },
+                }));
+                return false;
+            };
+
+            buttonDraw.onclick = function () {
+                if (!conn) {
+                    console.error("WS not connected");
+                    return false;
+                }
+                conn.send(JSON.stringify({
+                    "type": "draw",
+                    "data": { "source": "pile" },
+                }));
+                return false;
+            };
+
+            buttonCut.onclick = function () {
+                if (!conn) {
+                    console.error("WS not connected");
+                    return false;
+                }
+                conn.send(JSON.stringify({
+                    "type": "cut",
+                    "data": { "withCount": true, "declared": 3 },
+                }));
+                return false;
+            };
+
+            buttonDiscard.onclick = function () {
+                if (!conn) {
+                    console.error("WS not connected");
+                    return false;
+                }
+                conn.send(JSON.stringify({
+                    "type": "discard",
+                    "data": {
+                        "card": {
+                            "suit": "hearts",
+                            "value": 12,
+                        }
+                    },
+                }));
+                return false;
+            };
+        };
+    </script>
+</head>
+
+<body>
+    Tincholi
+    <form id="room-new">
+        <input type="submit" value="New Room" />
+    </form>
+    <form id="room-join">
+        <input type="submit" value="Join Room" />
+        <input type="text" id="username" size="12" placeholder="username" value="test" />
+        <input type="text" id="room-id" size="6" placeholder="roomid" />
+    </form>
+
+    <h3 id="room-title" style="display: none;"></h3>
+
+    <div id="player-list"></div>
+    <button id="btn-start" style="display: none;">Start</button>
+    <button id="btn-first-peek" style="display: none;">First peek</button>
+    <button id="btn-draw" style="display: none;">Draw</button>
+    <button id="btn-discard" style="display: none;">Discard</button>
+    <button id="btn-cut" style="display: none;">Cut</button>
+</body>
+
+</html>

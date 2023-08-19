@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/manuelpepe/tincho/internal/front"
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
@@ -24,6 +25,8 @@ func main() {
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
+	r.Handle("/", front.FrontendHandler())
+
 	log.Println("Listening on port 5555")
 	log.Fatal(http.ListenAndServe(":5555", r))
 }
