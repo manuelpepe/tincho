@@ -5,7 +5,13 @@
     <title>Tincho</title>
     <script type="text/javascript">
         window.onload = function () {
+            /** @typedef {{suit: string, value: string}} Card */
+            /** @typedef {{id: string, points: number, pending_first_peek: boolean, cards_in_hand: number}} Player */
+
+            /** @type {WebSocket} */
             var conn;
+
+            /** @type {Object<string, {hand: HTMLElement, draw: HTMLElement, data: Player}>} */
             var players = {};
 
             const msg = document.getElementById("msg");
@@ -27,14 +33,18 @@
             const deckPile = document.getElementById("deck-pile");
             const deckDiscard = document.getElementById("deck-discard");
 
+            /** @param {HTMLElement} node */
             function hide(node) {
                 node.style.display = "none";
             }
 
+            /** @param {HTMLElement} node */
             function show(node) {
                 node.style.display = "block";
             }
 
+            /** @param {HTMLElement} node
+                @param {HTMLElement} target */
             function moveNode(node, target) {
                 const { left: x0, top: y0 } = node.getBoundingClientRect();
                 target.append(node);
@@ -60,6 +70,8 @@
                 return animation
             }
 
+            /** @param {HTMLElement} sourcePile
+                @param {HTMLElement} target */
             function drawCard(sourcePile, target) {
                 const card = sourcePile.getElementsByClassName("card")[0];
                 const cardClone = card.cloneNode(true);
@@ -67,6 +79,7 @@
                 return moveNode(card, target);
             }
 
+            /** @param {Player[]} new_players */
             function setPlayers(new_players) {
                 console.log("players", new_players)
                 players = {};
@@ -76,11 +89,12 @@
                 }
             }
 
+            /** @param {Player} player */
             function addPlayer(player) {
                 let clone = playerTemplate.content.cloneNode(true);
                 let parts = clone.querySelectorAll(".player-datafield");
-                parts[0].innerHTML = player["id"];
-                drawHand(parts[1], player["cards_in_hand"] ?? 0, [], [])
+                parts[0].innerHTML = player.id;
+                drawHand(parts[1], player.cards_in_hand ?? 0, [], [])
                 players[player["id"]] = {
                     "hand": parts[1],
                     "draw": parts[2],
@@ -89,16 +103,23 @@
                 playerList.appendChild(clone);
             }
 
+            /** @param {string} player
+                @param {Card[]} cards 
+                @param {number[]} positions*/
             function showCards(player, cards, positions) {
                 const playerHand = players[player]["hand"];
                 const playerData = players[player]["data"];
-                drawHand(playerHand, playerData["cards_in_hand"], cards, positions)
+                drawHand(playerHand, playerData.cards_in_hand, cards, positions)
                 // TODO: Store timeout for skip button
                 setTimeout(() => {
-                    drawHand(playerHand, playerData["cards_in_hand"], [], [])
+                    drawHand(playerHand, playerData.cards_in_hand, [], [])
                 }, 3000);
             }
 
+            /** @param {HTMLElement} container
+                @param {number} cardsInHand
+                @param {Card[]} cards
+                @param {number[]} positions */
             function drawHand(container, cardsInHand, cards, positions) {
                 // remove current hand
                 while (container.firstChild) container.removeChild(container.lastChild)
@@ -122,9 +143,15 @@
                 }
             }
 
+            /** @param {string} player */
             function markReady(player) { /* TODO */ }
 
+            /** @param {string} player
+                @param {string} source
+                @param {Card} card
+                @param {string} effect */
             function showDraw(player, source, card, effect) {
+                // TODO: Draw from discard pile
                 const playerDraw = players[player]["draw"];
                 const animation = drawCard(deckPile, playerDraw);
                 animation.addEventListener("finish", (event) => {
@@ -147,6 +174,7 @@
                 const playerDraw = players[player]["draw"];
                 let cardNode;
                 if (cardPosition >= 0) {
+                    // TODO: Discard from hand
                     cardNode = playerHand.childNodes[cardPosition];
                     cardNode.innerHTML = "[" + card.value + " " + card.suit + "]";
                 } else {
@@ -160,6 +188,7 @@
                 });
             }
 
+            /** @param {MessageEvent<any>} event} */
             function processWSMessage(event) {
                 const data = JSON.parse(event.data)
                 const msgData = data.data;
