@@ -51,7 +51,7 @@ type UpdatePeekCardData struct {
 	Player       string `json:"player"`
 }
 
-const UpdateTypeSwapCards UpdateType = "effect_swap_card"
+const UpdateTypeSwapCards UpdateType = "effect_swap"
 
 type UpdateSwapCardsData struct {
 	CardPositions []int    `json:"cardPositions"`
@@ -84,3 +84,7 @@ type UpdateErrorData struct {
 }
 
 const UpdateTypeEndGame UpdateType = "end_game"
+
+type UpdateEndGameData struct {
+	Winner string `json:"winner"`
+}

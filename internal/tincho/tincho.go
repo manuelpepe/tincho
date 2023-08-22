@@ -94,7 +94,7 @@ func (t *Tincho) deal() error {
 }
 
 // GetFirstPeek allows to peek two cards from a players hand if it hasn't peeked yet.
-func (t *Tincho) GetFirstPeek(playerID string, positions []int) ([]Card, error) {
+func (t *Tincho) GetFirstPeek(playerID string) ([]Card, error) {
 	player, exists := t.getPlayer(playerID)
 	if !exists {
 		return nil, fmt.Errorf("Unkown player: %s", playerID)
@@ -103,7 +103,7 @@ func (t *Tincho) GetFirstPeek(playerID string, positions []int) ([]Card, error) 
 		return nil, fmt.Errorf("%w: %s", ErrPlayerNotPendingFirstPeek, playerID)
 	}
 	var peekedCards []Card
-	for _, position := range positions {
+	for _, position := range []int{0, 1} {
 		peekedCards = append(peekedCards, player.Hand[position])
 	}
 	t.setPlayerFirstPeekDone(playerID)

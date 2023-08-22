@@ -17,10 +17,6 @@ const ActionStart ActionType = "start"
 
 const ActionFirstPeek ActionType = "first_peek"
 
-type ActionFirstPeekData struct {
-	Positions []int `json:"positions"`
-}
-
 const ActionDraw ActionType = "draw"
 
 type ActionDrawData struct {
@@ -100,11 +96,7 @@ func (r *Room) doStartGame(action Action) error {
 }
 
 func (r *Room) doPeekTwo(action Action) error {
-	var actionData ActionFirstPeekData
-	if err := json.Unmarshal(action.Data, &actionData); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-	peekedCards, err := r.state.GetFirstPeek(action.PlayerID, actionData.Positions)
+	peekedCards, err := r.state.GetFirstPeek(action.PlayerID)
 
 	// broadcast UpdateTypePlayerPeeked without cards
 	data, err := json.Marshal(UpdatePlayerPeekedData{
@@ -169,7 +161,6 @@ func (r *Room) doDraw(action Action) error {
 	messageNoInfo, err := json.Marshal(UpdateDrawData{
 		Player: action.PlayerID,
 		Source: data.Source,
-		Effect: card.GetEffect(),
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -216,6 +207,7 @@ func (r *Room) doCut(action Action) error {
 	if err := r.state.Cut(data.WithCount, data.Declared); err != nil {
 		return err
 	}
+	// TODO: Add hands to broadcast
 	updateData, err := json.Marshal(UpdateCutData{
 		Player:    action.PlayerID,
 		WithCount: data.WithCount,
@@ -229,7 +221,9 @@ func (r *Room) doCut(action Action) error {
 		Type: UpdateTypeCut,
 		Data: json.RawMessage(updateData),
 	})
+	// TODO: Reset deck, deal, reset turn, broadcast
 	if r.state.IsWinConditionMet() {
+		// TODO: Send winner
 		r.BroadcastUpdate(Update{Type: UpdateTypeEndGame})
 		r.Close()
 	}
