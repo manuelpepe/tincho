@@ -21,7 +21,11 @@
             const buttonDiscard = document.getElementById("btn-discard");
             const buttonCut = document.getElementById("btn-cut");
 
+            const playerTemplate = document.getElementById("player-template")
             const playerList = document.getElementById("player-list");
+
+            const deckPile = document.getElementById("deck-pile");
+            const deckDiscard = document.getElementById("deck-discard");
 
             function hide(node) {
                 node.style.display = "none";
@@ -31,46 +35,169 @@
                 node.style.display = "block";
             }
 
+            function moveNode(node, target) {
+                const { left: x0, top: y0 } = node.getBoundingClientRect();
+                target.append(node);
+                const { left: x1, top: y1 } = node.getBoundingClientRect();
+
+                const dx = x0 - x1;
+                const dy = y0 - y1;
+
+                if (dx === 0 && dy === 0) {
+                    return;
+                }
+
+                const transformFrom = `translate3d(${dx}px, ${dy}px, 0)`;
+                const transformTo = `translate3d(0, 0, 0)`;
+
+                const animation = node.animate([
+                    { transform: transformFrom },
+                    { transform: transformTo },
+                ], {
+                    duration: 1000,
+                    easing: 'linear',
+                });
+                return animation
+            }
+
+            function drawCard(sourcePile, target) {
+                const card = sourcePile.getElementsByClassName("card")[0];
+                const cardClone = card.cloneNode(true);
+                sourcePile.append(cardClone);
+                return moveNode(card, target);
+            }
+
             function setPlayers(new_players) {
-                console.log("players")
-                console.log(new_players)
+                console.log("players", new_players)
                 players = {};
                 playerList.innerHTML = "";
                 for (let i = 0; i < new_players.length; i++) {
-                    console.log(i)
-                    console.log(new_players[i])
                     addPlayer(new_players[i]);
                 }
             }
 
             function addPlayer(player) {
-                const playerNode = document.createElement("div");
-                playerNode.innerHTML = player["id"];
-                players[player] = playerNode;
-                playerList.appendChild(playerNode);
+                let clone = playerTemplate.content.cloneNode(true);
+                let parts = clone.querySelectorAll(".player-datafield");
+                parts[0].innerHTML = player["id"];
+                drawHand(parts[1], player["cards_in_hand"] ?? 0, [], [])
+                players[player["id"]] = {
+                    "hand": parts[1],
+                    "draw": parts[2],
+                    "data": player,
+                };
+                playerList.appendChild(clone);
+            }
+
+            function showCards(player, cards, positions) {
+                const playerHand = players[player]["hand"];
+                const playerData = players[player]["data"];
+                drawHand(playerHand, playerData["cards_in_hand"], cards, positions)
+                // TODO: Store timeout for skip button
+                setTimeout(() => {
+                    drawHand(playerHand, playerData["cards_in_hand"], [], [])
+                }, 3000);
+            }
+
+            function drawHand(container, cardsInHand, cards, positions) {
+                // remove current hand
+                while (container.firstChild) container.removeChild(container.lastChild)
+                let cardix = 0;
+                for (let i = 0; i < cardsInHand; i++) {
+                    if (positions && positions[cardix] == i) {
+                        // TODO: change suit to suit letter in spanish deck
+                        const text = document.createTextNode("[" + cards[cardix].value + " " + cards[cardix].suit + "]");
+                        const node = document.createElement("div");
+                        node.className = "card";
+                        node.appendChild(text);
+                        container.appendChild(node);
+                        cardix = cardix + 1
+                    } else {
+                        const text = document.createTextNode("[ ]");
+                        const node = document.createElement("div");
+                        node.className = "card";
+                        node.appendChild(text);
+                        container.appendChild(node);
+                    }
+                }
+            }
+
+            function markReady(player) { /* TODO */ }
+
+            function showDraw(player, source, card, effect) {
+                const playerDraw = players[player]["draw"];
+                const animation = drawCard(deckPile, playerDraw);
+                animation.addEventListener("finish", (event) => {
+                    playerDraw.innerHTML = "";
+                    let text = card.suit ? "[" + card.value + " " + card.suit + "]" : "[ ]";
+                    if (effect != "none") {
+                        // TODO: Pretty print effect
+                        text += " (" + effect + ")"
+                    }
+                    const textNode = document.createTextNode(text);
+                    const node = document.createElement("div");
+                    node.className = "card";
+                    node.appendChild(textNode);
+                    playerDraw.appendChild(node);
+                });
+            }
+
+            function showDiscard(player, cardPosition, card) {
+                const playerHand = players[player]["hand"];
+                const playerDraw = players[player]["draw"];
+                let cardNode;
+                if (cardPosition >= 0) {
+                    cardNode = playerHand.childNodes[cardPosition];
+                    cardNode.innerHTML = "[" + card.value + " " + card.suit + "]";
+                } else {
+                    cardNode = playerDraw.lastChild;
+                }
+                const animation = moveNode(cardNode, deckDiscard);
+                animation.addEventListener("finish", (event) => {
+                    cardNode.innerHTML = "";
+                    const textNode = document.createTextNode("[" + card.value + " " + card.suit + "]");
+                    cardNode.appendChild(textNode);
+                });
             }
 
             function processWSMessage(event) {
-                console.log("Received message")
-                console.log(event.data)
                 const data = JSON.parse(event.data)
-                console.log(data)
+                const msgData = data.data;
+                console.log("Received message:", data)
                 if (data.type == "players_changed") {
-                    setPlayers(data.data.players)
+                    setPlayers(msgData.players)
                 } else if (data.type == "game_start") {
                     hide(buttonStart)
                     show(buttonFirstPeek)
-                    setPlayers(data.data.players)
+                    show(deckPile)
+                    show(deckDiscard)
+                    setPlayers(msgData.players)
                 } else if (data.type == "player_peeked") {
-                    if (data.data.player == username.value) {
+                    if (msgData.player == username.value) {
                         hide(buttonFirstPeek)
+                        showCards(msgData.player, msgData.cards, [0, 1])
                     }
-                    // TODO: Show cards
+                    markReady(msgData.player) // TODO
                 } else if (data.type == "turn") {
-                    fn = data.data.player == username.value ? show : hide
+                    fn = msgData.player == username.value ? show : hide
                     fn(buttonDraw)
                     fn(buttonDiscard)
                     fn(buttonCut)
+                } else if (data.type == "draw") {
+                    showDraw(msgData.player, msgData.source, msgData.card, msgData.effect) // TODO
+                } else if (data.type == "discard") {
+                    showDiscard(msgData.player, msgData.cardPosition, msgData.card) // TODO
+                } else if (data.type == "effect_peek") {
+                    showPeek(msgData.player, msgData.cardPosition, msgData.card) // TODO
+                } else if (data.type == "effect_swap") {
+                    showSwap(msgData.players, msgData.cardPositions) // TODO
+                } else if (data.type == "cut") {
+                    showCut(msgData.player, msgData.withCount, msgData.declared) // TODO
+                    setPlayers(msgData.players)
+                } else if (data.type == "end_game") {
+                    showEndGame(msgData.winner)
+                } else {
+                    console.error("Unknown message type", data.type, msgData)
                 }
             }
 
@@ -159,12 +286,7 @@
                 }
                 conn.send(JSON.stringify({
                     "type": "discard",
-                    "data": {
-                        "card": {
-                            "suit": "hearts",
-                            "value": 12,
-                        }
-                    },
+                    "data": { "cardPosition": -1 },
                 }));
                 return false;
             };
@@ -173,7 +295,23 @@
 </head>
 
 <body>
-    Tincholi
+    <style>
+        .card {
+            display: inline-block;
+        }
+    </style>
+
+    <template id="player-template">
+        <div class="player">
+            <div class="player-datafield">Player ID</div> <!-- TODO: Add isReady checkmark -->
+            <div class="player-datafield">Hand: </div>
+            <div class="player-datafield"></div>
+
+        </div>
+    </template>
+
+    <h2>Tincholi</h2>
+
     <form id="room-new">
         <input type="submit" value="New Room" />
     </form>
@@ -184,6 +322,15 @@
     </form>
 
     <h3 id="room-title" style="display: none;"></h3>
+
+    <div class="decks">
+        <div class="deck" id="deck-pile" style="display: none;">
+            <div class="card">[ ]</div>
+        </div>
+        <div class="deck" id="deck-discard" style="display: none;">
+            <div class="card"></div>
+        </div>
+    </div>
 
     <div id="player-list"></div>
     <button id="btn-start" style="display: none;">Start</button>
