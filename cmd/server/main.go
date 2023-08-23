@@ -25,7 +25,7 @@ func main() {
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
-	r.Handle("/", front.FrontendHandler())
+	r.Handle("/{file:.*}", front.FrontendHandler())
 
 	log.Println("Listening on port 5555")
 	log.Fatal(http.ListenAndServe(":5555", r))
