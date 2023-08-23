@@ -121,25 +121,22 @@
                 @param {Card[]} cards
                 @param {number[]} positions */
             function drawHand(container, cardsInHand, cards, positions) {
-                // remove current hand
                 while (container.firstChild) container.removeChild(container.lastChild)
                 let cardix = 0;
                 for (let i = 0; i < cardsInHand; i++) {
+                    let text;
                     if (positions && positions[cardix] == i) {
                         // TODO: change suit to suit letter in spanish deck
-                        const text = document.createTextNode("[" + cards[cardix].value + " " + cards[cardix].suit + "]");
-                        const node = document.createElement("div");
-                        node.className = "card";
-                        node.appendChild(text);
-                        container.appendChild(node);
+                        text = document.createTextNode("[" + cards[cardix].value + " " + cards[cardix].suit + "]");
                         cardix = cardix + 1
                     } else {
-                        const text = document.createTextNode("[ ]");
-                        const node = document.createElement("div");
-                        node.className = "card";
-                        node.appendChild(text);
-                        container.appendChild(node);
+                        text = document.createTextNode("[ ]");
                     }
+                    const node = document.createElement("div");
+                    node.className = "card";
+                    node.onclick = () => sendDiscard(i)
+                    node.appendChild(text);
+                    container.appendChild(node);
                 }
             }
 
@@ -169,23 +166,35 @@
                 });
             }
 
+            function _moveDiscard(node) {
+                const animation = moveNode(node, deckDiscard);
+                animation.addEventListener("finish", (event) => {
+                    node.innerHTML = "";
+                    const textNode = document.createTextNode("[" + card.value + " " + card.suit + "]");
+                    node.appendChild(textNode);
+                });
+            }
+
             function showDiscard(player, cardPosition, card) {
                 const playerHand = players[player]["hand"];
                 const playerDraw = players[player]["draw"];
-                let cardNode;
+                const newCard = playerDraw.lastChild;
                 if (cardPosition >= 0) {
-                    // TODO: Discard from hand
-                    cardNode = playerHand.childNodes[cardPosition];
-                    cardNode.innerHTML = "[" + card.value + " " + card.suit + "]";
+                    const container = document.createElement("div");
+                    container.className = "card"
+                    const oldCard = playerHand.replaceChild(container, playerHand.childNodes[cardPosition]);
+                    container.appendChild(oldCard);
+                    const animation = moveNode(newCard, container);
+                    oldCard.innerHTML = "[" + card.value + " " + card.suit + "]";
+                    animation.addEventListener("finish", (event) => {
+                        moveNode(oldCard, deckDiscard)
+                        playerHand.replaceChild(newCard, container);
+                        newCard.innerHTML = "[ ]";
+                        newCard.onclick = () => sendDiscard(cardPosition);
+                    });
                 } else {
-                    cardNode = playerDraw.lastChild;
+                    moveNode(newCard, deckDiscard)
                 }
-                const animation = moveNode(cardNode, deckDiscard);
-                animation.addEventListener("finish", (event) => {
-                    cardNode.innerHTML = "";
-                    const textNode = document.createTextNode("[" + card.value + " " + card.suit + "]");
-                    cardNode.appendChild(textNode);
-                });
             }
 
             /** @param {MessageEvent<any>} event} */
@@ -308,17 +317,19 @@
                 return false;
             };
 
-            buttonDiscard.onclick = function () {
+            buttonDiscard.onclick = () => sendDiscard(-1);
+
+            function sendDiscard(ix) {
                 if (!conn) {
                     console.error("WS not connected");
                     return false;
                 }
                 conn.send(JSON.stringify({
                     "type": "discard",
-                    "data": { "cardPosition": -1 },
+                    "data": { "cardPosition": ix },
                 }));
                 return false;
-            };
+            }
         };
     </script>
 </head>
