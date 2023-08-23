@@ -1,0 +1,15 @@
+- [x] Implement start game peek (2 cards from own hand each)
+- [x] Separate broadcasting logic from game logic
+    - [x] Remove playerID from methods and use current turn
+    - [x] Make all attrs private in state component
+    - [x] Refactor room to use the state component
+- [ ] Keep track of scores per round and send table at the end
+- [x] Rooms should timeout after a while
+- [ ] Implement reconnection
+    - Option 1: Verify (IP, Username, RoomID)
+    - Option 2:
+        - Generate token on join
+        - Send token to user
+        - Client stores token in local storage along with username
+        - Allow client to reconnect if using token
+    - Send necessary state on reconnection
