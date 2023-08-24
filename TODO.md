@@ -13,3 +13,13 @@
         - Client stores token in local storage along with username
         - Allow client to reconnect if using token
     - Send necessary state on reconnection
+- [ ] Make room parametrizable:
+    - Options:
+        - [ ] Extended deck option (add some cards to allow for more players)
+        - [ ] Chaos (Adds two 9 cards for more swaps)
+        - [ ] Make private (set password for room)
+    - [ ] UI for room creation
+- [ ] Roomlist in UI with join buttons and private status
+- [ ] Add styles to UI
+- [ ] Only room leader can start room
+    - [ ] Transfer leadership to other players 
