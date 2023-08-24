@@ -2,6 +2,27 @@ window.onload = function () {
     /** @typedef {{suit: string, value: string}} Card */
     /** @typedef {{id: string, points: number, pending_first_peek: boolean, cards_in_hand: number}} Player */
 
+    const SUITS = {
+        "spanish": {
+            "clubs": "B",
+            "hearths": "C",
+            "diamonds": "O",
+            "spades": "E", 
+        },
+        "standard": {
+            "clubs": "♧",
+            "hearths": "♥",
+            "diamonds": "♢",
+            "spades": "♤", 
+        }
+    }
+    var suitKind = "spanish"
+
+    /** @param {Card} card */
+    function cardValue(card) {
+        return card.value + SUITS[card.suit]
+    }
+
     /** @type {WebSocket} */
     var conn;
 
@@ -121,7 +142,7 @@ window.onload = function () {
             let text;
             if (positions && positions[cardix] == i) {
                 // TODO: change suit to suit letter in spanish deck
-                text = document.createTextNode("[" + cards[cardix].value + " " + cards[cardix].suit + "]");
+                text = document.createTextNode("[" + cardValue(cards[cardix]) + "]");
                 cardix = cardix + 1
             } else {
                 text = document.createTextNode("[ ]");
@@ -148,7 +169,7 @@ window.onload = function () {
         const animation = drawCard(deckPile, playerDraw);
         animation.addEventListener("finish", () => {
             playerDraw.innerHTML = "";
-            let text = card.suit ? "[" + card.value + " " + card.suit + "]" : "[ ]";
+            let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
             if (effect != "none") {
                 // TODO: Pretty print effect
                 text += " (" + effect + ")"
@@ -171,7 +192,7 @@ window.onload = function () {
             const oldCard = playerHand.replaceChild(container, playerHand.childNodes[cardPosition]);
             container.appendChild(oldCard);
             const animation = moveNode(newCard, container);
-            oldCard.innerHTML = "[" + card.value + " " + card.suit + "]";
+            oldCard.innerHTML = "[" + cardValue(card) + "]";
             animation.addEventListener("finish", () => {
                 moveNode(oldCard, deckDiscard)
                 playerHand.replaceChild(newCard, container);
