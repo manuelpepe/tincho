@@ -2,52 +2,14 @@ package tincho
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 var ErrRoomNotFound = errors.New("room not found")
 var ErrRoomsLimitReached = errors.New("rooms limit reached")
-var ErrPlayerAlreadyInRoom = errors.New("player already in room")
-var ErrGameAlreadyStarted = errors.New("game already started")
-
-type Player struct {
-	ID               string          `json:"id"`
-	Points           int             `json:"points"`
-	PendingFirstPeek bool            `json:"pending_first_peek"`
-	Hand             Hand            `json:"-"`
-	socket           *websocket.Conn `json:"-"`
-	Updates          chan Update     `json:"-"`
-}
-
-func (p Player) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		ID               string `json:"id"`
-		Points           int    `json:"points"`
-		PendingFirstPeek bool   `json:"pending_first_peek"`
-		CardsInHand      int    `json:"cards_in_hand"`
-	}{
-		ID:               p.ID,
-		Points:           p.Points,
-		PendingFirstPeek: p.PendingFirstPeek,
-		CardsInHand:      len(p.Hand),
-	})
-}
-
-func NewPlayer(id string, socket *websocket.Conn) Player {
-	return Player{
-		ID:      id,
-		Hand:    make(Hand, 0),
-		socket:  socket,
-		Updates: make(chan Update),
-		Points:  0,
-	}
-}
 
 type GameConfig struct {
 	MaxRooms    int
@@ -142,6 +104,8 @@ func (g *Game) ClearClosedRooms() {
 	}
 }
 
+// unordered_remove removes the element at index i from a slice changing its length
+// and without preserving the order of the elements.
 func unordered_remove[T any](a []T, i int) []T {
 	a[i] = a[len(a)-1]
 	a = a[:len(a)-1]

@@ -7,6 +7,8 @@ import (
 
 var ErrPendingDiscard = errors.New("someone needs to discard first")
 var ErrPlayerNotPendingFirstPeek = errors.New("player not pending first peek")
+var ErrPlayerAlreadyInRoom = errors.New("player already in room")
+var ErrGameAlreadyStarted = errors.New("game already started")
 
 type Tincho struct {
 	players     []Player
