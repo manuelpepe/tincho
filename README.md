@@ -6,6 +6,8 @@ A multiplayer card game for the whole family.
 
 Each player is dealt 4 cards face down. In turns, each player draws a card from the deck and decides between replacing a card from their hand with it or discarding the drawn card. Some cards have special effects (peek your own card, an oponents card or swap any two cards). In their turn, a player may decide to cut instead of drawing a card. Additionally, the player can choose to *blindly* call out their hand total. At this point, all cards are turned face up and each player adds the sum of their cards to their score. The cutting player is behold to some extra rules that decide if they deduct points from their score, or get more points of top of their hand (check cutting rules carefully). The first player to get a score over 100 loses, ending the game.
 
+When discarding, players have an option discard two cards. If they are of the same value, both are discarded and the player keeps only the drawn card, *decreasing* the number of cards in their hand by a total of 1 card. However, if the cards are of different values, the player must keep both cards plus the drawn card, *increasing* the number of cards in their hand by a total of 1 card.
+
 ### Cutting rules
 
 The cutting player must have the lowest hand in the table, otherwise they instanly lose and must add their hand total + 20 points to their score (add 20 + hand to score this round).
