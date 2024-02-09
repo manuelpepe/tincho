@@ -181,6 +181,9 @@ func (t *Tincho) drawFromSource(source DrawSource) (Card, error) {
 }
 
 func (t *Tincho) Discard(position int, position2 *int) ([]Card, error) {
+	if t.pendingStorage == (Card{}) {
+		return nil, errors.New("can't discard without drawing")
+	}
 	if position2 == nil {
 		return t.discardOneCard(position)
 	} else {

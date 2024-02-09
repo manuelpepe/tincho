@@ -5,22 +5,33 @@ window.onload = function () {
     const SUITS = {
         "spanish": {
             "clubs": "B",
-            "hearths": "C",
+            "hearts": "C",
             "diamonds": "O",
-            "spades": "E", 
+            "spades": "E",
+            "joker": "J",
         },
         "standard": {
             "clubs": "♧",
-            "hearths": "♥",
+            "hearts": "♥",
             "diamonds": "♢",
-            "spades": "♤", 
+            "spades": "♤",
+            "joker": "J",
         }
     }
-    var suitKind = "spanish"
+
+    const EFFECTS = {
+        "swap_card": "Swap 2 cards",
+        "peek_own": "Peek card from your hand",
+        "peek_carta_ajena": "Peek card from other player"
+    }
+    var suitKind = "standard"
 
     /** @param {Card} card */
     function cardValue(card) {
-        return card.value + SUITS[card.suit]
+        if (card.suit == "joker") {
+            return SUITS[suitKind][card.suit]
+        }
+        return "" + card.value + SUITS[suitKind][card.suit]
     }
 
     /** @type {WebSocket} */
@@ -29,7 +40,6 @@ window.onload = function () {
     /** @type {Object<string, {hand: HTMLElement, draw: HTMLElement, data: Player}>} */
     var players = {};
 
-    const msg = document.getElementById("msg");
     const roomid = document.getElementById("room-id");
     const username = document.getElementById("username");
 
@@ -58,8 +68,10 @@ window.onload = function () {
         node.style.display = "block";
     }
 
-    /** @param {HTMLElement} node
-        @param {HTMLElement} target */
+    /** 
+     * @param {HTMLElement} node
+     * @param {HTMLElement} target 
+     */
     function moveNode(node, target) {
         const { left: x0, top: y0 } = node.getBoundingClientRect();
         target.append(node);
@@ -85,8 +97,10 @@ window.onload = function () {
         return animation
     }
 
-    /** @param {HTMLElement} sourcePile
-        @param {HTMLElement} target */
+    /** 
+     * @param {HTMLElement} sourcePile
+     * @param {HTMLElement} target 
+     */
     function drawCard(sourcePile, target) {
         const card = sourcePile.getElementsByClassName("card")[0];
         const cardClone = card.cloneNode(true);
@@ -94,7 +108,9 @@ window.onload = function () {
         return moveNode(card, target);
     }
 
-    /** @param {Player[]} new_players */
+    /** 
+     * @param {Player[]} new_players 
+     */
     function setPlayers(new_players) {
         console.log("players", new_players)
         players = {};
@@ -104,7 +120,9 @@ window.onload = function () {
         }
     }
 
-    /** @param {Player} player */
+    /** 
+     * @param {Player} player 
+     */
     function addPlayer(player) {
         let clone = playerTemplate.content.cloneNode(true);
         let parts = clone.querySelectorAll(".player-datafield");
@@ -118,9 +136,11 @@ window.onload = function () {
         playerList.appendChild(clone);
     }
 
-    /** @param {string} player
-        @param {Card[]} cards 
-        @param {number[]} positions*/
+    /** 
+     * @param {string} player
+     * @param {Card[]} cards 
+     * @param {number[]} positions
+     */
     function showCards(player, cards, positions) {
         const playerHand = players[player]["hand"];
         const playerData = players[player]["data"];
@@ -131,12 +151,14 @@ window.onload = function () {
         }, 3000);
     }
 
-    /** @param {HTMLElement} container
-        @param {number} cardsInHand
-        @param {Card[]} cards
-        @param {number[]} positions */
+    /** 
+     * @param {HTMLElement} container
+     * @param {number} cardsInHand
+     * @param {Card[]} cards
+     * @param {number[]} positions 
+     */
     function drawHand(container, cardsInHand, cards, positions) {
-        while (container.firstChild) container.removeChild(container.lastChild)
+        while (container.firstChild) { container.removeChild(container.lastChild) }
         let cardix = 0;
         for (let i = 0; i < cardsInHand; i++) {
             let text;
@@ -156,13 +178,17 @@ window.onload = function () {
     }
 
     /** @param {string} player */
-    // eslint-disable-next-line no-unused-vars
-    function markReady(player) { /* TODO */ }
+    function markReady(player) {
+        // TODO: implement checkmark
+        console.log(`player ready: ${player.id}`)
+    }
 
-    /** @param {string} player
-        @param {string} source
-        @param {Card} card
-        @param {string} effect */
+    /** 
+     * @param {string} player
+     * @param {string} source
+     * @param {Card} card
+     * @param {string} effect 
+     */
     function showDraw(player, source, card, effect) {
         // TODO: Draw from discard pile
         const playerDraw = players[player]["draw"];
@@ -170,9 +196,9 @@ window.onload = function () {
         animation.addEventListener("finish", () => {
             playerDraw.innerHTML = "";
             let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
-            if (effect != "none") {
+            if (effect && effect != "none") {
                 // TODO: Pretty print effect
-                text += " (" + effect + ")"
+                text += " (Effect: " + EFFECTS[effect] + ")"
             }
             const textNode = document.createTextNode(text);
             const node = document.createElement("div");
@@ -182,6 +208,11 @@ window.onload = function () {
         });
     }
 
+    /** 
+     * @param {string} player
+     * @param {number} cardPosition
+     * @param {Card} card
+     */
     function showDiscard(player, cardPosition, card) {
         const playerHand = players[player]["hand"];
         const playerDraw = players[player]["draw"];
@@ -203,6 +234,33 @@ window.onload = function () {
             moveNode(newCard, deckDiscard)
         }
     }
+
+    /** 
+     * @param {string} player
+     * @param {number} cardPosition
+     * @param {Card} card 
+     */
+    // eslint-disable-next-line no-unused-vars
+    function showPeek(player, cardPosition, card) { /* TODO */ }
+
+    /** 
+     * @param {string[]} player
+     * @param {number[]} cardPositions 
+     */
+    // eslint-disable-next-line no-unused-vars
+    function showSwap(players, cardPositions) { /* TODO */ }
+
+    /** 
+     * @param {string} player
+     * @param {withCount} boolean
+     * @param {declared} number 
+     */
+    // eslint-disable-next-line no-unused-vars
+    function showCut(player, withCount, declared) { /* TODO */ }
+
+    /** @param {string} winner */
+    // eslint-disable-next-line no-unused-vars
+    function showEndGame(winner) { /* TODO */ }
 
     /** @param {MessageEvent<any>} event} */
     function processWSMessage(event) {
@@ -231,7 +289,9 @@ window.onload = function () {
         } else if (data.type == "draw") {
             showDraw(msgData.player, msgData.source, msgData.card, msgData.effect)
         } else if (data.type == "discard") {
-            showDiscard(msgData.player, msgData.cardPosition, msgData.card)
+            if (msgData.card.length == 1) {
+                showDiscard(msgData.player, msgData.cardPosition[0], msgData.card[0])
+            }
         } else if (data.type == "effect_peek") {
             showPeek(msgData.player, msgData.cardPosition, msgData.card) // TODO
         } else if (data.type == "effect_swap") {
@@ -298,6 +358,7 @@ window.onload = function () {
 
     buttonDiscard.onclick = () => sendDiscard(-1);
 
+    /** @param {number} ix */
     function sendDiscard(ix) {
         sendAction({
             "type": "discard",
@@ -305,11 +366,13 @@ window.onload = function () {
         });
     }
 
+    /** @param {Object} data */
     function sendAction(data) {
         if (!conn) {
             console.error("WS not connected");
             return false;
         }
+        console.log("Sent data:", data)
         conn.send(JSON.stringify(data));
     }
 };
