@@ -26,13 +26,24 @@ type Player struct {
 	Updates          chan Update
 }
 
-func (p Player) MarshalJSON() ([]byte, error) {
+func (p *Player) MarshalJSON() ([]byte, error) {
 	return json.Marshal(marshalledPlayer{
 		ID:               p.ID,
 		Points:           p.Points,
 		PendingFirstPeek: p.PendingFirstPeek,
 		CardsInHand:      len(p.Hand),
 	})
+}
+
+func (p *Player) UnmarshalJSON(data []byte) error {
+	var mp marshalledPlayer
+	if err := json.Unmarshal(data, &mp); err != nil {
+		return err
+	}
+	p.ID = mp.ID
+	p.PendingFirstPeek = mp.PendingFirstPeek
+	p.Points = mp.Points
+	return nil
 }
 
 func NewPlayer(id string, socket *websocket.Conn) Player {

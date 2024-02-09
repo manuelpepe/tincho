@@ -2,22 +2,28 @@ package tincho
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
 type ActionType string
+
+const (
+	ActionStart          ActionType = "start"
+	ActionFirstPeek      ActionType = "first_peek"
+	ActionDraw           ActionType = "draw"
+	ActionPeekOwnCard    ActionType = "effect_peek_own"
+	ActionPeekCartaAjena ActionType = "effect_peek_carta_ajena"
+	ActionSwapCards      ActionType = "effect_swap_card"
+	ActionDiscard        ActionType = "discard"
+	ActionCut            ActionType = "cut"
+)
 
 type Action struct {
 	Type     ActionType      `json:"type"`
 	Data     json.RawMessage `json:"data"`
 	PlayerID string
 }
-
-const ActionStart ActionType = "start"
-
-const ActionFirstPeek ActionType = "first_peek"
-
-const ActionDraw ActionType = "draw"
 
 type ActionDrawData struct {
 	Source DrawSource `json:"source"`
@@ -30,34 +36,25 @@ const (
 	DrawSourceDiscard DrawSource = "discard"
 )
 
-const ActionPeekOwnCard ActionType = "effect_peek_own"
-
 type ActionPeekOwnCardData struct {
 	CardPosition int `json:"cardPosition"`
 }
-
-const ActionPeekCartaAjena ActionType = "effect_peek_carta_ajena"
 
 type ActionPeekCartaAjenaData struct {
 	CardPosition int    `json:"cardPosition"`
 	Player       string `json:"player"`
 }
 
-const ActionSwapCards ActionType = "effect_swap_card"
-
 type ActionSwapCardsData struct {
 	CardPositions []int    `json:"cardPositions"`
 	Players       []string `json:"players"`
 }
 
-const ActionDiscard ActionType = "discard"
-
 type ActionDiscardData struct {
 	// cardPosition = -1 means the card pending storage
-	CardPosition int `json:"cardPosition"`
+	CardPosition  int  `json:"cardPosition"`
+	CardPosition2 *int `json:"cardPosition2"`
 }
-
-const ActionCut ActionType = "cut"
 
 type ActionCutData struct {
 	WithCount bool `json:"withCount"`
@@ -97,6 +94,9 @@ func (r *Room) doStartGame(action Action) error {
 
 func (r *Room) doPeekTwo(action Action) error {
 	peekedCards, err := r.state.GetFirstPeek(action.PlayerID)
+	if err != nil {
+		return fmt.Errorf("GetFirstPeek: %w", err)
+	}
 
 	// broadcast UpdateTypePlayerPeeked without cards
 	data, err := json.Marshal(UpdatePlayerPeekedData{
@@ -177,20 +177,39 @@ func (r *Room) doDiscard(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	disc, err := r.state.Discard(data.CardPosition)
-	if err != nil {
+	disc, err := r.state.Discard(data.CardPosition, data.CardPosition2)
+	if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
 		return err
 	}
-	updateData, err := json.Marshal(UpdateDiscardData{
-		Player:       action.PlayerID,
-		CardPosition: data.CardPosition,
-		Card:         disc,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	var updateType UpdateType
+	var updateData json.RawMessage
+	if errors.Is(err, ErrDiscardingNonEqualCards) {
+		updateType = UpdateTypeFailedDoubleDiscard
+		updateData, err = json.Marshal(UpdateTypeFailedDoubleDiscardData{
+			Player:         action.PlayerID,
+			CardsPositions: []int{data.CardPosition, *data.CardPosition2}, // assumed cardpos2 not nil
+			Cards:          disc,
+		})
+		if err != nil {
+			return fmt.Errorf("json.Marshal: %w", err)
+		}
+	} else {
+		updateType = UpdateTypeDiscard
+		positions := []int{data.CardPosition}
+		if data.CardPosition2 != nil {
+			positions = append(positions, *data.CardPosition2)
+		}
+		updateData, err = json.Marshal(UpdateDiscardData{
+			Player:         action.PlayerID,
+			CardsPositions: positions,
+			Cards:          disc,
+		})
+		if err != nil {
+			return fmt.Errorf("json.Marshal: %w", err)
+		}
 	}
 	r.BroadcastUpdate(Update{
-		Type: UpdateTypeDiscard,
+		Type: updateType,
 		Data: json.RawMessage(updateData),
 	})
 	if err := r.broadcastPassTurn(); err != nil {

@@ -180,17 +180,59 @@ func (t *Tincho) drawFromSource(source DrawSource) (Card, error) {
 	}
 }
 
+func (t *Tincho) Discard(position int, position2 *int) ([]Card, error) {
+	if position2 == nil {
+		return t.discardOneCard(position)
+	} else {
+		return t.discardTwoCards(position, *position2)
+	}
+}
+
+var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of different values")
+
+// Try to discard two cards from the player's hand. Both positions must be different and from the player's hand (drawn card can't be doble discarded).
+// Both cards must be of the same value, jokers can't be paired with non joker cards.
+func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]Card, error) {
+	player := t.players[t.currentTurn]
+	if position1 == position2 {
+		return nil, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
+	}
+	if position1 < 0 || position1 >= len(player.Hand) {
+		return nil, fmt.Errorf("invalid card position: %d", position1)
+	}
+	if position2 < 0 || position2 >= len(player.Hand) {
+		return nil, fmt.Errorf("invalid card position: %d", position2)
+	}
+	card1 := player.Hand[position1]
+	card2 := player.Hand[position2]
+
+	if card1.Value != card2.Value {
+		// Player keeps all 3 cards in hand
+		player.Hand = append(player.Hand, t.pendingStorage)
+		t.pendingStorage = Card{}
+		return []Card{card1, card2}, ErrDiscardingNonEqualCards
+	}
+
+	t.discardPile = append([]Card{card1, card2}, t.discardPile...) // discard both cards
+	player.Hand[position1] = t.pendingStorage
+	player.Hand.Remove(position2)
+	t.pendingStorage = Card{}
+
+	t.passTurn()
+	return []Card{card1, card2}, nil
+}
+
 // Discard a card after drawing. If position is -1, the card is discarded without storing it in the player's hand.
 // Otherwise, the card is stored in the player's hand at the given position.
 // After discarding the turn passes to the next player.
-func (t *Tincho) Discard(position int) (Card, error) {
+func (t *Tincho) discardOneCard(position int) ([]Card, error) {
 	player := t.players[t.currentTurn]
 	card, err := t.discardCard(player, position)
 	if err != nil {
-		return Card{}, fmt.Errorf("discardCard: %w", err)
+		return nil, fmt.Errorf("discardCard: %w", err)
 	}
 	t.passTurn()
-	return card, nil
+	return []Card{card}, nil
 }
 
 func (t *Tincho) discardCard(player Player, card int) (Card, error) {

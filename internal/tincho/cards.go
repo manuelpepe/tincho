@@ -44,7 +44,6 @@ func (c Card) GetEffect() CardEffect {
 }
 
 type Deck []Card
-type Hand []Card
 
 func NewDeck() Deck {
 	deck := make([]Card, 0, 50)
@@ -78,6 +77,15 @@ func (d *Deck) Draw() (Card, error) {
 	card := (*d)[0]
 	*d = (*d)[1:]
 	return card, nil
+}
+
+type Hand []Card
+
+func (h *Hand) Remove(pos int) {
+	if h == nil {
+		panic("discarding from empty hand") // TODO: maybe change to error instead of panic
+	}
+	*h = append((*h)[:pos], (*h)[pos+1:]...)
 }
 
 const OutOfRangeNumber = 999

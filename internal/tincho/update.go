@@ -4,37 +4,43 @@ import "encoding/json"
 
 type UpdateType string
 
+const (
+	UpdateTypePlayersChanged      UpdateType = "players_changed"
+	UpdateTypeGameStart           UpdateType = "game_start"
+	UpdateTypePlayerPeeked        UpdateType = "player_peeked"
+	UpdateTypeTurn                UpdateType = "turn"
+	UpdateTypeDraw                UpdateType = "draw"
+	UpdateTypePeekCard            UpdateType = "effect_peek"
+	UpdateTypeSwapCards           UpdateType = "effect_swap"
+	UpdateTypeDiscard             UpdateType = "discard"
+	UpdateTypeFailedDoubleDiscard UpdateType = "failed_double_discard"
+	UpdateTypeCut                 UpdateType = "cut"
+	UpdateTypeShuffledPiles       UpdateType = "shuffled_piles"
+	UpdateTypeError               UpdateType = "error"
+	UpdateTypeEndGame             UpdateType = "end_game"
+)
+
 type Update struct {
 	Type UpdateType      `json:"type"`
 	Data json.RawMessage `json:"data"`
 }
 
-const UpdateTypePlayersChanged UpdateType = "players_changed"
-
 type UpdatePlayersChanged struct {
 	Players []Player `json:"players"`
 }
 
-const UpdateTypeGameStart UpdateType = "game_start"
-
 type UpdateGameStart struct {
 	Players []Player `json:"players"`
 }
-
-const UpdateTypePlayerPeeked UpdateType = "player_peeked"
 
 type UpdatePlayerPeekedData struct {
 	Player string `json:"player"`
 	Cards  []Card `json:"cards"`
 }
 
-const UpdateTypeTurn UpdateType = "turn"
-
 type UpdateTurnData struct {
 	Player string `json:"player"`
 }
-
-const UpdateTypeDraw UpdateType = "draw"
 
 type UpdateDrawData struct {
 	Player string     `json:"player"`
@@ -43,30 +49,28 @@ type UpdateDrawData struct {
 	Effect CardEffect `json:"effect"`
 }
 
-const UpdateTypePeekCard UpdateType = "effect_peek"
-
 type UpdatePeekCardData struct {
 	CardPosition int    `json:"cardPosition"`
 	Card         Card   `json:"card"`
 	Player       string `json:"player"`
 }
 
-const UpdateTypeSwapCards UpdateType = "effect_swap"
-
 type UpdateSwapCardsData struct {
 	CardPositions []int    `json:"cardPositions"`
 	Players       []string `json:"players"`
 }
 
-const UpdateTypeDiscard UpdateType = "discard"
-
 type UpdateDiscardData struct {
-	Player       string `json:"player"`
-	CardPosition int    `json:"cardPosition"`
-	Card         Card   `json:"card"`
+	Player         string `json:"player"`
+	CardsPositions []int  `json:"cardPosition"`
+	Cards          []Card `json:"card"`
 }
 
-const UpdateTypeCut UpdateType = "cut"
+type UpdateTypeFailedDoubleDiscardData struct {
+	Player         string `json:"player"`
+	CardsPositions []int  `json:"cardPosition"`
+	Cards          []Card `json:"card"`
+}
 
 type UpdateCutData struct {
 	WithCount bool     `json:"withCount"`
@@ -75,15 +79,9 @@ type UpdateCutData struct {
 	Players   []Player `json:"players"`
 }
 
-const UpdateTypeShuffledPiles UpdateType = "shuffled_piles"
-
-const UpdateTypeError UpdateType = "error"
-
 type UpdateErrorData struct {
 	Message string `json:"message"`
 }
-
-const UpdateTypeEndGame UpdateType = "end_game"
 
 type UpdateEndGameData struct {
 	Winner string `json:"winner"`
