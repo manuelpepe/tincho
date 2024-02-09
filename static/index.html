@@ -12,6 +12,19 @@
             display: inline-block;
             margin: 0em 0.3em;
         }
+
+        .player-list {
+            display: flex;
+            flex-direction: row;
+            margin-top: 2em;
+        }
+
+        .player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0em 0.5em;
+        }
     </style>
 
     <template id="player-template">
@@ -43,7 +56,7 @@
         </div>
     </div>
 
-    <div id="player-list"></div>
+    <div id="player-list" class="player-list"></div>
     <button id="btn-start" style="display: none;">Start</button>
     <button id="btn-first-peek" style="display: none;">First peek</button>
     <button id="btn-draw" style="display: none;">Draw</button>
