@@ -231,7 +231,9 @@ window.onload = function () {
                 newCard.onclick = () => sendDiscard(cardPosition);
             });
         } else {
-            moveNode(newCard, deckDiscard)
+            moveNode(newCard, deckDiscard).addEventListener("finish", () => {
+                newCard.innerHTML = "[" + cardValue(card) + "]"
+            })
         }
     }
 
