@@ -44,14 +44,16 @@ window.onload = function () {
     /** @type {WebSocket} */
     var conn;
 
-    /** @type {Object<string, {hand: HTMLElement, draw: HTMLElement, data: Player}>} */
+    /** @type {Object<string, {hand: Element, draw: Element, data: Player}>} */
     var players = {};
 
     /** @type {string | null} */
     var thisPlayer;
+    /** @type {string | null} */
+    var currentTurn;
 
-    const roomid = document.getElementById("room-id");
-    const username = document.getElementById("username");
+    const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
+    const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
 
     const roomTitle = document.getElementById("room-title");
     const formJoin = document.getElementById("room-join");
@@ -65,7 +67,7 @@ window.onload = function () {
     const buttonPeekOwn = document.getElementById("btn-peek-own");
     const buttonPeekCartaAjena = document.getElementById("btn-peek-carta-ajena");
 
-    const playerTemplate = document.getElementById("player-template")
+    const playerTemplate = /** @type {HTMLTemplateElement} */ (document.getElementById("player-template"))
     const playerList = document.getElementById("player-list");
 
     const deckPile = document.getElementById("deck-pile");
@@ -82,8 +84,8 @@ window.onload = function () {
     }
 
     /** 
-     * @param {HTMLElement} node
-     * @param {HTMLElement} target 
+     * @param {Element} node
+     * @param {Element} target 
      */
     function moveNode(node, target) {
         const { left: x0, top: y0 } = node.getBoundingClientRect();
@@ -111,8 +113,8 @@ window.onload = function () {
     }
 
     /** 
-     * @param {HTMLElement} sourcePile
-     * @param {HTMLElement} target 
+     * @param {Element} sourcePile
+     * @param {Element} target 
      */
     function drawCard(sourcePile, target) {
         const card = sourcePile.getElementsByClassName("card")[0];
@@ -137,10 +139,10 @@ window.onload = function () {
      * @param {Player} player 
      */
     function addPlayer(player) {
-        let clone = playerTemplate.content.cloneNode(true);
+        let clone = /** @type {Element} */ (playerTemplate.content.cloneNode(true));
         let parts = clone.querySelectorAll(".player-datafield");
         parts[0].innerHTML = player.id;
-        drawHand(parts[1], player.cards_in_hand ?? 0, [], [])
+        drawHand(parts[1], player.id, player.cards_in_hand ?? 0, [], [])
         players[player["id"]] = {
             "hand": parts[1],
             "draw": parts[2],
@@ -157,20 +159,21 @@ window.onload = function () {
     function showCards(player, cards, positions) {
         const playerHand = players[player]["hand"];
         const playerData = players[player]["data"];
-        drawHand(playerHand, playerData.cards_in_hand, cards, positions)
+        drawHand(playerHand, player, playerData.cards_in_hand, cards, positions)
         // TODO: Store timeout for skip button
         setTimeout(() => {
-            drawHand(playerHand, playerData.cards_in_hand, [], [])
+            drawHand(playerHand, player, playerData.cards_in_hand, [], [])
         }, 3000);
     }
 
     /** 
-     * @param {HTMLElement} container
+     * @param {Element} container
+     * @param {string} player
      * @param {number} cardsInHand
      * @param {Card[]} cards
      * @param {number[]} positions 
      */
-    function drawHand(container, cardsInHand, cards, positions) {
+    function drawHand(container, player, cardsInHand, cards, positions) {
         while (container.firstChild) { container.removeChild(container.lastChild) }
         let cardix = 0;
         for (let i = 0; i < cardsInHand; i++) {
@@ -184,7 +187,9 @@ window.onload = function () {
             }
             const node = document.createElement("div");
             node.className = "card";
-            node.onclick = () => sendCurrentAction(i)
+            if (player == thisPlayer) {
+                node.onclick = () => sendCurrentAction(player, i)
+            }
             node.appendChild(text);
             container.appendChild(node);
         }
@@ -193,7 +198,7 @@ window.onload = function () {
     /** @param {string} player */
     function markReady(player) {
         // TODO: implement checkmark
-        console.log(`player ready: ${player.id}`)
+        console.log(`player ready: ${player}`)
     }
 
     /** 
@@ -210,7 +215,6 @@ window.onload = function () {
             playerDraw.innerHTML = "";
             let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
             if (effect && effect != "none") {
-                // TODO: Pretty print effect
                 text += " (Effect: " + EFFECTS[effect] + ")"
             }
             const textNode = document.createTextNode(text);
@@ -229,11 +233,12 @@ window.onload = function () {
     function showDiscard(player, cardPosition, card) {
         const playerHand = players[player]["hand"];
         const playerDraw = players[player]["draw"];
-        const newCard = playerDraw.lastChild;
+        const newCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
         if (cardPosition >= 0) {
             const container = document.createElement("div");
             container.className = "card"
-            const oldCard = playerHand.replaceChild(container, playerHand.childNodes[cardPosition]);
+            const cardNode = playerHand.childNodes[cardPosition];
+            const oldCard = /** @type {HTMLElement} */ (playerHand.replaceChild(container, cardNode));
             container.appendChild(oldCard);
             const animation = moveNode(newCard, container);
             oldCard.innerHTML = "[" + cardValue(card) + "]";
@@ -241,7 +246,9 @@ window.onload = function () {
                 moveNode(oldCard, deckDiscard)
                 playerHand.replaceChild(newCard, container);
                 newCard.innerHTML = "[ ]";
-                newCard.onclick = () => sendCurrentAction(cardPosition);
+                if (player == thisPlayer) {
+                    newCard.onclick = () => sendCurrentAction(player, cardPosition);
+                }
             });
         } else {
             moveNode(newCard, deckDiscard).addEventListener("finish", () => {
@@ -259,7 +266,7 @@ window.onload = function () {
     function showPeek(player, cardPosition, card) { }
 
     /** 
-     * @param {string[]} player
+     * @param {string[]} players
      * @param {number[]} cardPositions 
      */
     // eslint-disable-next-line no-unused-vars
@@ -267,8 +274,8 @@ window.onload = function () {
 
     /** 
      * @param {string} player
-     * @param {withCount} boolean
-     * @param {declared} number 
+     * @param {boolean} withCount
+     * @param {number} declared 
      */
     // eslint-disable-next-line no-unused-vars
     function showCut(player, withCount, declared) { /* TODO */ }
@@ -344,6 +351,7 @@ window.onload = function () {
                 markReady(msgData.player) // TODO
                 break;
             case "turn":
+                currentTurn = msgData.player;
                 fn = msgData.player == username.value ? show : hide;
                 fn(buttonDraw)
                 fn(buttonDiscard)
@@ -441,8 +449,11 @@ window.onload = function () {
     buttonPeekCartaAjena.onclick = () => setAction(EFFECT_PEEK_CARTA_AJENA);
 
 
-    /** @param {number} cardPos */
-    function sendCurrentAction(cardPos) {
+    /** 
+     * @param {string} player
+     * @param {number} cardPos 
+    */
+    function sendCurrentAction(player, cardPos) {
         console.log("Sending current action: ", CURRENT_ACTION)
         switch (CURRENT_ACTION) {
             case ACTION_DISCARD:
@@ -470,7 +481,7 @@ window.onload = function () {
                     "type": "effect_peek_carta_ajena",
                     "data": {
                         "cardPosition": cardPos,
-                        "player": "", // TODO: Set player
+                        "player": player,
                     }
                 })
                 break;
