@@ -27,9 +27,9 @@ window.onload = function () {
     var CURRENT_ACTION = ACTION_DISCARD;
 
     const EFFECTS = {
-        EFFECT_SWAP: "Swap 2 cards",
-        EFFECT_PEEK_OWN: "Peek card from your hand",
-        EFFECT_PEEK_CARTA_AJENA: "Peek card from other player"
+        [EFFECT_SWAP]: "Swap 2 cards",
+        [EFFECT_PEEK_OWN]: "Peek card from your hand",
+        [EFFECT_PEEK_CARTA_AJENA]: "Peek card from other player"
     }
     var suitKind = "standard"
 
