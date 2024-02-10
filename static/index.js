@@ -179,7 +179,6 @@ window.onload = function () {
         for (let i = 0; i < cardsInHand; i++) {
             let text;
             if (positions && positions[cardix] == i) {
-                // TODO: change suit to suit letter in spanish deck
                 text = document.createTextNode("[" + cardValue(cards[cardix]) + "]");
                 cardix = cardix + 1
             } else {
