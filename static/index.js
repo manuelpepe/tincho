@@ -19,7 +19,7 @@ window.onload = function () {
         }
     }
 
-    const EFFECT_SWAP = "swap_cards"
+    const EFFECT_SWAP = "swap_card"
     const EFFECT_PEEK_OWN = "peek_own"
     const EFFECT_PEEK_CARTA_AJENA = "peek_carta_ajena"
     const ACTION_DISCARD = "discard"
@@ -46,6 +46,9 @@ window.onload = function () {
 
     /** @type {Object<string, {hand: HTMLElement, draw: HTMLElement, data: Player}>} */
     var players = {};
+
+    /** @type {string | null} */
+    var thisPlayer;
 
     const roomid = document.getElementById("room-id");
     const username = document.getElementById("username");
@@ -181,7 +184,7 @@ window.onload = function () {
             }
             const node = document.createElement("div");
             node.className = "card";
-            node.onclick = () => sendDiscard(i)
+            node.onclick = () => sendCurrentAction(i)
             node.appendChild(text);
             container.appendChild(node);
         }
@@ -253,7 +256,7 @@ window.onload = function () {
      * @param {Card} card 
      */
     // eslint-disable-next-line no-unused-vars
-    function showPeek(player, cardPosition, card) { /* TODO */ }
+    function showPeek(player, cardPosition, card) { }
 
     /** 
      * @param {string[]} player
@@ -312,6 +315,7 @@ window.onload = function () {
     /** @param {string} action */
     function setAction(action) {
         // TODO: check if action is valid
+        console.log("Setting action to: ", action)
         CURRENT_ACTION = action
     }
 
@@ -357,14 +361,17 @@ window.onload = function () {
                 hideEffectButtons();
                 break;
             case "effect_peek":
-                showPeek(msgData.player, msgData.cardPosition, msgData.card) // TODO
+                showPeek(msgData.player, msgData.cardPosition, msgData.card)
+                // TODO: Animate show peeked card and discard drawn
                 break;
             case "effect_swap":
-                showSwap(msgData.players, msgData.cardPositions) // TODO
+                showSwap(msgData.players, msgData.cardPositions)
+                // TODO: Animate swap cards and discard drawn
                 break;
             case "cut":
-                showCut(msgData.player, msgData.withCount, msgData.declared) // TODO
+                showCut(msgData.player, msgData.withCount, msgData.declared)
                 setPlayers(msgData.players)
+                // TODO: Animate show scores
                 break;
             case "end_game":
                 showEndGame(msgData.winner)
@@ -389,6 +396,7 @@ window.onload = function () {
         show(roomTitle);
         show(buttonStart);
         console.log("connected to room " + roomid.value);
+        thisPlayer = username.value;
         return false;
     }
 
@@ -435,6 +443,7 @@ window.onload = function () {
 
     /** @param {number} cardPos */
     function sendCurrentAction(cardPos) {
+        console.log("Sending current action: ", CURRENT_ACTION)
         switch (CURRENT_ACTION) {
             case ACTION_DISCARD:
                 sendDiscard(cardPos);
@@ -466,6 +475,7 @@ window.onload = function () {
                 })
                 break;
         }
+        setAction(ACTION_DISCARD)
     }
 
     /** @param {number} ix */
