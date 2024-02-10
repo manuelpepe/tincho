@@ -19,10 +19,17 @@ window.onload = function () {
         }
     }
 
+    const EFFECT_SWAP = "swap_cards"
+    const EFFECT_PEEK_OWN = "peek_own"
+    const EFFECT_PEEK_CARTA_AJENA = "peek_carta_ajena"
+    const ACTION_DISCARD = "discard"
+
+    var CURRENT_ACTION = ACTION_DISCARD;
+
     const EFFECTS = {
-        "swap_card": "Swap 2 cards",
-        "peek_own": "Peek card from your hand",
-        "peek_carta_ajena": "Peek card from other player"
+        EFFECT_SWAP: "Swap 2 cards",
+        EFFECT_PEEK_OWN: "Peek card from your hand",
+        EFFECT_PEEK_CARTA_AJENA: "Peek card from other player"
     }
     var suitKind = "standard"
 
@@ -51,6 +58,9 @@ window.onload = function () {
     const buttonDraw = document.getElementById("btn-draw");
     const buttonDiscard = document.getElementById("btn-discard");
     const buttonCut = document.getElementById("btn-cut");
+    const buttonSwap = document.getElementById("btn-swap");
+    const buttonPeekOwn = document.getElementById("btn-peek-own");
+    const buttonPeekCartaAjena = document.getElementById("btn-peek-carta-ajena");
 
     const playerTemplate = document.getElementById("player-template")
     const playerList = document.getElementById("player-list");
@@ -228,7 +238,7 @@ window.onload = function () {
                 moveNode(oldCard, deckDiscard)
                 playerHand.replaceChild(newCard, container);
                 newCard.innerHTML = "[ ]";
-                newCard.onclick = () => sendDiscard(cardPosition);
+                newCard.onclick = () => sendCurrentAction(cardPosition);
             });
         } else {
             moveNode(newCard, deckDiscard).addEventListener("finish", () => {
@@ -264,48 +274,106 @@ window.onload = function () {
     // eslint-disable-next-line no-unused-vars
     function showEndGame(winner) { /* TODO */ }
 
+    /** 
+     *  @param {string} effect 
+     *  @returns {HTMLElement | null}
+    */
+    function getEffectButton(effect) {
+        switch (effect) {
+            case EFFECT_SWAP:
+                return buttonSwap
+            case EFFECT_PEEK_OWN:
+                return buttonPeekOwn
+            case EFFECT_PEEK_CARTA_AJENA:
+                return buttonPeekCartaAjena
+            case "none":
+            case "":
+                break;
+            default:
+                console.log("Unkown effect:", effect)
+        }
+        return null
+    }
+
+    /** @param {string} effect */
+    function showEffectButton(effect) {
+        let btn = getEffectButton(effect)
+        if (btn != null) {
+            show(btn)
+        }
+    }
+
+    function hideEffectButtons() {
+        hide(buttonSwap);
+        hide(buttonPeekOwn);
+        hide(buttonPeekCartaAjena);
+    }
+
+    /** @param {string} action */
+    function setAction(action) {
+        // TODO: check if action is valid
+        CURRENT_ACTION = action
+    }
+
     /** @param {MessageEvent<any>} event} */
     function processWSMessage(event) {
         const data = JSON.parse(event.data)
         const msgData = data.data;
+        let fn;
         console.log("Received message:", data)
-        if (data.type == "players_changed") {
-            setPlayers(msgData.players)
-        } else if (data.type == "game_start") {
-            hide(buttonStart)
-            show(buttonFirstPeek)
-            show(deckPile)
-            show(deckDiscard)
-            setPlayers(msgData.players)
-        } else if (data.type == "player_peeked") {
-            if (msgData.player == username.value) {
-                hide(buttonFirstPeek)
-                showCards(msgData.player, msgData.cards, [0, 1])
-            }
-            markReady(msgData.player) // TODO
-        } else if (data.type == "turn") {
-            let fn = msgData.player == username.value ? show : hide
-            fn(buttonDraw)
-            fn(buttonDiscard)
-            fn(buttonCut)
-        } else if (data.type == "draw") {
-            showDraw(msgData.player, msgData.source, msgData.card, msgData.effect)
-        } else if (data.type == "discard") {
-            if (msgData.card.length == 1) {
-                showDiscard(msgData.player, msgData.cardPosition[0], msgData.card[0])
-            }
-        } else if (data.type == "effect_peek") {
-            showPeek(msgData.player, msgData.cardPosition, msgData.card) // TODO
-        } else if (data.type == "effect_swap") {
-            showSwap(msgData.players, msgData.cardPositions) // TODO
-        } else if (data.type == "cut") {
-            showCut(msgData.player, msgData.withCount, msgData.declared) // TODO
-            setPlayers(msgData.players)
-        } else if (data.type == "end_game") {
-            showEndGame(msgData.winner)
-        } else {
-            console.error("Unknown message type", data.type, msgData)
+        switch (data.type) {
+            case "players_changed":
+                setPlayers(msgData.players)
+                break;
+            case "game_start":
+                hide(buttonStart)
+                show(buttonFirstPeek)
+                show(deckPile)
+                show(deckDiscard)
+                setPlayers(msgData.players)
+                break;
+            case "player_peeked":
+                if (msgData.player == username.value) {
+                    hide(buttonFirstPeek)
+                    showCards(msgData.player, msgData.cards, [0, 1])
+                }
+                markReady(msgData.player) // TODO
+                break;
+            case "turn":
+                fn = msgData.player == username.value ? show : hide;
+                fn(buttonDraw)
+                fn(buttonDiscard)
+                fn(buttonCut)
+                break;
+            case "draw":
+                showDraw(msgData.player, msgData.source, msgData.card, msgData.effect)
+                showEffectButton(msgData.effect)
+                break;
+            case "discard":
+                if (msgData.card.length == 1) {
+                    showDiscard(msgData.player, msgData.cardPosition[0], msgData.card[0])
+                }
+                // TODO: Handle double discard
+                hideEffectButtons();
+                break;
+            case "effect_peek":
+                showPeek(msgData.player, msgData.cardPosition, msgData.card) // TODO
+                break;
+            case "effect_swap":
+                showSwap(msgData.players, msgData.cardPositions) // TODO
+                break;
+            case "cut":
+                showCut(msgData.player, msgData.withCount, msgData.declared) // TODO
+                setPlayers(msgData.players)
+                break;
+            case "end_game":
+                showEndGame(msgData.winner)
+                break;
+            default:
+                console.error("Unknown message type", data.type, msgData)
+                break;
         }
+
     }
 
     function connectToRoom() {
@@ -359,6 +427,46 @@ window.onload = function () {
     });
 
     buttonDiscard.onclick = () => sendDiscard(-1);
+
+    buttonSwap.onclick = () => setAction(EFFECT_SWAP);
+    buttonPeekOwn.onclick = () => setAction(EFFECT_PEEK_OWN);
+    buttonPeekCartaAjena.onclick = () => setAction(EFFECT_PEEK_CARTA_AJENA);
+
+
+    /** @param {number} cardPos */
+    function sendCurrentAction(cardPos) {
+        switch (CURRENT_ACTION) {
+            case ACTION_DISCARD:
+                sendDiscard(cardPos);
+                break;
+            case EFFECT_SWAP:
+                sendAction({
+                    "type": "effect_swap_card",
+                    "data": {
+                        "cardPositions": [],    // TODO: Set positions
+                        "players": [],          // TODO: Set players
+                    }
+                })
+                break;
+            case EFFECT_PEEK_OWN:
+                sendAction({
+                    "type": "effect_peek_own",
+                    "data": {
+                        "cardPosition": cardPos,
+                    },
+                })
+                break;
+            case EFFECT_PEEK_CARTA_AJENA:
+                sendAction({
+                    "type": "effect_peek_carta_ajena",
+                    "data": {
+                        "cardPosition": cardPos,
+                        "player": "", // TODO: Set player
+                    }
+                })
+                break;
+        }
+    }
 
     /** @param {number} ix */
     function sendDiscard(ix) {
