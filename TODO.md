@@ -1,3 +1,5 @@
+### Features
+
 - [x] Implement start game peek (2 cards from own hand each)
 - [x] Separate broadcasting logic from game logic
     - [x] Remove playerID from methods and use current turn
@@ -5,6 +7,7 @@
     - [x] Refactor room to use the state component
 - [ ] Keep track of scores per round and send table at the end
 - [x] Rooms should timeout after a while
+- [x] Implement turn time limit
 - [ ] Implement reconnection
     - Option 1: Verify (IP, Username, RoomID)
     - Option 2:
@@ -23,3 +26,9 @@
 - [ ] Add styles to UI
 - [ ] Only room leader can start room
     - [ ] Transfer leadership to other players 
+
+
+### Fixes
+
+- [ ] When peeking, send peek position to all players so they know which card has been peeked (but not the value)
+- [ ] When swapping cards, an intermediate container should be used to pass them around (improves animation)
