@@ -47,13 +47,13 @@ func (t *Tincho) GetPlayers() []Player {
 	return t.players
 }
 
-func (t *Tincho) getPlayer(playerID string) (Player, bool) {
+func (t *Tincho) getPlayer(playerID string) (*Player, bool) {
 	for _, room := range t.players {
 		if room.ID == playerID {
-			return room, true
+			return &room, true
 		}
 	}
-	return Player{}, false
+	return nil, false
 }
 
 func (t *Tincho) AddPlayer(p Player) error {
@@ -321,11 +321,14 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 	return card, discarded, nil
 }
 
-func (t *Tincho) UseEffectPeekCartaAjena(position int) (PeekedCard, DiscardedCard, error) {
+func (t *Tincho) UseEffectPeekCartaAjena(playerID string, position int) (PeekedCard, DiscardedCard, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekCartaAjena {
 		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
-	player := &t.players[t.currentTurn]
+	player, ok := t.getPlayer(playerID)
+	if !ok {
+		return Card{}, Card{}, fmt.Errorf("player not found: %s", playerID)
+	}
 	discarded := t.pendingStorage
 	card, err := t.peekCardAndDiscardPending(player, position)
 	if err != nil {

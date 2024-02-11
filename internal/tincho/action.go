@@ -256,7 +256,7 @@ func (r *Room) doEffectPeekOwnCard(action Action) error {
 	}
 	card, discarded, err := r.state.UseEffectPeekOwnCard(data.CardPosition)
 	if err != nil {
-		return fmt.Errorf("state error: UseEffectPeekOwnCard: %w", err)
+		return err
 	}
 	if err := r.sendPeekToPlayer(action.PlayerID, action.PlayerID, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
@@ -300,7 +300,7 @@ func (r *Room) doEffectPeekCartaAjena(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	card, discarded, err := r.state.UseEffectPeekCartaAjena(data.CardPosition)
+	card, discarded, err := r.state.UseEffectPeekCartaAjena(data.Player, data.CardPosition)
 	if err != nil {
 		return err
 	}
