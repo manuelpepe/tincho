@@ -71,7 +71,7 @@ func (t *Tincho) AddPlayer(p Player) error {
 func (t *Tincho) StartGame() error {
 	t.setAllPlayersPendingFirstPeek()
 	if err := t.deal(); err != nil {
-		return fmt.Errorf("Deal: %w", err)
+		return fmt.Errorf("deal: %w", err)
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (t *Tincho) deal() error {
 func (t *Tincho) GetFirstPeek(playerID string) ([]Card, error) {
 	player, exists := t.getPlayer(playerID)
 	if !exists {
-		return nil, fmt.Errorf("Unkown player: %s", playerID)
+		return nil, fmt.Errorf("unkown player: %s", playerID)
 	}
 	if !player.PendingFirstPeek {
 		return nil, fmt.Errorf("%w: %s", ErrPlayerNotPendingFirstPeek, playerID)
@@ -184,11 +184,18 @@ func (t *Tincho) Discard(position int, position2 *int) ([]Card, error) {
 	if t.pendingStorage == (Card{}) {
 		return nil, errors.New("can't discard without drawing")
 	}
+	var cards []Card
+	var err error
 	if position2 == nil {
-		return t.discardOneCard(position)
+		cards, err = t.discardOneCard(position)
 	} else {
-		return t.discardTwoCards(position, *position2)
+		cards, err = t.discardTwoCards(position, *position2)
 	}
+	if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
+		return nil, fmt.Errorf("error discarding: %w", err)
+	}
+	t.passTurn()
+	return cards, err
 }
 
 var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of different values")
@@ -220,8 +227,6 @@ func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]Card, error) {
 	player.Hand[position1] = t.pendingStorage
 	player.Hand.Remove(position2)
 	t.pendingStorage = Card{}
-
-	t.passTurn()
 	return []Card{card1, card2}, nil
 }
 
@@ -234,7 +239,6 @@ func (t *Tincho) discardOneCard(position int) ([]Card, error) {
 	if err != nil {
 		return nil, fmt.Errorf("discardCard: %w", err)
 	}
-	t.passTurn()
 	return []Card{card}, nil
 }
 
