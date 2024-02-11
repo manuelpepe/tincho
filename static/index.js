@@ -45,12 +45,10 @@ window.onload = function () {
     var conn;
 
     /** @type {Object<string, {hand: Element, draw: Element, data: Player}>} */
-    var players = {};
+    var PLAYERS = {};
 
     /** @type {string | null} */
-    var thisPlayer;
-    /** @type {string | null} */
-    var currentTurn;
+    var THIS_PLAYER;
 
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
     const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
@@ -86,8 +84,12 @@ window.onload = function () {
     /** 
      * @param {Element} node
      * @param {Element} target 
+     * @param {number | null} duration
      */
-    function moveNode(node, target) {
+    function moveNode(node, target, duration = 1000) {
+        if (duration == null || duration == undefined) {
+            duration = 1000;
+        }
         const { left: x0, top: y0 } = node.getBoundingClientRect();
         target.append(node);
         const { left: x1, top: y1 } = node.getBoundingClientRect();
@@ -106,7 +108,7 @@ window.onload = function () {
             { transform: transformFrom },
             { transform: transformTo },
         ], {
-            duration: 1000,
+            duration: duration,
             easing: 'linear',
         });
         return animation
@@ -128,7 +130,7 @@ window.onload = function () {
      */
     function setPlayers(new_players) {
         console.log("players", new_players)
-        players = {};
+        PLAYERS = {};
         playerList.innerHTML = "";
         for (let i = 0; i < new_players.length; i++) {
             addPlayer(new_players[i]);
@@ -143,7 +145,7 @@ window.onload = function () {
         let parts = clone.querySelectorAll(".player-datafield");
         parts[0].innerHTML = player.id;
         drawHand(parts[1], player.id, player.cards_in_hand ?? 0, [], [])
-        players[player["id"]] = {
+        PLAYERS[player["id"]] = {
             "hand": parts[1],
             "draw": parts[2],
             "data": player,
@@ -157,8 +159,8 @@ window.onload = function () {
      * @param {number[]} positions
      */
     function showCards(player, cards, positions) {
-        const playerHand = players[player]["hand"];
-        const playerData = players[player]["data"];
+        const playerHand = PLAYERS[player]["hand"];
+        const playerData = PLAYERS[player]["data"];
         drawHand(playerHand, player, playerData.cards_in_hand, cards, positions)
         // TODO: Store timeout for skip button
         setTimeout(() => {
@@ -205,7 +207,7 @@ window.onload = function () {
      */
     function showDraw(player, source, card, effect) {
         // TODO: Draw from discard pile
-        const playerDraw = players[player]["draw"];
+        const playerDraw = PLAYERS[player]["draw"];
         const animation = drawCard(deckPile, playerDraw);
         animation.addEventListener("finish", () => {
             playerDraw.innerHTML = "";
@@ -226,8 +228,8 @@ window.onload = function () {
      * @param {Card} card
      */
     function showDiscard(player, cardPosition, card) {
-        const playerHand = players[player]["hand"];
-        const playerDraw = players[player]["draw"];
+        const playerHand = PLAYERS[player]["hand"];
+        const playerDraw = PLAYERS[player]["draw"];
         const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
         if (cardPosition >= 0) {
             const tmpContainer = createCardTemplate();
@@ -263,8 +265,31 @@ window.onload = function () {
      * @param {string[]} players
      * @param {number[]} cardPositions 
      */
-    // eslint-disable-next-line no-unused-vars
-    function showSwap(players, cardPositions) { /* TODO */ }
+    function showSwap(players, cardPositions) {
+        const playerOneHand = PLAYERS[players[0]]["hand"];
+        const playerOneCard = /** @type {HTMLElement} */ (playerOneHand.childNodes[cardPositions[0]]);
+        const playerTwoHand = PLAYERS[players[1]]["hand"];
+        const playerTwoCard = /** @type {HTMLElement} */ (playerTwoHand.childNodes[cardPositions[1]]);
+
+        const tmpContainerOne = createCardTemplate();
+        const tmpContainerTwo = createCardTemplate();
+        playerOneCard.replaceWith(tmpContainerOne);
+        tmpContainerOne.appendChild(playerOneCard);
+        playerTwoCard.replaceWith(tmpContainerTwo)
+        tmpContainerTwo.appendChild(playerTwoCard);
+
+        const anim = moveNode(playerOneCard, tmpContainerTwo, 2000);
+        anim.addEventListener("finish", () => {
+            const anim = moveNode(playerTwoCard, tmpContainerOne, 2000);
+            anim.addEventListener("finish", () => {
+                tmpContainerOne.replaceWith(playerTwoCard);
+                tmpContainerTwo.replaceWith(playerOneCard);
+                playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
+                playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
+            })
+        });
+
+    }
 
     /** 
      * @param {string} player
@@ -338,14 +363,13 @@ window.onload = function () {
                 setPlayers(msgData.players)
                 break;
             case "player_peeked":
-                if (msgData.player == thisPlayer) {
+                if (msgData.player == THIS_PLAYER) {
                     hide(buttonFirstPeek)
                     showCards(msgData.player, msgData.cards, [0, 1])
                 }
                 markReady(msgData.player) // TODO
                 break;
             case "turn":
-                currentTurn = msgData.player;
                 fn = msgData.player == username.value ? show : hide;
                 fn(buttonDraw)
                 fn(buttonDiscard)
@@ -397,7 +421,7 @@ window.onload = function () {
         show(roomTitle);
         show(buttonStart);
         console.log("connected to room " + roomid.value);
-        thisPlayer = username.value;
+        THIS_PLAYER = username.value;
         return false;
     }
 
@@ -450,7 +474,7 @@ window.onload = function () {
         console.log("Sending current action: ", CURRENT_ACTION)
         switch (CURRENT_ACTION) {
             case ACTION_DISCARD:
-                if (player != thisPlayer) {
+                if (player != THIS_PLAYER) {
                     console.log("can't discard another player's card")
                     return
                 }
