@@ -184,11 +184,8 @@ window.onload = function () {
             } else {
                 text = document.createTextNode("[ ]");
             }
-            const node = document.createElement("div");
-            node.className = "card";
-            if (player == thisPlayer) {
-                node.onclick = () => sendCurrentAction(player, i)
-            }
+            const node = createCardTemplate();
+            node.onclick = () => sendCurrentAction(player, i)
             node.appendChild(text);
             container.appendChild(node);
         }
@@ -217,8 +214,7 @@ window.onload = function () {
                 text += " (Effect: " + EFFECTS[effect] + ")"
             }
             const textNode = document.createTextNode(text);
-            const node = document.createElement("div");
-            node.className = "card";
+            const node = createCardTemplate();
             node.appendChild(textNode);
             playerDraw.appendChild(node);
         });
@@ -232,26 +228,24 @@ window.onload = function () {
     function showDiscard(player, cardPosition, card) {
         const playerHand = players[player]["hand"];
         const playerDraw = players[player]["draw"];
-        const newCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+        const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
         if (cardPosition >= 0) {
-            const container = document.createElement("div");
-            container.className = "card"
-            const cardNode = playerHand.childNodes[cardPosition];
-            const oldCard = /** @type {HTMLElement} */ (playerHand.replaceChild(container, cardNode));
-            container.appendChild(oldCard);
-            const animation = moveNode(newCard, container);
-            oldCard.innerHTML = "[" + cardValue(card) + "]";
+            const tmpContainer = createCardTemplate();
+            const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
+            cardInHand.innerHTML = "[" + cardValue(card) + "]";
+            cardInHand.replaceWith(tmpContainer);
+            tmpContainer.appendChild(cardInHand);
+            const animation = moveNode(drawnCard, tmpContainer);
             animation.addEventListener("finish", () => {
-                moveNode(oldCard, deckDiscard)
-                playerHand.replaceChild(newCard, container);
-                newCard.innerHTML = "[ ]";
-                if (player == thisPlayer) {
-                    newCard.onclick = () => sendCurrentAction(player, cardPosition);
-                }
+                moveNode(cardInHand, deckDiscard)
+                tmpContainer.replaceWith(drawnCard);
+                drawnCard.innerHTML = "[ ]";
+                drawnCard.onclick = () => sendCurrentAction(player, cardPosition);
             });
         } else {
-            moveNode(newCard, deckDiscard).addEventListener("finish", () => {
-                newCard.innerHTML = "[" + cardValue(card) + "]"
+            const animation = moveNode(drawnCard, deckDiscard);
+            animation.addEventListener("finish", () => {
+                drawnCard.innerHTML = "[" + cardValue(card) + "]"
             })
         }
     }
@@ -261,8 +255,9 @@ window.onload = function () {
      * @param {number} cardPosition
      * @param {Card} card 
      */
-    // eslint-disable-next-line no-unused-vars
-    function showPeek(player, cardPosition, card) { }
+    function showPeek(player, cardPosition, card) {
+        showCards(player, [card], [cardPosition])
+    }
 
     /** 
      * @param {string[]} players
@@ -343,7 +338,7 @@ window.onload = function () {
                 setPlayers(msgData.players)
                 break;
             case "player_peeked":
-                if (msgData.player == username.value) {
+                if (msgData.player == thisPlayer) {
                     hide(buttonFirstPeek)
                     showCards(msgData.player, msgData.cards, [0, 1])
                 }
@@ -369,7 +364,6 @@ window.onload = function () {
                 break;
             case "effect_peek":
                 showPeek(msgData.player, msgData.cardPosition, msgData.card)
-                // TODO: Animate show peeked card and discard drawn
                 break;
             case "effect_swap":
                 showSwap(msgData.players, msgData.cardPositions)
@@ -456,6 +450,10 @@ window.onload = function () {
         console.log("Sending current action: ", CURRENT_ACTION)
         switch (CURRENT_ACTION) {
             case ACTION_DISCARD:
+                if (player != thisPlayer) {
+                    console.log("can't discard another player's card")
+                    return
+                }
                 sendDiscard(cardPos);
                 break;
             case EFFECT_SWAP:
@@ -504,5 +502,12 @@ window.onload = function () {
         }
         console.log("Sent data:", data)
         conn.send(JSON.stringify(data));
+    }
+
+    /** @returns {HTMLElement} */
+    function createCardTemplate() {
+        const card = document.createElement("div");
+        card.className = "card";
+        return card;
     }
 };
