@@ -1,6 +1,7 @@
 window.onload = function () {
     /** @typedef {{suit: string, value: number}} Card */
     /** @typedef {{id: string, points: number, pending_first_peek: boolean, cards_in_hand: number}} Player */
+    /** @typedef {{player: string, cardPosition: number}} SwapBuffer */
 
     const SUITS = {
         "spanish": {
@@ -48,7 +49,10 @@ window.onload = function () {
     var PLAYERS = {};
 
     /** @type {string | null} */
-    var THIS_PLAYER;
+    var THIS_PLAYER = null;
+
+    /** @type {SwapBuffer | null} */
+    var SWAP_BUFFER = null;
 
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
     const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
@@ -367,7 +371,7 @@ window.onload = function () {
                     hide(buttonFirstPeek)
                     showCards(msgData.player, msgData.cards, [0, 1])
                 }
-                markReady(msgData.player) // TODO
+                markReady(msgData.player)
                 break;
             case "turn":
                 fn = msgData.player == username.value ? show : hide;
@@ -471,43 +475,57 @@ window.onload = function () {
      * @param {number} cardPos 
     */
     function sendCurrentAction(player, cardPos) {
-        console.log("Sending current action: ", CURRENT_ACTION)
+        console.log("Handling current action: ", CURRENT_ACTION);
         switch (CURRENT_ACTION) {
             case ACTION_DISCARD:
                 if (player != THIS_PLAYER) {
-                    console.log("can't discard another player's card")
-                    return
+                    console.log("can't discard another player's card");
+                    return;
                 }
                 sendDiscard(cardPos);
                 break;
             case EFFECT_SWAP:
+                if (SWAP_BUFFER == null) {
+                    SWAP_BUFFER = { player: player, cardPosition: cardPos };
+                    console.log("Set swap buffer to: ", SWAP_BUFFER);
+                    return;
+                }
                 sendAction({
                     "type": "effect_swap_card",
                     "data": {
-                        "cardPositions": [],    // TODO: Set positions
-                        "players": [],          // TODO: Set players
+                        "cardPositions": [SWAP_BUFFER.cardPosition, cardPos],
+                        "players": [SWAP_BUFFER.player, player],
                     }
-                })
+                });
+                SWAP_BUFFER = null;
                 break;
             case EFFECT_PEEK_OWN:
+                if (player != THIS_PLAYER) {
+                    console.log("peek a card from your own hand");
+                    return;
+                }
                 sendAction({
                     "type": "effect_peek_own",
                     "data": {
                         "cardPosition": cardPos,
                     },
-                })
+                });
                 break;
             case EFFECT_PEEK_CARTA_AJENA:
+                if (player == THIS_PLAYER) {
+                    console.log("peek a card from another player");
+                    return;
+                }
                 sendAction({
                     "type": "effect_peek_carta_ajena",
                     "data": {
                         "cardPosition": cardPos,
                         "player": player,
                     }
-                })
+                });
                 break;
         }
-        setAction(ACTION_DISCARD)
+        setAction(ACTION_DISCARD);
     }
 
     /** @param {number} ix */
