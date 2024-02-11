@@ -304,30 +304,35 @@ func (t *Tincho) IsWinConditionMet() bool {
 	return false
 }
 
-func (t *Tincho) UseEffectPeekOwnCard(position int) (Card, error) {
+type PeekedCard = Card
+type DiscardedCard = Card
+
+func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekOwnCard {
-		return Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
 	player := &t.players[t.currentTurn]
+	discarded := t.pendingStorage
 	card, err := t.peekCardAndDiscardPending(player, position)
 	if err != nil {
-		return Card{}, fmt.Errorf("PeekCard: %w", err)
+		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)
 	}
 	t.passTurn()
-	return card, nil
+	return card, discarded, nil
 }
 
-func (t *Tincho) UseEffectPeekCartaAjena(position int) (Card, error) {
+func (t *Tincho) UseEffectPeekCartaAjena(position int) (PeekedCard, DiscardedCard, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekCartaAjena {
-		return Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
 	player := &t.players[t.currentTurn]
+	discarded := t.pendingStorage
 	card, err := t.peekCardAndDiscardPending(player, position)
 	if err != nil {
-		return Card{}, fmt.Errorf("PeekCard: %w", err)
+		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)
 	}
 	t.passTurn()
-	return card, nil
+	return card, discarded, nil
 }
 
 func (t *Tincho) peekCardAndDiscardPending(player *Player, cardIndex int) (Card, error) {

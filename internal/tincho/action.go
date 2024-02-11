@@ -254,13 +254,25 @@ func (r *Room) doEffectPeekOwnCard(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	card, err := r.state.UseEffectPeekOwnCard(data.CardPosition)
+	card, discarded, err := r.state.UseEffectPeekOwnCard(data.CardPosition)
 	if err != nil {
-		return err
+		return fmt.Errorf("state error: UseEffectPeekOwnCard: %w", err)
 	}
 	if err := r.sendPeekToPlayer(action.PlayerID, action.PlayerID, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
+	updateData, err := json.Marshal(UpdateDiscardData{
+		Player:         action.PlayerID,
+		CardsPositions: []int{-1},
+		Cards:          []Card{discarded},
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeDiscard,
+		Data: json.RawMessage(updateData),
+	})
 	if err := r.broadcastPassTurn(); err != nil {
 		return fmt.Errorf("PassTurn: %w", err)
 	}
@@ -288,13 +300,25 @@ func (r *Room) doEffectPeekCartaAjena(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	card, err := r.state.UseEffectPeekCartaAjena(data.CardPosition)
+	card, discarded, err := r.state.UseEffectPeekCartaAjena(data.CardPosition)
 	if err != nil {
 		return err
 	}
 	if err := r.sendPeekToPlayer(action.PlayerID, data.Player, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
+	updateData, err := json.Marshal(UpdateDiscardData{
+		Player:         action.PlayerID,
+		CardsPositions: []int{-1},
+		Cards:          []Card{discarded},
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeDiscard,
+		Data: json.RawMessage(updateData),
+	})
 	if err := r.broadcastPassTurn(); err != nil {
 		return fmt.Errorf("PassTurn: %w", err)
 	}
