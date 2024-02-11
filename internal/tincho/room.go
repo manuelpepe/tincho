@@ -56,9 +56,9 @@ func (r *Room) Start() {
 			if err := r.addPlayer(player); err != nil {
 				fmt.Printf("r.addPlayer: %s\n", err)
 			}
-			fmt.Printf("Player joined #%s: %+v\n", r.ID, player)
+			log.Printf("Player joined #%s: %+v\n", r.ID, player)
 		case action := <-r.ActionsChan:
-			fmt.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
+			log.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
 			r.doAction(action)
 		case <-r.Context.Done():
 			log.Printf("Stopping room %s", r.ID)
