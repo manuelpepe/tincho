@@ -330,18 +330,28 @@ func (r *Room) doEffectSwapCards(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	if err := r.state.UseEffectSwapCards(data.Players, data.CardPositions); err != nil {
+	discarded, err := r.state.UseEffectSwapCards(data.Players, data.CardPositions)
+	if err != nil {
 		return err
 	}
-	updateData, err := json.Marshal(UpdateSwapCardsData{
-		CardPositions: data.CardPositions,
-		Players:       data.Players,
-	})
+	updateData, err := json.Marshal(UpdateSwapCardsData(data))
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
 	r.BroadcastUpdate(Update{
 		Type: UpdateTypeSwapCards,
+		Data: json.RawMessage(updateData),
+	})
+	updateData, err = json.Marshal(UpdateDiscardData{
+		Player:         action.PlayerID,
+		CardsPositions: []int{-1},
+		Cards:          []Card{discarded},
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeDiscard,
 		Data: json.RawMessage(updateData),
 	})
 	if err := r.broadcastPassTurn(); err != nil {

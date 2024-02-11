@@ -312,11 +312,11 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
 	player := &t.players[t.currentTurn]
-	discarded := t.pendingStorage
-	card, err := t.peekCardAndDiscardPending(player, position)
+	card, err := t.peekCard(player, position)
 	if err != nil {
 		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)
 	}
+	discarded := t.discardPending()
 	t.passTurn()
 	return card, discarded, nil
 }
@@ -329,33 +329,32 @@ func (t *Tincho) UseEffectPeekCartaAjena(playerID string, position int) (PeekedC
 	if !ok {
 		return Card{}, Card{}, fmt.Errorf("player not found: %s", playerID)
 	}
-	discarded := t.pendingStorage
-	card, err := t.peekCardAndDiscardPending(player, position)
+	card, err := t.peekCard(player, position)
 	if err != nil {
 		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)
 	}
+	discarded := t.discardPending()
 	t.passTurn()
 	return card, discarded, nil
 }
 
-func (t *Tincho) peekCardAndDiscardPending(player *Player, cardIndex int) (Card, error) {
+func (t *Tincho) peekCard(player *Player, cardIndex int) (PeekedCard, error) {
 	if cardIndex < 0 || cardIndex >= len(player.Hand) {
 		return Card{}, fmt.Errorf("invalid card position: %d", cardIndex)
 	}
-	t.discardPile = append([]Card{t.pendingStorage}, t.discardPile...)
-	t.pendingStorage = Card{}
 	return player.Hand[cardIndex], nil
 }
 
-func (t *Tincho) UseEffectSwapCards(players []string, positions []int) error {
+func (t *Tincho) UseEffectSwapCards(players []string, positions []int) (DiscardedCard, error) {
 	if t.pendingStorage.GetEffect() != CardEffectSwapCards {
-		return fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+		return Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
 	if err := t.swapCards(players, positions); err != nil {
-		return fmt.Errorf("SwapCards: %w", err)
+		return Card{}, fmt.Errorf("SwapCards: %w", err)
 	}
+	discarded := t.discardPending()
 	t.passTurn()
-	return nil
+	return discarded, nil
 }
 
 func (t *Tincho) swapCards(players []string, cardPositions []int) error {
@@ -367,11 +366,11 @@ func (t *Tincho) swapCards(players []string, cardPositions []int) error {
 	}
 	player1, exists := t.getPlayer(players[0])
 	if !exists {
-		return fmt.Errorf("Unkown player: %s", players[0])
+		return fmt.Errorf("unkown player: %s", players[0])
 	}
 	player2, exists := t.getPlayer(players[1])
 	if !exists {
-		return fmt.Errorf("Unkown player: %s", players[1])
+		return fmt.Errorf("unkown player: %s", players[1])
 	}
 	if cardPositions[0] < 0 || cardPositions[0] >= len(player1.Hand) {
 		return fmt.Errorf("invalid card position: %d", cardPositions[0])
@@ -381,4 +380,11 @@ func (t *Tincho) swapCards(players []string, cardPositions []int) error {
 	}
 	player1.Hand[cardPositions[0]], player2.Hand[cardPositions[1]] = player2.Hand[cardPositions[1]], player1.Hand[cardPositions[0]]
 	return nil
+}
+
+func (t *Tincho) discardPending() DiscardedCard {
+	cpy := t.pendingStorage
+	t.discardPile = append([]Card{t.pendingStorage}, t.discardPile...)
+	t.pendingStorage = Card{}
+	return cpy
 }
