@@ -416,7 +416,7 @@ window.onload = function () {
         if (!roomid.value) {
             return false;
         }
-        conn = new WebSocket("ws://localhost:5555/join?room=" + roomid.value + "&player=" + username.value);
+        conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid.value + "&player=" + username.value);
         conn.onclose = () => console.log("connection closed");
         conn.onmessage = processWSMessage;
         hide(formNew);
@@ -431,7 +431,7 @@ window.onload = function () {
 
     formNew.onsubmit = async (evt) => {
         evt.preventDefault();
-        await fetch("http://localhost:5555/new")
+        await fetch("http://" + location.host + "/new")
             .then(response => response.text())
             .then(data => roomid.value = data);
         connectToRoom();

@@ -21,11 +21,15 @@ func main() {
 		RoomTimeout: 60 * time.Minute,
 	})
 	r := mux.NewRouter()
+	frontHandler, err := front.FrontendHandler()
+	if err != nil {
+		log.Fatal(err)
+	}
 	handlers := tincho.NewHandlers(&game)
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
-	r.Handle("/{file:.*}", front.FrontendHandler())
+	r.Handle("/{file:.*}", frontHandler)
 
 	log.Println("Listening on port 5555")
 	log.Fatal(http.ListenAndServe(":5555", r))
