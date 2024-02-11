@@ -24,6 +24,7 @@ window.onload = function () {
     const EFFECT_PEEK_OWN = "peek_own"
     const EFFECT_PEEK_CARTA_AJENA = "peek_carta_ajena"
     const ACTION_DISCARD = "discard"
+    const ACTION_DISCARD_TWO = "discard_two"
 
     var CURRENT_ACTION = ACTION_DISCARD;
 
@@ -54,6 +55,10 @@ window.onload = function () {
     /** @type {SwapBuffer | null} */
     var SWAP_BUFFER = null;
 
+    /** @type {number | null} */
+    var DISCARD_TWO_BUFFER = null;
+
+
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
     const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
 
@@ -64,6 +69,8 @@ window.onload = function () {
     const buttonFirstPeek = document.getElementById("btn-first-peek");
     const buttonDraw = document.getElementById("btn-draw");
     const buttonDiscard = document.getElementById("btn-discard");
+    const buttonDiscardTwo = document.getElementById("btn-discard-two");
+    const buttonCancelDiscardTwo = document.getElementById("btn-cancel-discard-two");
     const buttonCut = document.getElementById("btn-cut");
     const buttonSwap = document.getElementById("btn-swap");
     const buttonPeekOwn = document.getElementById("btn-peek-own");
@@ -342,6 +349,15 @@ window.onload = function () {
         hide(buttonPeekCartaAjena);
     }
 
+    function hideAllButtons() {
+        hide(buttonDraw);
+        hide(buttonCut);
+        hide(buttonDiscard);
+        hide(buttonDiscardTwo);
+        hide(buttonCancelDiscardTwo);
+        hideEffectButtons();
+    }
+
     /** @param {string} action */
     function setAction(action) {
         // TODO: check if action is valid
@@ -353,7 +369,6 @@ window.onload = function () {
     function processWSMessage(event) {
         const data = JSON.parse(event.data)
         const msgData = data.data;
-        let fn;
         console.log("Received message:", data)
         switch (data.type) {
             case "players_changed":
@@ -374,28 +389,36 @@ window.onload = function () {
                 markReady(msgData.player)
                 break;
             case "turn":
-                fn = msgData.player == username.value ? show : hide;
-                fn(buttonDraw)
-                fn(buttonDiscard)
-                fn(buttonCut)
+                if (msgData.player == THIS_PLAYER) {
+                    show(buttonDraw);
+                    show(buttonCut);
+                } else {
+                    hideAllButtons();
+                }
                 break;
             case "draw":
-                showDraw(msgData.player, msgData.source, msgData.card, msgData.effect)
-                showEffectButton(msgData.effect)
+                showDraw(msgData.player, msgData.source, msgData.card, msgData.effect);
+                if (msgData.player == THIS_PLAYER) {
+                    show(buttonDiscard);
+                    show(buttonDiscardTwo);
+                    hide(buttonCut);
+                    showEffectButton(msgData.effect);
+                }
                 break;
             case "discard":
-                if (msgData.card.length == 1) {
-                    showDiscard(msgData.player, msgData.cardPosition[0], msgData.card[0])
+                for (let ix = 0; ix < msgData.card.length; ix++) {
+                    showDiscard(msgData.player, msgData.cardPosition[ix], msgData.card[ix])
                 }
-                // TODO: Handle double discard
                 hideEffectButtons();
+                break;
+            case "failed_double_discard":
+                // TODO: Show failed double discard
                 break;
             case "effect_peek":
                 showPeek(msgData.player, msgData.cardPosition, msgData.card)
                 break;
             case "effect_swap":
                 showSwap(msgData.players, msgData.cardPositions)
-                // TODO: Animate swap cards and discard drawn
                 break;
             case "cut":
                 showCut(msgData.player, msgData.withCount, msgData.declared)
@@ -460,10 +483,22 @@ window.onload = function () {
 
     buttonCut.onclick = () => sendAction({
         "type": "cut",
-        "data": { "withCount": true, "declared": 3 },
+        "data": { "withCount": true, "declared": 3 }, // TODO: Implement cut configuration by player
     });
 
     buttonDiscard.onclick = () => sendDiscard(-1);
+    buttonDiscardTwo.onclick = () => {
+        setAction(ACTION_DISCARD_TWO);
+        hide(buttonDiscardTwo);
+        show(buttonCancelDiscardTwo);
+        DISCARD_TWO_BUFFER = null;
+    };
+    buttonCancelDiscardTwo.onclick = () => {
+        setAction(ACTION_DISCARD_TWO);
+        show(buttonDiscardTwo);
+        hide(buttonCancelDiscardTwo);
+        DISCARD_TWO_BUFFER = null;
+    }
 
     buttonSwap.onclick = () => setAction(EFFECT_SWAP);
     buttonPeekOwn.onclick = () => setAction(EFFECT_PEEK_OWN);
@@ -483,6 +518,19 @@ window.onload = function () {
                     return;
                 }
                 sendDiscard(cardPos);
+                break;
+            case ACTION_DISCARD_TWO:
+                if (player != THIS_PLAYER) {
+                    console.log("can't discard another player's card");
+                    return;
+                }
+                if (DISCARD_TWO_BUFFER == null) {
+                    DISCARD_TWO_BUFFER = cardPos;
+                    console.log("Set discard two buffer to: ", DISCARD_TWO_BUFFER);
+                    return;
+                }
+                sendDiscard(DISCARD_TWO_BUFFER, cardPos);
+                DISCARD_TWO_BUFFER = null;
                 break;
             case EFFECT_SWAP:
                 if (SWAP_BUFFER == null) {
@@ -528,11 +576,14 @@ window.onload = function () {
         setAction(ACTION_DISCARD);
     }
 
-    /** @param {number} ix */
-    function sendDiscard(ix) {
+    /** 
+     * @param {number} ix 
+     * @param {number} ix2 
+     * */
+    function sendDiscard(ix, ix2 = null) {
         sendAction({
             "type": "discard",
-            "data": { "cardPosition": ix },
+            "data": { "cardPosition": ix, "cardPosition2": ix2 },
         });
     }
 
