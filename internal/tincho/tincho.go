@@ -310,7 +310,7 @@ func (t *Tincho) Cut(withCount bool, declared int) ([][]PlayerScore, GameFinishe
 	if t.IsWinConditionMet() {
 		t.playing = false
 	}
-	return t.scoreHistory, GameFinished(t.playing), nil
+	return t.scoreHistory, GameFinished(!t.playing), nil
 }
 
 func (t *Tincho) cut(player Player, withCount bool, declared int) (int, error) {
