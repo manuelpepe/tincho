@@ -203,7 +203,7 @@ var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of di
 // Try to discard two cards from the player's hand. Both positions must be different and from the player's hand (drawn card can't be doble discarded).
 // Both cards must be of the same value, jokers can't be paired with non joker cards.
 func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]Card, error) {
-	player := t.players[t.currentTurn]
+	player := &t.players[t.currentTurn]
 	if position1 == position2 {
 		return nil, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
 	}
