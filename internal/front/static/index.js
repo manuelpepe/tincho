@@ -275,7 +275,27 @@ window.onload = function () {
      * @param {number[]} cardPositions
      * @param {Card[]} cards
      */
-    function showDoubleDiscard(player, cardPositions, cards) {
+    function showFailedDoubleDiscard(player, cardPositions, cards) {
+        const playerHand = PLAYERS[player]["hand"];
+        const playerDraw = PLAYERS[player]["draw"];
+        const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+        for (let ix = 0; ix < cardPositions.length; ix++) {
+            const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
+            cardInHand.innerHTML = "[" + cardValue(cards[ix]) + "]";
+        }
+        const tmpContainer = createCardTemplate();
+        playerHand.appendChild(tmpContainer);
+        moveNode(drawnCard, tmpContainer).addEventListener("finish", () => {
+            tmpContainer.replaceWith(drawnCard);
+            drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
+            setTimeout(() => {
+                drawnCard.innerHTML = "[ ]";
+                for (let ix = 0; ix < cardPositions.length; ix++) {
+                    const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
+                    cardInHand.innerHTML = "[ ]";
+                }
+            }, 1000);
+        });
     }
 
     /** 
@@ -427,7 +447,7 @@ window.onload = function () {
                 hideEffectButtons();
                 break;
             case "failed_double_discard":
-s                showDoubleDiscard(msgData.player, msgData.cardPositions, msgData.cards)
+                showFailedDoubleDiscard(msgData.player, msgData.cardPositions, msgData.cards);
                 break;
             case "effect_peek":
                 showPeek(msgData.player, msgData.cardPosition, msgData.card)
