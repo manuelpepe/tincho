@@ -282,8 +282,10 @@ window.onload = function () {
      * @param {boolean} withCount
      * @param {number} declared 
      */
-    // eslint-disable-next-line no-unused-vars
-    function showCut(player, withCount, declared) { /* TODO */ }
+    function showCut(player, withCount, declared) {
+        console.log("Player cutting:", player, withCount, declared)
+        hideAllButtons();
+    }
 
     /** @param {string} winner */
     // eslint-disable-next-line no-unused-vars
@@ -379,6 +381,7 @@ window.onload = function () {
             case "draw":
                 showDraw(msgData.player, msgData.source, msgData.card, msgData.effect);
                 if (msgData.player == THIS_PLAYER) {
+                    hide(buttonDraw);
                     show(buttonDiscard);
                     show(buttonDiscardTwo);
                     hide(buttonCut);
@@ -404,6 +407,13 @@ window.onload = function () {
                 showCut(msgData.player, msgData.withCount, msgData.declared)
                 setPlayers(msgData.players)
                 // TODO: Animate show scores
+                break;
+            case "start_next_round":
+                FIRST_TURN = true;
+                deckPile.innerHTML = "";
+                deckDiscard.innerHTML = "";
+                show(buttonFirstPeek)
+                setPlayers(msgData.players)
                 break;
             case "end_game":
                 showEndGame(msgData.winner)

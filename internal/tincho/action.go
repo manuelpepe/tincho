@@ -61,34 +61,13 @@ type ActionCutData struct {
 	Declared  int  `json:"declared"`
 }
 
-func (r *Room) broadcastPassTurn() error {
-	data, err := json.Marshal(UpdateTurnData{
-		Player: r.state.PlayerToPlay().ID,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeTurn,
-		Data: json.RawMessage(data),
-	})
-	return nil
-}
-
 func (r *Room) doStartGame(action Action) error {
 	if err := r.state.StartGame(); err != nil {
 		return fmt.Errorf("tsm.StartGame: %w", err)
 	}
-	data, err := json.Marshal(UpdateGameStart{
-		Players: r.state.GetPlayers(),
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	if err := r.broadcastStartGame(); err != nil {
+		return fmt.Errorf("broadcastStartGame: %w", err)
 	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeGameStart,
-		Data: json.RawMessage(data),
-	})
 	return nil
 }
 
@@ -97,33 +76,9 @@ func (r *Room) doPeekTwo(action Action) error {
 	if err != nil {
 		return fmt.Errorf("GetFirstPeek: %w", err)
 	}
-
-	// broadcast UpdateTypePlayerPeeked without cards
-	data, err := json.Marshal(UpdatePlayerPeekedData{
-		Player: action.PlayerID,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	if err := r.broadcastPlayerFirstPeeked(action.PlayerID, peekedCards); err != nil {
+		return fmt.Errorf("broadcastPlayerPeeked: %w", err)
 	}
-	r.BroadcastUpdateExcept(Update{
-		Type: UpdateTypePlayerPeeked,
-		Data: json.RawMessage(data),
-	}, action.PlayerID)
-
-	// target UpdateTypePlayerPeeked with cards to player
-	data, err = json.Marshal(UpdatePlayerPeekedData{
-		Player: action.PlayerID,
-		Cards:  peekedCards,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.TargetedUpdate(action.PlayerID, Update{
-		Type: UpdateTypePlayerPeeked,
-		Data: json.RawMessage(data),
-	})
-
-	// if all players are ready, broadcast start
 	if r.state.AllPlayersFirstPeeked() {
 		if err := r.broadcastPassTurn(); err != nil {
 			return fmt.Errorf("broadcastPassTurn: %w", err)
@@ -141,34 +96,9 @@ func (r *Room) doDraw(action Action) error {
 	if err != nil {
 		return err
 	}
-
-	// target UpdateTypeDraw with card
-	mesageWithInfo, err := json.Marshal(UpdateDrawData{
-		Player: action.PlayerID,
-		Source: data.Source,
-		Card:   card,
-		Effect: card.GetEffect(),
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	if err := r.broadcastDraw(action.PlayerID, data.Source, card); err != nil {
+		return fmt.Errorf("broadcastDraw: %w", err)
 	}
-	r.TargetedUpdate(action.PlayerID, Update{
-		Type: UpdateTypeDraw,
-		Data: json.RawMessage(mesageWithInfo),
-	})
-
-	// broadcast UpdateTypeDraw without card
-	messageNoInfo, err := json.Marshal(UpdateDrawData{
-		Player: action.PlayerID,
-		Source: data.Source,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.BroadcastUpdateExcept(Update{
-		Type: UpdateTypeDraw,
-		Data: json.RawMessage(messageNoInfo),
-	}, action.PlayerID)
 	return nil
 }
 
@@ -181,37 +111,20 @@ func (r *Room) doDiscard(action Action) error {
 	if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
 		return err
 	}
-	var updateType UpdateType
-	var updateData json.RawMessage
 	if errors.Is(err, ErrDiscardingNonEqualCards) {
-		updateType = UpdateTypeFailedDoubleDiscard
-		updateData, err = json.Marshal(UpdateTypeFailedDoubleDiscardData{
-			Player:         action.PlayerID,
-			CardsPositions: []int{data.CardPosition, *data.CardPosition2}, // assumed cardpos2 not nil
-			Cards:          disc,
-		})
-		if err != nil {
-			return fmt.Errorf("json.Marshal: %w", err)
+		positions := []int{data.CardPosition, *data.CardPosition2}
+		if err := r.broadcastFailedDoubleDiscard(action.PlayerID, positions, disc); err != nil {
+			return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
 		}
 	} else {
-		updateType = UpdateTypeDiscard
 		positions := []int{data.CardPosition}
 		if data.CardPosition2 != nil {
 			positions = append(positions, *data.CardPosition2)
 		}
-		updateData, err = json.Marshal(UpdateDiscardData{
-			Player:         action.PlayerID,
-			CardsPositions: positions,
-			Cards:          disc,
-		})
-		if err != nil {
-			return fmt.Errorf("json.Marshal: %w", err)
+		if err := r.broadcastDiscard(action.PlayerID, positions, disc); err != nil {
+			return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
 		}
 	}
-	r.BroadcastUpdate(Update{
-		Type: updateType,
-		Data: json.RawMessage(updateData),
-	})
 	if err := r.broadcastPassTurn(); err != nil {
 		return fmt.Errorf("PassTurn: %w", err)
 	}
@@ -223,28 +136,23 @@ func (r *Room) doCut(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	if err := r.state.Cut(data.WithCount, data.Declared); err != nil {
+	scores, finished, err := r.state.Cut(data.WithCount, data.Declared)
+	if err != nil {
 		return err
 	}
-	// TODO: Add hands to broadcast
-	updateData, err := json.Marshal(UpdateCutData{
-		Player:    action.PlayerID,
-		WithCount: data.WithCount,
-		Declared:  data.Declared,
-		Players:   r.state.GetPlayers(),
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	if err := r.broadcastCut(action.PlayerID, data.WithCount, data.Declared, scores); err != nil {
+		return fmt.Errorf("broadcastCut: %w", err)
 	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeCut,
-		Data: json.RawMessage(updateData),
-	})
-	// TODO: Reset deck, deal, reset turn, broadcast
-	if r.state.IsWinConditionMet() {
-		// TODO: Send winner
-		r.BroadcastUpdate(Update{Type: UpdateTypeEndGame})
+	if finished {
+		r.broadcastEndGame()
 		r.Close()
+	} else {
+		if err := r.state.StartNextRound(); err != nil {
+			return fmt.Errorf("StartNextRound: %w", err)
+		}
+		if err := r.broadcastNextRound(); err != nil {
+			return fmt.Errorf("broadcastNextRound: %w", err)
+		}
 	}
 	return nil
 }
@@ -279,22 +187,6 @@ func (r *Room) doEffectPeekOwnCard(action Action) error {
 	return nil
 }
 
-func (r *Room) sendPeekToPlayer(targetPlayer string, peekedPlayer string, cardIndex int, card Card) error {
-	updateData, err := json.Marshal(UpdatePeekCardData{
-		CardPosition: cardIndex,
-		Card:         card,
-		Player:       peekedPlayer,
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.TargetedUpdate(targetPlayer, Update{
-		Type: UpdateTypePeekCard,
-		Data: json.RawMessage(updateData),
-	})
-	return nil
-}
-
 func (r *Room) doEffectPeekCartaAjena(action Action) error {
 	var data ActionPeekCartaAjenaData
 	if err := json.Unmarshal(action.Data, &data); err != nil {
@@ -307,18 +199,9 @@ func (r *Room) doEffectPeekCartaAjena(action Action) error {
 	if err := r.sendPeekToPlayer(action.PlayerID, data.Player, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
-	updateData, err := json.Marshal(UpdateDiscardData{
-		Player:         action.PlayerID,
-		CardsPositions: []int{-1},
-		Cards:          []Card{discarded},
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	if err := r.broadcastDiscard(action.PlayerID, []int{-1}, []Card{discarded}); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeDiscard,
-		Data: json.RawMessage(updateData),
-	})
 	if err := r.broadcastPassTurn(); err != nil {
 		return fmt.Errorf("PassTurn: %w", err)
 	}
@@ -334,28 +217,8 @@ func (r *Room) doEffectSwapCards(action Action) error {
 	if err != nil {
 		return err
 	}
-	updateData, err := json.Marshal(UpdateSwapCardsData(data))
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeSwapCards,
-		Data: json.RawMessage(updateData),
-	})
-	updateData, err = json.Marshal(UpdateDiscardData{
-		Player:         action.PlayerID,
-		CardsPositions: []int{-1},
-		Cards:          []Card{discarded},
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeDiscard,
-		Data: json.RawMessage(updateData),
-	})
-	if err := r.broadcastPassTurn(); err != nil {
-		return fmt.Errorf("PassTurn: %w", err)
+	if err := r.broadcastSwapCards(action.PlayerID, data.CardPositions, data.Players, discarded); err != nil {
+		return fmt.Errorf("broadcastSwapCards: %w", err)
 	}
 	return nil
 }

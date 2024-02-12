@@ -3,6 +3,7 @@ package tincho
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 var ErrPendingDiscard = errors.New("someone needs to discard first")
@@ -10,12 +11,20 @@ var ErrPlayerNotPendingFirstPeek = errors.New("player not pending first peek")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
+type PlayerScore struct {
+	PlayerID string
+	Score    int
+}
+
 type Tincho struct {
-	players     []Player
-	playing     bool
-	currentTurn int
-	drawPile    Deck
-	discardPile Deck
+	players      []Player
+	playing      bool
+	currentTurn  int
+	drawPile     Deck
+	discardPile  Deck
+	cpyDeck      Deck
+	totalRounds  int
+	scoreHistory [][]PlayerScore
 
 	// the last card drawn that has not been stored into a player's hand
 	pendingStorage Card
@@ -23,10 +32,13 @@ type Tincho struct {
 
 func NewTinchoWithDeck(deck Deck) *Tincho {
 	return &Tincho{
-		players:     make([]Player, 0),
-		playing:     false,
-		drawPile:    deck,
-		discardPile: make(Deck, 0),
+		players:      make([]Player, 0),
+		playing:      false,
+		drawPile:     deck,
+		discardPile:  make(Deck, 0),
+		cpyDeck:      slices.Clone(deck),
+		totalRounds:  0,
+		scoreHistory: make([][]PlayerScore, 0),
 	}
 }
 
@@ -69,17 +81,40 @@ func (t *Tincho) AddPlayer(p Player) error {
 
 // StartGame starts the game by setting all players to pending first peek and dealing 4 cards to each player.
 func (t *Tincho) StartGame() error {
-	t.setAllPlayersPendingFirstPeek()
-	if err := t.deal(); err != nil {
-		return fmt.Errorf("deal: %w", err)
+	if t.playing {
+		return ErrGameAlreadyStarted
+	}
+	t.playing = true
+	return t.prepareForNextRound(false)
+}
+
+func (t *Tincho) StartNextRound() error {
+	if !t.playing {
+		return fmt.Errorf("game not started")
+	}
+	if err := t.prepareForNextRound(true); err != nil {
+		return fmt.Errorf("prepareForNextRound: %w", err)
 	}
 	return nil
 }
 
-func (r *Tincho) setAllPlayersPendingFirstPeek() {
-	for i := range r.players {
-		r.players[i].PendingFirstPeek = true
+func (t *Tincho) prepareForNextRound(shuffleDeck bool) error {
+	t.totalRounds += 1
+	t.currentTurn = (t.totalRounds - 1) % len(t.players)
+	for i := range t.players {
+		t.players[i].PendingFirstPeek = true
+		t.players[i].Hand = make(Hand, 0)
 	}
+	t.pendingStorage = Card{}
+	t.discardPile = make(Deck, 0)
+	t.drawPile = slices.Clone(t.cpyDeck)
+	if shuffleDeck {
+		t.drawPile.Shuffle()
+	}
+	if err := t.deal(); err != nil {
+		return fmt.Errorf("deal: %w", err)
+	}
+	return nil
 }
 
 func (t *Tincho) deal() error {
@@ -93,6 +128,14 @@ func (t *Tincho) deal() error {
 		}
 	}
 	return nil
+}
+
+func (t *Tincho) recordScores() {
+	scores := make([]PlayerScore, 0)
+	for _, p := range t.players {
+		scores = append(scores, PlayerScore{PlayerID: p.ID, Score: p.Hand.Sum()})
+	}
+	t.scoreHistory = append(t.scoreHistory, scores)
 }
 
 // GetFirstPeek allows to peek two cards from a players hand if it hasn't peeked yet.
@@ -109,9 +152,6 @@ func (t *Tincho) GetFirstPeek(playerID string) ([]Card, error) {
 		peekedCards = append(peekedCards, player.Hand[position])
 	}
 	t.setPlayerFirstPeekDone(playerID)
-	if t.AllPlayersFirstPeeked() {
-		t.playing = true
-	}
 	return peekedCards, nil
 }
 
@@ -256,18 +296,21 @@ func (t *Tincho) discardCard(player Player, card int) (Card, error) {
 	return t.discardPile[0], nil
 }
 
+type GameFinished bool
+
 // Cut finishes the current round and updates the points for all players.
-func (t *Tincho) Cut(withCount bool, declared int) error {
+func (t *Tincho) Cut(withCount bool, declared int) ([][]PlayerScore, GameFinished, error) {
 	player := t.players[t.currentTurn]
 	pointsForCutter, err := t.cut(player, withCount, declared)
 	if err != nil {
-		return fmt.Errorf("Cut: %w", err)
+		return nil, false, fmt.Errorf("Cut: %w", err)
 	}
 	t.updatePlayerPoints(player, pointsForCutter)
+	t.recordScores()
 	if t.IsWinConditionMet() {
 		t.playing = false
 	}
-	return nil
+	return t.scoreHistory, GameFinished(t.playing), nil
 }
 
 func (t *Tincho) cut(player Player, withCount bool, declared int) (int, error) {

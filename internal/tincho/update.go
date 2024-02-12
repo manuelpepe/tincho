@@ -7,7 +7,7 @@ type UpdateType string
 const (
 	UpdateTypePlayersChanged      UpdateType = "players_changed"
 	UpdateTypeGameStart           UpdateType = "game_start"
-	UpdateTypePlayerPeeked        UpdateType = "player_peeked"
+	UpdateTypePlayerFirstPeeked   UpdateType = "player_peeked"
 	UpdateTypeTurn                UpdateType = "turn"
 	UpdateTypeDraw                UpdateType = "draw"
 	UpdateTypePeekCard            UpdateType = "effect_peek"
@@ -17,6 +17,7 @@ const (
 	UpdateTypeCut                 UpdateType = "cut"
 	UpdateTypeShuffledPiles       UpdateType = "shuffled_piles"
 	UpdateTypeError               UpdateType = "error"
+	UpdateTypeStartNextRound      UpdateType = "start_next_round"
 	UpdateTypeEndGame             UpdateType = "end_game"
 )
 
@@ -29,11 +30,11 @@ type UpdatePlayersChanged struct {
 	Players []Player `json:"players"`
 }
 
-type UpdateGameStart struct {
+type UpdateStartNextRound struct {
 	Players []Player `json:"players"`
 }
 
-type UpdatePlayerPeekedData struct {
+type UpdatePlayerFirstPeekedData struct {
 	Player string `json:"player"`
 	Cards  []Card `json:"cards"`
 }
@@ -73,10 +74,12 @@ type UpdateTypeFailedDoubleDiscardData struct {
 }
 
 type UpdateCutData struct {
-	WithCount bool     `json:"withCount"`
-	Declared  int      `json:"declared"`
-	Player    string   `json:"player"`
-	Players   []Player `json:"players"`
+	WithCount bool            `json:"withCount"`
+	Declared  int             `json:"declared"`
+	Player    string          `json:"player"`
+	Players   []Player        `json:"players"`
+	Hands     [][]Card        `json:"hands"`
+	Scores    [][]PlayerScore `json:"scores"`
 }
 
 type UpdateErrorData struct {
