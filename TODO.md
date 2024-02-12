@@ -16,6 +16,7 @@
         - Client stores token in local storage along with username
         - Allow client to reconnect if using token
     - Send necessary state on reconnection
+    - Prevent duplicated players from joining game (prevent dup join without token).
 - [ ] Make room parametrizable:
     - Options:
         - [ ] Extended deck option (add some cards to allow for more players)
