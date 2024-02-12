@@ -127,8 +127,8 @@ func (r *Room) broadcastFailedDoubleDiscard(playerID string, positions []int, ca
 func (r *Room) broadcastCut(playerID string, withCount bool, declared int, scores [][]PlayerScore) error {
 	players := r.state.GetPlayers()
 	hands := make([][]Card, len(players))
-	for _, p := range players {
-		hands = append(hands, p.Hand)
+	for ix := range players {
+		hands[ix] = players[ix].Hand
 	}
 	updateData, err := json.Marshal(UpdateCutData{
 		Player:    playerID,
