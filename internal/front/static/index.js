@@ -78,6 +78,7 @@ window.onload = function () {
 
     const playerTemplate = /** @type {HTMLTemplateElement} */ (document.getElementById("player-template"))
     const playerList = document.getElementById("player-list");
+    const playerContainer = document.getElementById("player-container");
 
     const deckPile = document.getElementById("deck-pile");
     const deckDiscard = document.getElementById("deck-discard");
@@ -143,15 +144,21 @@ window.onload = function () {
         console.log("players", new_players)
         PLAYERS = {};
         playerList.innerHTML = "";
+        playerContainer.innerHTML = "";
         for (let i = 0; i < new_players.length; i++) {
-            addPlayer(new_players[i]);
+            if (new_players[i].id == THIS_PLAYER) {
+                addPlayer(playerContainer, new_players[i]);
+            } else {
+                addPlayer(playerList, new_players[i]);
+            }
         }
     }
 
     /** 
+     * @param {HTMLElement} container
      * @param {Player} player 
      */
-    function addPlayer(player) {
+    function addPlayer(container, player) {
         let clone = /** @type {Element} */ (playerTemplate.content.cloneNode(true));
         let parts = clone.querySelectorAll(".player-datafield");
         parts[0].innerHTML = player.id;
@@ -161,7 +168,7 @@ window.onload = function () {
             "draw": parts[2],
             "data": player,
         };
-        playerList.appendChild(clone);
+        container.appendChild(clone);
     }
 
     /** 
