@@ -390,11 +390,10 @@ window.onload = function () {
                     clearCheckmarks();
                     FIRST_TURN = false;
                 }
+                hideAllButtons();
                 if (msgData.player == THIS_PLAYER) {
                     show(buttonDraw);
                     show(buttonCut);
-                } else {
-                    hideAllButtons();
                 }
                 break;
             case "draw":
