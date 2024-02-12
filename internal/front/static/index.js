@@ -26,6 +26,8 @@ window.onload = function () {
     /** @type {boolean} */
     var FIRST_TURN = true;
 
+    const NEXT_ROUND_TIMEOUT = 10000;
+
 
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
     const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
@@ -109,15 +111,16 @@ window.onload = function () {
      * @param {string} player
      * @param {Card[]} cards 
      * @param {number[]} positions
+     * @param {number} timeout
      */
-    function showCards(player, cards, positions) {
+    function showCards(player, cards, positions, timeout = 3000) {
         const playerHand = PLAYERS[player]["hand"];
         const playerData = PLAYERS[player]["data"];
         drawHand(playerHand, player, playerData.cards_in_hand, cards, positions)
         // TODO: Store timeout for skip button
         setTimeout(() => {
             drawHand(playerHand, player, playerData.cards_in_hand, [], [])
-        }, 3000);
+        }, timeout);
     }
 
     /** 
@@ -285,7 +288,7 @@ window.onload = function () {
     function showCut(player, withCount, declared, hands, scores) {
         for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
             const positions = [...Array(hands[ix].length).keys()];
-            showCards(player, hands[ix], positions);
+            showCards(player, hands[ix], positions, NEXT_ROUND_TIMEOUT);
         }
         hideAllButtons();
     }
@@ -418,7 +421,7 @@ window.onload = function () {
                     deckDiscard.innerHTML = "";
                     show(buttonFirstPeek)
                     setPlayers(msgData.players)
-                }, 10000);
+                }, NEXT_ROUND_TIMEOUT);
                 break;
             case "end_game":
                 showEndGame("");
