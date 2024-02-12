@@ -1,47 +1,12 @@
+import "./types.js";
+
+import { hide, show, moveNode } from "./utils.js";
+import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
+
 window.onload = function () {
-    /** @typedef {{suit: string, value: number}} Card */
-    /** @typedef {{id: string, points: number, pending_first_peek: boolean, cards_in_hand: number}} Player */
-    /** @typedef {{player: string, cardPosition: number}} SwapBuffer */
-
-    const SUITS = {
-        "spanish": {
-            "clubs": "B",
-            "hearts": "C",
-            "diamonds": "O",
-            "spades": "E",
-            "joker": "J",
-        },
-        "standard": {
-            "clubs": "♧",
-            "hearts": "♥",
-            "diamonds": "♢",
-            "spades": "♤",
-            "joker": "J",
-        }
-    }
-
-    const EFFECT_SWAP = "swap_card"
-    const EFFECT_PEEK_OWN = "peek_own"
-    const EFFECT_PEEK_CARTA_AJENA = "peek_carta_ajena"
-    const ACTION_DISCARD = "discard"
-    const ACTION_DISCARD_TWO = "discard_two"
-
-    var CURRENT_ACTION = ACTION_DISCARD;
-
-    const EFFECTS = {
-        [EFFECT_SWAP]: "Swap 2 cards",
-        [EFFECT_PEEK_OWN]: "Peek card from your hand",
-        [EFFECT_PEEK_CARTA_AJENA]: "Peek card from other player"
-    }
     var suitKind = "standard"
 
-    /** @param {Card} card */
-    function cardValue(card) {
-        if (card.suit == "joker") {
-            return SUITS[suitKind][card.suit]
-        }
-        return "" + card.value + SUITS[suitKind][card.suit]
-    }
+    var CURRENT_ACTION = ACTION_DISCARD;
 
     /** @type {WebSocket} */
     var conn;
@@ -83,47 +48,13 @@ window.onload = function () {
     const deckPile = document.getElementById("deck-pile");
     const deckDiscard = document.getElementById("deck-discard");
 
-    /** @param {HTMLElement} node */
-    function hide(node) {
-        node.style.display = "none";
-    }
 
-    /** @param {HTMLElement} node */
-    function show(node) {
-        node.style.display = "block";
-    }
-
-    /** 
-     * @param {Element} node
-     * @param {Element} target 
-     * @param {number | null} duration
-     */
-    function moveNode(node, target, duration = 1000) {
-        if (duration == null || duration == undefined) {
-            duration = 1000;
+    /** @param {Card} card */
+    function cardValue(card) {
+        if (card.suit == "joker") {
+            return SUITS[suitKind][card.suit]
         }
-        const { left: x0, top: y0 } = node.getBoundingClientRect();
-        target.append(node);
-        const { left: x1, top: y1 } = node.getBoundingClientRect();
-
-        const dx = x0 - x1;
-        const dy = y0 - y1;
-
-        if (dx === 0 && dy === 0) {
-            return;
-        }
-
-        const transformFrom = `translate3d(${dx}px, ${dy}px, 0)`;
-        const transformTo = `translate3d(0, 0, 0)`;
-
-        const animation = node.animate([
-            { transform: transformFrom },
-            { transform: transformTo },
-        ], {
-            duration: duration,
-            easing: 'linear',
-        });
-        return animation
+        return "" + card.value + SUITS[suitKind][card.suit]
     }
 
     /** 
