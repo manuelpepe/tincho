@@ -5,9 +5,10 @@
     - [x] Remove playerID from methods and use current turn
     - [x] Make all attrs private in state component
     - [x] Refactor room to use the state component
-- [ ] Keep track of scores per round and send table at the end
+- [x] Keep track of scores per round and send table every round
+- [ ] Show scores in UI
 - [x] Rooms should timeout after a while
-- [x] Implement turn time limit
+- [ ] Implement turn time limit
 - [ ] Implement reconnection
     - Option 1: Verify (IP, Username, RoomID)
     - Option 2:
