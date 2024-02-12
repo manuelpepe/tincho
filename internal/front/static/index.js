@@ -270,6 +270,14 @@ window.onload = function () {
         }
     }
 
+    /**
+     * @param {string} player
+     * @param {number[]} cardPositions
+     * @param {Card[]} cards
+     */
+    function showDoubleDiscard(player, cardPositions, cards) {
+    }
+
     /** 
      * @param {string} player
      * @param {number} cardPosition
@@ -419,7 +427,7 @@ window.onload = function () {
                 hideEffectButtons();
                 break;
             case "failed_double_discard":
-                // TODO: Show failed double discard
+s                showDoubleDiscard(msgData.player, msgData.cardPositions, msgData.cards)
                 break;
             case "effect_peek":
                 showPeek(msgData.player, msgData.cardPosition, msgData.card)
