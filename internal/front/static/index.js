@@ -11,7 +11,7 @@ window.onload = function () {
     /** @type {WebSocket} */
     var conn;
 
-    /** @type {Object<string, {hand: Element, draw: Element, data: Player}>} */
+    /** @type {Object<string, {header: Element, hand: Element, draw: Element, data: Player}>} */
     var PLAYERS = {};
 
     /** @type {string | null} */
@@ -22,6 +22,9 @@ window.onload = function () {
 
     /** @type {number | null} */
     var DISCARD_TWO_BUFFER = null;
+
+    /** @type {boolean} */
+    var FIRST_TURN = true;
 
 
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
@@ -95,6 +98,7 @@ window.onload = function () {
         parts[0].innerHTML = player.id;
         drawHand(parts[1], player.id, player.cards_in_hand ?? 0, [], [])
         PLAYERS[player["id"]] = {
+            "header": parts[0],
             "hand": parts[1],
             "draw": parts[2],
             "data": player,
@@ -144,8 +148,13 @@ window.onload = function () {
 
     /** @param {string} player */
     function markReady(player) {
-        // TODO: implement checkmark
-        console.log(`player ready: ${player}`)
+        PLAYERS[player]["header"].innerHTML += " ✔";
+    }
+
+    function clearCheckmarks() {
+        for (const player in PLAYERS) {
+            PLAYERS[player]["header"].innerHTML = PLAYERS[player]["data"].id;
+        }
     }
 
     /** 
@@ -341,6 +350,7 @@ window.onload = function () {
                 setPlayers(msgData.players)
                 break;
             case "game_start":
+                FIRST_TURN = true;
                 hide(buttonStart)
                 show(buttonFirstPeek)
                 show(deckPile)
@@ -355,6 +365,10 @@ window.onload = function () {
                 markReady(msgData.player)
                 break;
             case "turn":
+                if (FIRST_TURN) {
+                    clearCheckmarks();
+                    FIRST_TURN = false;
+                }
                 if (msgData.player == THIS_PLAYER) {
                     show(buttonDraw);
                     show(buttonCut);
