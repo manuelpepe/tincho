@@ -8,6 +8,10 @@
 
 <body>
     <style>
+        .deck {
+            height: 1.4em;
+        }
+
         .card {
             display: inline-block;
             margin: 0em 0.3em;
@@ -24,6 +28,20 @@
             flex-direction: column;
             align-items: center;
             margin: 0em 0.5em;
+        }
+
+        .player-datafield {
+            height: 1.4em;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: row;
+            margin: 0.4em 0em;
+        }
+
+        .buttons>button {
+            margin: 0em 0.4em;
         }
     </style>
 
@@ -56,17 +74,20 @@
         </div>
     </div>
 
-    <div id="player-list" class="player-list"></div>
+    <div class="buttons">
     <button id="btn-start" style="display: none;">Start</button>
     <button id="btn-first-peek" style="display: none;">First peek</button>
     <button id="btn-draw" style="display: none;">Draw</button>
     <button id="btn-discard" style="display: none;">Discard</button>
     <button id="btn-discard-two" style="display: none;">Discard Two</button>
-    <button id="btn-cancel-discard-two" style="display: none;">Discard Two</button>
+        <button id="btn-cancel-discard-two" style="display: none;">Cancel Discard Two</button>
     <button id="btn-cut" style="display: none;">Cut</button>
+    </div>
+    <div class="buttons">
     <button id="btn-swap" style="display: none;">Swap</button>
     <button id="btn-peek-own" style="display: none;">Peek own card</button>
     <button id="btn-peek-carta-ajena" style="display: none;">Peek opponents card</button>
+    </div>
 </body>
 
 </html>
