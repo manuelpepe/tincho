@@ -68,8 +68,8 @@ type UpdateDiscardData struct {
 
 type UpdateTypeFailedDoubleDiscardData struct {
 	Player         string `json:"player"`
-	CardsPositions []int  `json:"cardPosition"`
-	Cards          []Card `json:"card"`
+	CardsPositions []int  `json:"cardPositions"`
+	Cards          []Card `json:"cards"`
 }
 
 type UpdateCutData struct {
