@@ -2,6 +2,7 @@ import "./types.js";
 
 import { hide, show, moveNode } from "./utils.js";
 import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
+import { queueAnimation, startProcessingAnimations } from "./animations.js";
 
 window.onload = function () {
     var suitKind = "standard"
@@ -168,8 +169,8 @@ window.onload = function () {
     function showDraw(player, source, card, effect) {
         // TODO: Draw from discard pile
         const playerDraw = PLAYERS[player]["draw"];
-        const animation = drawCard(deckPile, playerDraw);
-        animation.addEventListener("finish", () => {
+        queueAnimation(() => drawCard(deckPile, playerDraw));
+        queueAnimation(() => {
             playerDraw.innerHTML = "";
             let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
             if (effect && effect != "none") {
@@ -190,26 +191,33 @@ window.onload = function () {
     function showDiscard(player, cardPosition, card) {
         const playerHand = PLAYERS[player]["hand"];
         const playerDraw = PLAYERS[player]["draw"];
-        const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+        const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
+        const tmpContainer = createCardTemplate();
         if (cardPosition >= 0) {
-            const tmpContainer = createCardTemplate();
-            const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
-            cardInHand.innerHTML = "[" + cardValue(card) + "]";
-            cardInHand.replaceWith(tmpContainer);
-            cardInHand.onclick = null; // TODO: add handler to draw from discard pile
-            tmpContainer.appendChild(cardInHand);
-            const animation = moveNode(drawnCard, tmpContainer);
-            animation.addEventListener("finish", () => {
+            queueAnimation(() => {
+                const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+                cardInHand.innerHTML = "[" + cardValue(card) + "]";
+                cardInHand.replaceWith(tmpContainer);
+                cardInHand.onclick = null; // TODO: add handler to draw from discard pile
+                tmpContainer.appendChild(cardInHand);
+                moveNode(drawnCard, tmpContainer);
+            });
+            queueAnimation(() => {
+                const drawnCard = /** @type {HTMLElement} */ (tmpContainer.lastChild);
                 moveNode(cardInHand, deckDiscard)
                 tmpContainer.replaceWith(drawnCard);
                 drawnCard.innerHTML = "[ ]";
                 drawnCard.onclick = () => sendCurrentAction(player, cardPosition);
             });
         } else {
-            const animation = moveNode(drawnCard, deckDiscard);
-            animation.addEventListener("finish", () => {
+            queueAnimation(() => {
+                const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+                moveNode(drawnCard, deckDiscard)
+            });
+            queueAnimation(() => {
+                const drawnCard = /** @type {HTMLElement} */ (deckDiscard.lastChild);
                 drawnCard.innerHTML = "[" + cardValue(card) + "]"
-            })
+            });
         }
     }
 
@@ -221,16 +229,21 @@ window.onload = function () {
     function showFailedDoubleDiscard(player, cardPositions, cards) {
         const playerHand = PLAYERS[player]["hand"];
         const playerDraw = PLAYERS[player]["draw"];
-        const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
         for (let ix = 0; ix < cardPositions.length; ix++) {
             const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
             cardInHand.innerHTML = "[" + cardValue(cards[ix]) + "]";
         }
         const tmpContainer = createCardTemplate();
-        playerHand.appendChild(tmpContainer);
-        moveNode(drawnCard, tmpContainer).addEventListener("finish", () => {
+        queueAnimation(() => {
+            const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+            playerHand.appendChild(tmpContainer);
+            moveNode(drawnCard, tmpContainer)
+        });
+        queueAnimation(() => {
+            const drawnCard = /** @type {HTMLElement} */ (tmpContainer.lastChild);
             tmpContainer.replaceWith(drawnCard);
             drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
+            // TODO: implement timeout with queueAnimation
             setTimeout(() => {
                 drawnCard.innerHTML = "[ ]";
                 for (let ix = 0; ix < cardPositions.length; ix++) {
@@ -259,24 +272,24 @@ window.onload = function () {
         const playerOneCard = /** @type {HTMLElement} */ (playerOneHand.childNodes[cardPositions[0]]);
         const playerTwoHand = PLAYERS[players[1]]["hand"];
         const playerTwoCard = /** @type {HTMLElement} */ (playerTwoHand.childNodes[cardPositions[1]]);
-
         const tmpContainerOne = createCardTemplate();
         const tmpContainerTwo = createCardTemplate();
-        playerOneCard.replaceWith(tmpContainerOne);
-        tmpContainerOne.appendChild(playerOneCard);
-        playerTwoCard.replaceWith(tmpContainerTwo)
-        tmpContainerTwo.appendChild(playerTwoCard);
-
-        const anim = moveNode(playerOneCard, tmpContainerTwo, 2000);
-        anim.addEventListener("finish", () => {
-            const anim = moveNode(playerTwoCard, tmpContainerOne, 2000);
-            anim.addEventListener("finish", () => {
-                tmpContainerOne.replaceWith(playerTwoCard);
-                tmpContainerTwo.replaceWith(playerOneCard);
-                playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
-                playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
-            })
+        queueAnimation(() => {
+            playerOneCard.replaceWith(tmpContainerOne);
+            tmpContainerOne.appendChild(playerOneCard);
+            playerTwoCard.replaceWith(tmpContainerTwo)
+            tmpContainerTwo.appendChild(playerTwoCard);
+            moveNode(playerOneCard, tmpContainerTwo, 2000);
         });
+        queueAnimation(() => {
+            moveNode(playerTwoCard, tmpContainerOne, 2000);
+        });
+        queueAnimation(() => {
+            tmpContainerOne.replaceWith(playerTwoCard);
+            tmpContainerTwo.replaceWith(playerOneCard);
+            playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
+            playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
+        })
 
     }
 
@@ -411,7 +424,6 @@ window.onload = function () {
                 break;
             case "cut":
                 showCut(msgData.player, msgData.withCount, msgData.declared, msgData.hands, msgData.scores);
-                // TODO: Animate show scores
                 break;
             case "start_next_round":
                 // TODO: Refactor to show next round button
@@ -601,4 +613,6 @@ window.onload = function () {
         card.className = "card";
         return card;
     }
+
+    startProcessingAnimations();
 };
