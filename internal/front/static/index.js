@@ -75,7 +75,6 @@ window.onload = function () {
      * @param {Player[]} new_players 
      */
     function setPlayers(new_players) {
-        console.log("players", new_players)
         PLAYERS = {};
         playerList.innerHTML = "";
         playerContainer.innerHTML = "";
@@ -194,6 +193,7 @@ window.onload = function () {
             const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
             cardInHand.innerHTML = "[" + cardValue(card) + "]";
             cardInHand.replaceWith(tmpContainer);
+            cardInHand.onclick = null; // TODO: add handler to draw from discard pile
             tmpContainer.appendChild(cardInHand);
             const animation = moveNode(drawnCard, tmpContainer);
             animation.addEventListener("finish", () => {
@@ -282,8 +282,11 @@ window.onload = function () {
      * @param {boolean} withCount
      * @param {number} declared 
      */
-    function showCut(player, withCount, declared) {
-        console.log("Player cutting:", player, withCount, declared)
+    function showCut(player, withCount, declared, hands, scores) {
+        for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
+            const positions = [...Array(hands[ix].length).keys()];
+            showCards(player, hands[ix], positions);
+        }
         hideAllButtons();
     }
 
@@ -404,19 +407,21 @@ window.onload = function () {
                 showSwap(msgData.players, msgData.cardPositions)
                 break;
             case "cut":
-                showCut(msgData.player, msgData.withCount, msgData.declared)
-                setPlayers(msgData.players)
+                showCut(msgData.player, msgData.withCount, msgData.declared, msgData.hands, msgData.scores);
                 // TODO: Animate show scores
                 break;
             case "start_next_round":
-                FIRST_TURN = true;
-                deckPile.innerHTML = "";
-                deckDiscard.innerHTML = "";
-                show(buttonFirstPeek)
-                setPlayers(msgData.players)
+                // TODO: Refactor to show next round button
+                setTimeout(() => {
+                    FIRST_TURN = true;
+                    deckPile.innerHTML = "";
+                    deckDiscard.innerHTML = "";
+                    show(buttonFirstPeek)
+                    setPlayers(msgData.players)
+                }, 10000);
                 break;
             case "end_game":
-                showEndGame(msgData.winner)
+                showEndGame("");
                 break;
             default:
                 console.error("Unknown message type", data.type, msgData)
