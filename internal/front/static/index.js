@@ -3,6 +3,7 @@ import "./types.js";
 import { hide, show, moveNode } from "./utils.js";
 import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
 import { queueAnimation, startProcessingAnimations } from "./animations.js";
+import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
 
 window.onload = function () {
     var suitKind = "standard"
@@ -303,56 +304,12 @@ window.onload = function () {
             const positions = [...Array(hands[ix].length).keys()];
             showCards(player, hands[ix], positions, NEXT_ROUND_TIMEOUT);
         }
-        hideAllButtons();
     }
 
     /** @param {string} winner */
     // eslint-disable-next-line no-unused-vars
     function showEndGame(winner) { /* TODO */ }
 
-    /** 
-     *  @param {string} effect 
-     *  @returns {HTMLElement | null}
-    */
-    function getEffectButton(effect) {
-        switch (effect) {
-            case EFFECT_SWAP:
-                return buttonSwap
-            case EFFECT_PEEK_OWN:
-                return buttonPeekOwn
-            case EFFECT_PEEK_CARTA_AJENA:
-                return buttonPeekCartaAjena
-            case "none":
-            case "":
-                break;
-            default:
-                console.log("Unkown effect:", effect)
-        }
-        return null
-    }
-
-    /** @param {string} effect */
-    function showEffectButton(effect) {
-        let btn = getEffectButton(effect)
-        if (btn != null) {
-            show(btn)
-        }
-    }
-
-    function hideEffectButtons() {
-        hide(buttonSwap);
-        hide(buttonPeekOwn);
-        hide(buttonPeekCartaAjena);
-    }
-
-    function hideAllButtons() {
-        hide(buttonDraw);
-        hide(buttonCut);
-        hide(buttonDiscard);
-        hide(buttonDiscardTwo);
-        hide(buttonCancelDiscardTwo);
-        hideEffectButtons();
-    }
 
     /** @param {string} action */
     function setAction(action) {
@@ -372,15 +329,12 @@ window.onload = function () {
                 break;
             case "game_start":
                 FIRST_TURN = true;
-                hide(buttonStart)
-                show(buttonFirstPeek)
-                show(deckPile)
-                show(deckDiscard)
+                setStartGameScreen();
                 setPlayers(msgData.players)
                 break;
             case "player_peeked":
                 if (msgData.player == THIS_PLAYER) {
-                    hide(buttonFirstPeek)
+                    setPlayerPeekedScreen()
                     showCards(msgData.player, msgData.cards, [0, 1])
                 }
                 markReady(msgData.player)
@@ -390,27 +344,17 @@ window.onload = function () {
                     clearCheckmarks();
                     FIRST_TURN = false;
                 }
-                hideAllButtons();
-                if (msgData.player == THIS_PLAYER) {
-                    show(buttonDraw);
-                    show(buttonCut);
-                }
+                setTurnScreen(msgData.player == THIS_PLAYER);
                 break;
             case "draw":
                 showDraw(msgData.player, msgData.source, msgData.card, msgData.effect);
-                if (msgData.player == THIS_PLAYER) {
-                    hide(buttonDraw);
-                    show(buttonDiscard);
-                    show(buttonDiscardTwo);
-                    hide(buttonCut);
-                    showEffectButton(msgData.effect);
-                }
+                setDrawScreen(msgData.player == THIS_PLAYER, msgData.effect)
                 break;
             case "discard":
                 for (let ix = 0; ix < msgData.card.length; ix++) {
                     showDiscard(msgData.player, msgData.cardPosition[ix], msgData.card[ix])
                 }
-                hideEffectButtons();
+                setDiscardScreen();
                 break;
             case "failed_double_discard":
                 showFailedDoubleDiscard(msgData.player, msgData.cardPositions, msgData.cards);
@@ -423,14 +367,13 @@ window.onload = function () {
                 break;
             case "cut":
                 showCut(msgData.player, msgData.withCount, msgData.declared, msgData.hands, msgData.scores);
+                setCutScreen();
                 break;
             case "start_next_round":
                 // TODO: Refactor to show next round button
                 setTimeout(() => {
                     FIRST_TURN = true;
-                    deckPile.innerHTML = "";
-                    deckDiscard.innerHTML = "";
-                    show(buttonFirstPeek)
+                    setStartRoundScreen();
                     setPlayers(msgData.players)
                 }, NEXT_ROUND_TIMEOUT);
                 break;
