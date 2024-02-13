@@ -6,7 +6,7 @@
     - [x] Make all attrs private in state component
     - [x] Refactor room to use the state component
 - [x] Keep track of scores per round and send table every round
-- [ ] Show scores in UI
+- [x] Show scores in UI
 - [x] Rooms should timeout after a while
 - [ ] Implement turn time limit
 - [ ] Implement reconnection
