@@ -1,10 +1,19 @@
+/**
+ * @callback animationCallback
+ */
+
+/** @type {animationCallback[]} */
 var ANIMATION_BUFFER = [];
+
+/** @type {animationCallback} */
 var CURRENT_ANIMATION = null;
 
+
+
 // TODO: Implement timeout param
-// TODO: Accept an array of animations to make sure they are executed in order
-export function queueAnimation(animation) {
-    ANIMATION_BUFFER.push(animation);
+/** @param {...animationCallback} animations */
+export function queueAnimation(...animations) {
+    ANIMATION_BUFFER.push(...animations);
 }
 
 export function startProcessingAnimations() {
