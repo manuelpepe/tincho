@@ -74,8 +74,10 @@ window.onload = function () {
      */
     function drawCard(sourcePile, target) {
         const card = sourcePile.getElementsByClassName("card")[0];
-        const cardClone = card.cloneNode(true);
-        sourcePile.append(cardClone);
+        if (sourcePile == deckPile) {
+            const cardClone = card.cloneNode(true);
+            sourcePile.append(cardClone);
+        }
         return moveNode(card, target);
     }
 
@@ -178,22 +180,44 @@ window.onload = function () {
      * @param {string} effect 
      */
     function showDraw(player, source, card, effect) {
-        // TODO: Draw from discard pile
         const playerDraw = PLAYERS[player].draw;
-        queueAnimation(
-            () => drawCard(deckPile, playerDraw),
-            () => {
-                playerDraw.innerHTML = "";
-                let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
-                if (effect && effect != "none") {
-                    text += " (Effect: " + EFFECTS[effect] + ")"
-                }
-                const textNode = document.createTextNode(text);
-                const node = createCardTemplate();
-                node.appendChild(textNode);
-                playerDraw.appendChild(node);
-            }
-        );
+        switch (source) {
+            case "pile":
+                queueAnimation(
+                    () => drawCard(deckPile, playerDraw),
+                    () => {
+                        playerDraw.innerHTML = "";
+                        let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
+                        if (effect && effect != "none") {
+                            text += " (Effect: " + EFFECTS[effect] + ")"
+                        }
+                        const textNode = document.createTextNode(text);
+                        const node = createCardTemplate();
+                        node.appendChild(textNode);
+                        playerDraw.appendChild(node);
+                    }
+                );
+                break;
+            case "discard":
+                queueAnimation(
+                    () => drawCard(deckDiscard, playerDraw),
+                    () => {
+                        playerDraw.innerHTML = "";
+                        let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
+                        if (effect && effect != "none") {
+                            text += " (Effect: " + EFFECTS[effect] + ")"
+                        }
+                        const textNode = document.createTextNode(text);
+                        const node = createCardTemplate();
+                        node.appendChild(textNode);
+                        playerDraw.appendChild(node);
+                    }
+                );
+                break;
+            default:
+                console.error("unknown draw source: ", source)
+                break;
+        }
     }
 
     /** 
@@ -212,13 +236,19 @@ window.onload = function () {
                     const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
                     cardInHand.innerHTML = "[" + cardValue(card) + "]";
                     cardInHand.replaceWith(tmpContainer);
-                    cardInHand.onclick = null; // TODO: add handler to draw from discard pile
+                    cardInHand.onclick = () => sendAction({
+                        "type": "draw",
+                        "data": { "source": "discard" },
+                    });
                     tmpContainer.appendChild(cardInHand);
                     moveNode(drawnCard, tmpContainer);
                 },
                 () => {
                     const drawnCard = /** @type {HTMLElement} */ (tmpContainer.lastChild);
                     moveNode(cardInHand, deckDiscard)
+                    while (deckDiscard.firstChild && deckDiscard.firstChild !== cardInHand) {
+                        deckDiscard.removeChild(deckDiscard.firstChild);
+                    }
                     tmpContainer.replaceWith(drawnCard);
                     drawnCard.innerHTML = "[ ]";
                     drawnCard.onclick = () => sendCurrentAction(player, cardPosition);
@@ -228,11 +258,15 @@ window.onload = function () {
             queueAnimation(
                 () => {
                     const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
-                    moveNode(drawnCard, deckDiscard)
-                },
-                () => {
-                    const drawnCard = /** @type {HTMLElement} */ (deckDiscard.lastChild);
                     drawnCard.innerHTML = "[" + cardValue(card) + "]"
+                    drawnCard.onclick = () => sendAction({
+                        "type": "draw",
+                        "data": { "source": "discard" },
+                    });
+                    moveNode(drawnCard, deckDiscard)
+                    while (deckDiscard.firstChild && deckDiscard.firstChild !== drawnCard) {
+                        deckDiscard.removeChild(deckDiscard.firstChild);
+                    }
                 }
             );
         }

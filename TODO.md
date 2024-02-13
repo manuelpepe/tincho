@@ -35,3 +35,4 @@
 - [ ] When peeking, send peek position to all players so they know which card has been peeked (but not the value)
 - [ ] When swapping cards, an intermediate container should be used to pass them around (improves animation)
 - [ ] UI error when peeking 5th opponent card after failed double discard
+- [ ] Prevent discarding drawed card if it was drawed from the discard pile
