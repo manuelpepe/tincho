@@ -47,25 +47,21 @@ func (r *Room) Close() {
 	r.closed = true
 }
 
-// Start initiates a goroutine that processes messages from all websocket connections.
-func (r *Room) Start() {
-	r.started = true
-	for {
-		select {
-		case player := <-r.NewPlayersChan:
-			if err := r.addPlayer(player); err != nil {
-				fmt.Printf("r.addPlayer: %s\n", err)
-			}
-			log.Printf("Player joined #%s: %+v\n", r.ID, player)
-		case action := <-r.ActionsChan:
-			log.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
-			r.doAction(action)
-		case <-r.Context.Done():
-			log.Printf("Stopping room %s", r.ID)
-			r.Close()
-			return
+func (r *Room) GetPlayer(playerID string) (Player, bool) {
+	for _, room := range r.state.GetPlayers() {
+		if room.ID == playerID {
+			return room, true
 		}
 	}
+	return Player{}, false
+}
+
+func (r *Room) PlayerCount() int {
+	return len(r.state.GetPlayers())
+}
+
+func (r *Room) AddPlayer(p Player) {
+	r.NewPlayersChan <- p
 }
 
 func (r *Room) addPlayer(player Player) error {
@@ -86,6 +82,26 @@ func (r *Room) addPlayer(player Player) error {
 	}
 	r.BroadcastUpdate(update)
 	return nil
+}
+
+func (r *Room) Start() {
+	r.started = true
+	for {
+		select {
+		case player := <-r.NewPlayersChan:
+			if err := r.addPlayer(player); err != nil {
+				fmt.Printf("r.addPlayer: %s\n", err)
+			}
+			log.Printf("Player joined #%s: %+v\n", r.ID, player)
+		case action := <-r.ActionsChan:
+			log.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
+			r.doAction(action)
+		case <-r.Context.Done():
+			log.Printf("Stopping room %s", r.ID)
+			r.Close()
+			return
+		}
+	}
 }
 
 var ErrNotYourTurn = fmt.Errorf("not your turn")
@@ -160,60 +176,6 @@ func (r *Room) doAction(action Action) {
 	default:
 		log.Println("unknown action")
 	}
-}
-
-func (r *Room) BroadcastUpdate(update Update) {
-	for _, player := range r.state.GetPlayers() {
-		player.Updates <- update
-	}
-}
-
-func (r *Room) BroadcastUpdateExcept(update Update, player string) {
-	for _, p := range r.state.GetPlayers() {
-		if p.ID != player {
-			p.Updates <- update
-		}
-	}
-}
-
-func (r *Room) TargetedUpdate(player string, update Update) {
-	for _, p := range r.state.GetPlayers() {
-		if p.ID == player {
-			p.Updates <- update
-			return
-		}
-	}
-}
-
-func (r *Room) TargetedError(player string, err error) {
-	data, err := json.Marshal(UpdateErrorData{
-		Message: err.Error(),
-	})
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	r.TargetedUpdate(player, Update{
-		Type: UpdateTypeError,
-		Data: data,
-	})
-}
-
-func (r *Room) AddPlayer(p Player) {
-	r.NewPlayersChan <- p
-}
-
-func (r *Room) GetPlayer(playerID string) (Player, bool) {
-	for _, room := range r.state.GetPlayers() {
-		if room.ID == playerID {
-			return room, true
-		}
-	}
-	return Player{}, false
-}
-
-func (r *Room) PlayerCount() int {
-	return len(r.state.GetPlayers())
 }
 
 // watchPlayer functions as a goroutine that watches for messages from a given player.

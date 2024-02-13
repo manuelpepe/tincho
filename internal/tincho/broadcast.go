@@ -3,7 +3,45 @@ package tincho
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 )
+
+func (r *Room) BroadcastUpdate(update Update) {
+	for _, player := range r.state.GetPlayers() {
+		player.Updates <- update
+	}
+}
+
+func (r *Room) BroadcastUpdateExcept(update Update, player string) {
+	for _, p := range r.state.GetPlayers() {
+		if p.ID != player {
+			p.Updates <- update
+		}
+	}
+}
+
+func (r *Room) TargetedUpdate(player string, update Update) {
+	for _, p := range r.state.GetPlayers() {
+		if p.ID == player {
+			p.Updates <- update
+			return
+		}
+	}
+}
+
+func (r *Room) TargetedError(player string, err error) {
+	data, err := json.Marshal(UpdateErrorData{
+		Message: err.Error(),
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	r.TargetedUpdate(player, Update{
+		Type: UpdateTypeError,
+		Data: data,
+	})
+}
 
 func (r *Room) broadcastPassTurn() error {
 	data, err := json.Marshal(UpdateTurnData{
