@@ -46,20 +46,6 @@ func (r *Room) Close() {
 	r.closeRoom()
 	r.closed = true
 }
-
-func (r *Room) GetPlayer(playerID string) (Player, bool) {
-	for _, room := range r.state.GetPlayers() {
-		if room.ID == playerID {
-			return room, true
-		}
-	}
-	return Player{}, false
-}
-
-func (r *Room) PlayerCount() int {
-	return len(r.state.GetPlayers())
-}
-
 func (r *Room) AddPlayer(p Player) {
 	r.NewPlayersChan <- p
 }
