@@ -8,6 +8,7 @@ export function queueAnimation(animation) {
 }
 
 export function startProcessingAnimations() {
+    // requestAnimationFrame instead of setInterval?
     setInterval(() => {
         if (CURRENT_ANIMATION !== null) {
             return;

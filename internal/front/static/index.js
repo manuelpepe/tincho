@@ -13,7 +13,7 @@ window.onload = function () {
     /** @type {WebSocket} */
     var conn;
 
-    /** @type {Object<string, {header: Element, hand: Element, draw: Element, data: Player}>} */
+    /** @type {Object<string, {name: Element, checkmark: Element, score: Element, hand: Element, draw: Element, data: Player}>} */
     var PLAYERS = {};
 
     /** @type {string | null} */
@@ -28,7 +28,8 @@ window.onload = function () {
     /** @type {boolean} */
     var FIRST_TURN = true;
 
-    const NEXT_ROUND_TIMEOUT = 10000;
+    const NEXT_ROUND_TIMEOUT = 1000;
+    const FIRST_PEEK_TIMEOUT = 1000;
 
 
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
@@ -51,6 +52,9 @@ window.onload = function () {
     const playerTemplate = /** @type {HTMLTemplateElement} */ (document.getElementById("player-template"))
     const playerList = document.getElementById("player-list");
     const playerContainer = document.getElementById("player-container");
+
+    const gameContainer = document.getElementById("game");
+    const endgameContainer = document.getElementById("endgame");
 
     const deckPile = document.getElementById("deck-pile");
     const deckDiscard = document.getElementById("deck-discard");
@@ -98,14 +102,20 @@ window.onload = function () {
     function addPlayer(container, player) {
         let clone = /** @type {Element} */ (playerTemplate.content.cloneNode(true));
         let parts = clone.querySelectorAll(".player-datafield");
-        parts[0].innerHTML = player.id;
         drawHand(parts[1], player.id, player.cards_in_hand ?? 0, [], [])
-        PLAYERS[player["id"]] = {
-            "header": parts[0],
-            "hand": parts[1],
-            "draw": parts[2],
-            "data": player,
+        const playerData = {
+            name: parts[0].getElementsByClassName("name")[0],
+            checkmark: parts[0].getElementsByClassName("checkmark")[0],
+            score: parts[0].getElementsByClassName("score")[0],
+            hand: parts[1],
+            draw: parts[2],
+            data: player,
         };
+        playerData.name.innerHTML = player.id;
+        if (player.points) {
+            playerData.score.innerHTML = "(" + player.points + ")";
+        }
+        PLAYERS[player.id] = playerData;
         container.appendChild(clone);
     }
 
@@ -116,8 +126,8 @@ window.onload = function () {
      * @param {number} timeout
      */
     function showCards(player, cards, positions, timeout = 3000) {
-        const playerHand = PLAYERS[player]["hand"];
-        const playerData = PLAYERS[player]["data"];
+        const playerHand = PLAYERS[player].hand;
+        const playerData = PLAYERS[player].data;
         drawHand(playerHand, player, playerData.cards_in_hand, cards, positions)
         // TODO: Store timeout for skip button
         setTimeout(() => {
@@ -152,12 +162,12 @@ window.onload = function () {
 
     /** @param {string} player */
     function markReady(player) {
-        PLAYERS[player]["header"].innerHTML += " ✔";
+        PLAYERS[player].checkmark.innerHTML += " ✔";
     }
 
     function clearCheckmarks() {
         for (const player in PLAYERS) {
-            PLAYERS[player]["header"].innerHTML = PLAYERS[player]["data"].id;
+            PLAYERS[player].checkmark.innerHTML = "";
         }
     }
 
@@ -169,7 +179,7 @@ window.onload = function () {
      */
     function showDraw(player, source, card, effect) {
         // TODO: Draw from discard pile
-        const playerDraw = PLAYERS[player]["draw"];
+        const playerDraw = PLAYERS[player].draw;
         queueAnimation(() => drawCard(deckPile, playerDraw));
         queueAnimation(() => {
             playerDraw.innerHTML = "";
@@ -190,8 +200,8 @@ window.onload = function () {
      * @param {Card} card
      */
     function showDiscard(player, cardPosition, card) {
-        const playerHand = PLAYERS[player]["hand"];
-        const playerDraw = PLAYERS[player]["draw"];
+        const playerHand = PLAYERS[player].hand;
+        const playerDraw = PLAYERS[player].draw;
         const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
         const tmpContainer = createCardTemplate();
         if (cardPosition >= 0) {
@@ -228,8 +238,8 @@ window.onload = function () {
      * @param {Card[]} cards
      */
     function showFailedDoubleDiscard(player, cardPositions, cards) {
-        const playerHand = PLAYERS[player]["hand"];
-        const playerDraw = PLAYERS[player]["draw"];
+        const playerHand = PLAYERS[player].hand;
+        const playerDraw = PLAYERS[player].draw;
         for (let ix = 0; ix < cardPositions.length; ix++) {
             const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
             cardInHand.innerHTML = "[" + cardValue(cards[ix]) + "]";
@@ -269,9 +279,9 @@ window.onload = function () {
      * @param {number[]} cardPositions 
      */
     function showSwap(players, cardPositions) {
-        const playerOneHand = PLAYERS[players[0]]["hand"];
+        const playerOneHand = PLAYERS[players[0]].hand;
         const playerOneCard = /** @type {HTMLElement} */ (playerOneHand.childNodes[cardPositions[0]]);
-        const playerTwoHand = PLAYERS[players[1]]["hand"];
+        const playerTwoHand = PLAYERS[players[1]].hand;
         const playerTwoCard = /** @type {HTMLElement} */ (playerTwoHand.childNodes[cardPositions[1]]);
         const tmpContainerOne = createCardTemplate();
         const tmpContainerTwo = createCardTemplate();
@@ -291,7 +301,6 @@ window.onload = function () {
             playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
             playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
         })
-
     }
 
     /** 
@@ -299,16 +308,40 @@ window.onload = function () {
      * @param {boolean} withCount
      * @param {number} declared 
      */
-    function showCut(player, withCount, declared, hands, scores) {
+    function showCut(player, withCount, declared, hands) {
+        // TODO: Show player, withcount and declared
         for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
             const positions = [...Array(hands[ix].length).keys()];
             showCards(player, hands[ix], positions, NEXT_ROUND_TIMEOUT);
         }
     }
 
-    /** @param {string} winner */
-    // eslint-disable-next-line no-unused-vars
-    function showEndGame(winner) { /* TODO */ }
+    /** @param {{playerID: string, score: number}[][]} scores */
+    function showEndGame(scores) {
+        console.log(scores)
+        hide(gameContainer);
+        const tbl = document.createElement("table");
+        const tblBody = document.createElement("tbody");
+        for (const [ix, round] of Object.entries(scores)) {
+            const row = document.createElement("tr");
+            const roundCell = document.createElement("td");
+            const roundNum = ix + 1;
+            roundCell.appendChild(document.createTextNode("Round " + roundNum));
+            row.appendChild(roundCell);
+            for (const score of round) {
+                const cell1 = document.createElement("td");
+                const cell2 = document.createElement("td");
+                cell1.appendChild(document.createTextNode(score["playerID"]));
+                cell2.appendChild(document.createTextNode("" + score["score"]));
+                row.appendChild(cell1);
+                row.appendChild(cell2);
+            }
+            tblBody.appendChild(row);
+
+        }
+        tbl.appendChild(tblBody);
+        endgameContainer.appendChild(tbl);
+    }
 
 
     /** @param {string} action */
@@ -366,7 +399,8 @@ window.onload = function () {
                 showSwap(msgData.players, msgData.cardPositions)
                 break;
             case "cut":
-                showCut(msgData.player, msgData.withCount, msgData.declared, msgData.hands, msgData.scores);
+                setPlayers(msgData.players)
+                showCut(msgData.player, msgData.withCount, msgData.declared, msgData.hands);
                 setCutScreen();
                 break;
             case "start_next_round":
@@ -378,7 +412,7 @@ window.onload = function () {
                 }, NEXT_ROUND_TIMEOUT);
                 break;
             case "end_game":
-                showEndGame("");
+                showEndGame(msgData.scores);
                 break;
             default:
                 console.error("Unknown message type", data.type, msgData)
