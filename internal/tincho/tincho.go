@@ -12,8 +12,8 @@ var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
 type PlayerScore struct {
-	PlayerID string
-	Score    int
+	PlayerID string `json:"playerID"`
+	Score    int    `json:"score"`
 }
 
 type Tincho struct {

@@ -140,11 +140,13 @@ func (r *Room) doCut(action Action) error {
 	if err != nil {
 		return err
 	}
-	if err := r.broadcastCut(action.PlayerID, data.WithCount, data.Declared, scores); err != nil {
+	if err := r.broadcastCut(action.PlayerID, data.WithCount, data.Declared); err != nil {
 		return fmt.Errorf("broadcastCut: %w", err)
 	}
 	if finished {
-		r.broadcastEndGame()
+		if err := r.broadcastEndGame(scores); err != nil {
+			return fmt.Errorf("broadcastEndGame: %w", err)
+		}
 		r.Close()
 	} else {
 		if err := r.state.StartNextRound(); err != nil {

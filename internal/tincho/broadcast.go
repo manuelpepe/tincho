@@ -124,7 +124,7 @@ func (r *Room) broadcastFailedDoubleDiscard(playerID string, positions []int, ca
 	return nil
 }
 
-func (r *Room) broadcastCut(playerID string, withCount bool, declared int, scores [][]PlayerScore) error {
+func (r *Room) broadcastCut(playerID string, withCount bool, declared int) error {
 	players := r.state.GetPlayers()
 	hands := make([][]Card, len(players))
 	for ix := range players {
@@ -136,7 +136,6 @@ func (r *Room) broadcastCut(playerID string, withCount bool, declared int, score
 		Declared:  declared,
 		Players:   players,
 		Hands:     hands,
-		Scores:    scores,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -162,9 +161,18 @@ func (r *Room) broadcastNextRound() error {
 	return nil
 }
 
-func (r *Room) broadcastEndGame() {
-	// TODO: Send winner
-	r.BroadcastUpdate(Update{Type: UpdateTypeEndGame})
+func (r *Room) broadcastEndGame(scores [][]PlayerScore) error {
+	data, err := json.Marshal(UpdateEndGameData{
+		Scores: scores,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeEndGame,
+		Data: json.RawMessage(data),
+	})
+	return nil
 }
 
 func (r *Room) broadcastSwapCards(playerID string, positions []int, players []string, discarded Card) error {

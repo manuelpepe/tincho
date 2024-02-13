@@ -74,12 +74,11 @@ type UpdateTypeFailedDoubleDiscardData struct {
 }
 
 type UpdateCutData struct {
-	WithCount bool            `json:"withCount"`
-	Declared  int             `json:"declared"`
-	Player    string          `json:"player"`
-	Players   []Player        `json:"players"`
-	Hands     [][]Card        `json:"hands"`
-	Scores    [][]PlayerScore `json:"scores"`
+	WithCount bool     `json:"withCount"`
+	Declared  int      `json:"declared"`
+	Player    string   `json:"player"`
+	Players   []Player `json:"players"`
+	Hands     [][]Card `json:"hands"`
 }
 
 type UpdateErrorData struct {
@@ -87,5 +86,5 @@ type UpdateErrorData struct {
 }
 
 type UpdateEndGameData struct {
-	Winner string `json:"winner"`
+	Scores [][]PlayerScore `json:"scores"`
 }
