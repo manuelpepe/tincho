@@ -36,8 +36,11 @@ window.onload = function () {
     const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
 
     const roomTitle = document.getElementById("room-title");
+
     const formJoin = document.getElementById("room-join");
     const formNew = document.getElementById("room-new");
+
+    const buttonAddBot = document.getElementById("btn-add-bot");
     const buttonStart = document.getElementById("btn-start");
     const buttonFirstPeek = document.getElementById("btn-first-peek");
     const buttonDraw = document.getElementById("btn-draw");
@@ -477,6 +480,7 @@ window.onload = function () {
         roomTitle.innerHTML = "Room " + roomid.value;
         show(roomTitle);
         show(buttonStart);
+        show(buttonAddBot);
         console.log("connected to room " + roomid.value);
         THIS_PLAYER = username.value;
         return false;
@@ -494,6 +498,16 @@ window.onload = function () {
     formJoin.onsubmit = (evt) => {
         evt.preventDefault();
         connectToRoom();
+    }
+
+    buttonAddBot.onclick = () => {
+        if (!roomid.value) {
+            return false;
+        }
+        fetch("http://" + location.host + "/add-bot?difficulty=easy&room=" + roomid.value)
+            .then(response => response.text())
+            .then(data => console.log(data));
+        return false;
     }
 
     buttonStart.onclick = () => sendAction({

@@ -29,6 +29,7 @@ func main() {
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
+	r.HandleFunc("/add-bot", handlers.AddBot)
 	r.Handle("/{file:.*}", frontHandler)
 
 	log.Println("Listening on port 5555")
