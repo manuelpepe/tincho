@@ -2,8 +2,6 @@ package tincho
 
 import (
 	"encoding/json"
-
-	"github.com/gorilla/websocket"
 )
 
 // marshalledPlayer is a struct used to marshal a Player into JSON.
@@ -22,7 +20,7 @@ type Player struct {
 	Points           int
 	PendingFirstPeek bool
 	Hand             Hand
-	socket           *websocket.Conn
+	Actions          chan Action
 	Updates          chan Update
 }
 
@@ -46,12 +44,17 @@ func (p *Player) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func NewPlayer(id string, socket *websocket.Conn) Player {
+func NewPlayer(id string) Player {
 	return Player{
 		ID:      id,
 		Hand:    make(Hand, 0),
-		socket:  socket,
+		Actions: make(chan Action),
 		Updates: make(chan Update),
 		Points:  0,
 	}
+}
+
+func (p *Player) QueueAction(action Action) {
+	action.PlayerID = p.ID
+	p.Actions <- action
 }

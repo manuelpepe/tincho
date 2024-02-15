@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 )
 
 // Room represents an ongoing game and contains all necessary state to represent it.
@@ -55,7 +54,6 @@ func (r *Room) addPlayer(player Player) error {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
 	go r.watchPlayer(&player)
-	go r.updatePlayer(&player)
 	data, err := json.Marshal(UpdatePlayersChanged{
 		Players: r.state.GetPlayers(),
 	})
@@ -164,47 +162,17 @@ func (r *Room) doAction(action Action) {
 	}
 }
 
-// watchPlayer functions as a goroutine that watches for messages from a given player.
+// watchPlayer functions as a goroutine that watches for new actions from a given player.
 func (r *Room) watchPlayer(player *Player) {
 	log.Printf("Watching player '%s' on room '%s'", player.ID, r.ID)
-	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	for {
 		select {
-		case <-tick.C:
-			_, message, err := player.socket.ReadMessage()
-			if err != nil {
-				log.Printf("Error reading message from player %s: %s", player.ID, err)
-				return
-			}
-			var action Action
-			if err := json.Unmarshal(message, &action); err != nil {
-				log.Println(err)
-				return // TODO: Prevent disconnect
-			}
-			action.PlayerID = player.ID
+		case action := <-player.Actions:
 			r.ActionsChan <- action
 		case <-r.Context.Done():
 			log.Printf("Stopping watch loop for player %s", player.ID)
 			return
 		}
 
-	}
-}
-
-// updatePlayer functions as a goroutine that sends updates to a given player.
-func (r *Room) updatePlayer(player *Player) {
-	log.Printf("Updating player %s on room %s", player.ID, r.ID)
-	for {
-		select {
-		case update := <-player.Updates:
-			log.Printf("Sending update to player %s: {Type:%s, Data:\"%s\"}", player.ID, update.Type, update.Data)
-			if err := player.socket.WriteJSON(update); err != nil {
-				log.Println(err)
-				return
-			}
-		case <-r.Context.Done():
-			log.Printf("Stopping update loop for player %s", player.ID)
-			return
-		}
 	}
 }

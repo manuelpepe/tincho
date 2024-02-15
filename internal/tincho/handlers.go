@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -63,7 +64,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("missing attributes"))
 		return
 	}
-	player, err := upgradeToPlayer(w, r, playerID)
+	ws, player, err := upgradeToPlayer(w, r, playerID)
 	if err != nil {
 		log.Printf("Error upgrading connection: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -76,13 +77,62 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error joining room"))
 		return
 	}
+	rix, ok := h.game.GetRoomIndex(roomID)
+	if !ok {
+		log.Printf("Error getting room index")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error getting room index"))
+		return
+	}
+	go handleWebsocket(ws, &player, h.game.rooms[rix])
 	log.Printf("Player %s joined room %s", playerID, roomID)
 }
 
-func upgradeToPlayer(w http.ResponseWriter, r *http.Request, playerID string) (Player, error) {
+func upgradeToPlayer(w http.ResponseWriter, r *http.Request, playerID string) (*websocket.Conn, Player, error) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		return Player{}, fmt.Errorf("error upgrading connection: %w", err)
+		return nil, Player{}, fmt.Errorf("error upgrading connection: %w", err)
 	}
-	return NewPlayer(playerID, ws), nil
+	return ws, NewPlayer(playerID), nil
+}
+
+func handleWebsocket(ws *websocket.Conn, player *Player, room *Room) {
+	tick := time.NewTicker(1 * time.Second) // TODO: Make global
+
+	go func() {
+		for {
+			select {
+			case update := <-player.Updates:
+				log.Printf("Sending update to player %s: {Type:%s, Data:\"%s\"}", player.ID, update.Type, update.Data)
+				if err := ws.WriteJSON(update); err != nil {
+					log.Println(err)
+					return
+				}
+			case <-room.Context.Done():
+				log.Printf("Stopping watch loop for player %s", player.ID)
+				return
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case <-tick.C:
+				_, message, err := ws.ReadMessage()
+				if err != nil {
+					log.Printf("Error reading message from player %s: %s", player.ID, err)
+					return
+				}
+				var action Action
+				if err := json.Unmarshal(message, &action); err != nil {
+					log.Println(err)
+					return // TODO: Prevent disconnect
+				}
+				player.QueueAction(action)
+			case <-room.Context.Done():
+				log.Printf("Stopping watch loop for player %s", player.ID)
+				return
+			}
+		}
+	}()
 }
