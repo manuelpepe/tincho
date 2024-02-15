@@ -44,8 +44,8 @@ func (p *Player) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func NewPlayer(id string) Player {
-	return Player{
+func NewPlayer(id string) *Player {
+	return &Player{
 		ID:      id,
 		Hand:    make(Hand, 0),
 		Actions: make(chan Action),

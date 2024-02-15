@@ -27,11 +27,11 @@ type Update struct {
 }
 
 type UpdatePlayersChanged struct {
-	Players []Player `json:"players"`
+	Players []*Player `json:"players"`
 }
 
 type UpdateStartNextRound struct {
-	Players []Player `json:"players"`
+	Players []*Player `json:"players"`
 }
 
 type UpdatePlayerFirstPeekedData struct {
@@ -74,11 +74,11 @@ type UpdateTypeFailedDoubleDiscardData struct {
 }
 
 type UpdateCutData struct {
-	WithCount bool     `json:"withCount"`
-	Declared  int      `json:"declared"`
-	Player    string   `json:"player"`
-	Players   []Player `json:"players"`
-	Hands     [][]Card `json:"hands"`
+	WithCount bool      `json:"withCount"`
+	Declared  int       `json:"declared"`
+	Player    string    `json:"player"`
+	Players   []*Player `json:"players"`
+	Hands     [][]Card  `json:"hands"`
 }
 
 type UpdateErrorData struct {

@@ -19,7 +19,7 @@ type Room struct {
 	ActionsChan chan Action
 
 	// channel used to update goroutine state
-	NewPlayersChan chan Player
+	NewPlayersChan chan *Player
 
 	started bool
 	closed  bool
@@ -31,7 +31,7 @@ func NewRoomWithDeck(ctx context.Context, ctxCancel context.CancelFunc, roomID s
 		closeRoom:      ctxCancel,
 		ID:             roomID,
 		ActionsChan:    make(chan Action),
-		NewPlayersChan: make(chan Player),
+		NewPlayersChan: make(chan *Player),
 		state:          NewTinchoWithDeck(deck),
 		closed:         false,
 	}
@@ -45,15 +45,15 @@ func (r *Room) Close() {
 	r.closeRoom()
 	r.closed = true
 }
-func (r *Room) AddPlayer(p Player) {
+func (r *Room) AddPlayer(p *Player) {
 	r.NewPlayersChan <- p
 }
 
-func (r *Room) addPlayer(player Player) error {
+func (r *Room) addPlayer(player *Player) error {
 	if err := r.state.AddPlayer(player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
-	go r.watchPlayer(&player)
+	go r.watchPlayer(player)
 	data, err := json.Marshal(UpdatePlayersChanged{
 		Players: r.state.GetPlayers(),
 	})

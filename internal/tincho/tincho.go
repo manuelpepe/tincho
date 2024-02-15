@@ -17,7 +17,7 @@ type PlayerScore struct {
 }
 
 type Tincho struct {
-	players      []Player
+	players      []*Player
 	playing      bool
 	currentTurn  int
 	drawPile     Deck
@@ -32,7 +32,7 @@ type Tincho struct {
 
 func NewTinchoWithDeck(deck Deck) *Tincho {
 	return &Tincho{
-		players:      make([]Player, 0),
+		players:      make([]*Player, 0),
 		playing:      false,
 		drawPile:     deck,
 		discardPile:  make(Deck, 0),
@@ -47,7 +47,7 @@ func (t *Tincho) Playing() bool {
 	return t.playing
 }
 
-func (t *Tincho) PlayerToPlay() Player {
+func (t *Tincho) PlayerToPlay() *Player {
 	return t.players[t.currentTurn]
 }
 
@@ -55,20 +55,20 @@ func (t *Tincho) passTurn() {
 	t.currentTurn = (t.currentTurn + 1) % len(t.players)
 }
 
-func (t *Tincho) GetPlayers() []Player {
+func (t *Tincho) GetPlayers() []*Player {
 	return t.players
 }
 
 func (t *Tincho) getPlayer(playerID string) (*Player, bool) {
-	for _, room := range t.players {
-		if room.ID == playerID {
-			return &room, true
+	for _, player := range t.players {
+		if player.ID == playerID {
+			return player, true
 		}
 	}
 	return nil, false
 }
 
-func (t *Tincho) AddPlayer(p Player) error {
+func (t *Tincho) AddPlayer(p *Player) error {
 	if t.playing {
 		return ErrGameAlreadyStarted
 	}
@@ -243,7 +243,7 @@ var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of di
 // Try to discard two cards from the player's hand. Both positions must be different and from the player's hand (drawn card can't be doble discarded).
 // Both cards must be of the same value, jokers can't be paired with non joker cards.
 func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]Card, error) {
-	player := &t.players[t.currentTurn]
+	player := t.players[t.currentTurn]
 	if position1 == position2 {
 		return nil, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
 	}
@@ -282,7 +282,7 @@ func (t *Tincho) discardOneCard(position int) ([]Card, error) {
 	return []Card{card}, nil
 }
 
-func (t *Tincho) discardCard(player Player, card int) (Card, error) {
+func (t *Tincho) discardCard(player *Player, card int) (Card, error) {
 	if card < -1 || card >= len(player.Hand) {
 		return Card{}, fmt.Errorf("invalid card position: %d", card)
 	}
@@ -313,7 +313,7 @@ func (t *Tincho) Cut(withCount bool, declared int) ([][]PlayerScore, GameFinishe
 	return t.scoreHistory, GameFinished(!t.playing), nil
 }
 
-func (t *Tincho) cut(player Player, withCount bool, declared int) (int, error) {
+func (t *Tincho) cut(player *Player, withCount bool, declared int) (int, error) {
 	// check player has the lowest hand
 	playerSum := player.Hand.Sum()
 	for _, p := range t.players {
@@ -330,7 +330,7 @@ func (t *Tincho) cut(player Player, withCount bool, declared int) (int, error) {
 	return playerSum + 10, nil // loss + bonus
 }
 
-func (t *Tincho) updatePlayerPoints(winner Player, pointsForWinner int) {
+func (t *Tincho) updatePlayerPoints(winner *Player, pointsForWinner int) {
 	for ix := range t.players {
 		var value int
 		if t.players[ix].ID == winner.ID {
@@ -358,7 +358,7 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 	if t.pendingStorage.GetEffect() != CardEffectPeekOwnCard {
 		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
-	player := &t.players[t.currentTurn]
+	player := t.players[t.currentTurn]
 	card, err := t.peekCard(player, position)
 	if err != nil {
 		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)

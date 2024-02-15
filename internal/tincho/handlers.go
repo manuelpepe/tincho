@@ -84,14 +84,14 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error getting room index"))
 		return
 	}
-	go handleWebsocket(ws, &player, h.game.rooms[rix])
+	go handleWebsocket(ws, player, h.game.rooms[rix])
 	log.Printf("Player %s joined room %s", playerID, roomID)
 }
 
-func upgradeToPlayer(w http.ResponseWriter, r *http.Request, playerID string) (*websocket.Conn, Player, error) {
+func upgradeToPlayer(w http.ResponseWriter, r *http.Request, playerID string) (*websocket.Conn, *Player, error) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		return nil, Player{}, fmt.Errorf("error upgrading connection: %w", err)
+		return nil, nil, fmt.Errorf("error upgrading connection: %w", err)
 	}
 	return ws, NewPlayer(playerID), nil
 }
@@ -160,7 +160,7 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 	player := NewPlayer("bot")
 	log.Printf("p channels: %v\n", player.Updates)
 
-	bot, err := NewBot(ctx, &player, difficulty)
+	bot, err := NewBot(ctx, player, difficulty)
 	if err != nil {
 		log.Printf("Error creating bot: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -78,7 +78,7 @@ func (g *Game) GetRoomIndex(roomID string) (int, bool) {
 	return 0, false
 }
 
-func (g *Game) JoinRoom(roomID string, player Player) error {
+func (g *Game) JoinRoom(roomID string, player *Player) error {
 	roomix, exists := g.GetRoomIndex(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
