@@ -216,8 +216,8 @@ func (r *Room) broadcastEndGame(scores [][]PlayerScore) error {
 func (r *Room) broadcastSwapCards(playerID string, positions []int, players []string, discarded Card) error {
 	updateData, err := json.Marshal(
 		UpdateSwapCardsData{
-			CardPositions: positions,
-			Players:       players,
+			CardsPositions: positions,
+			Players:        players,
 		},
 	)
 	if err != nil {

@@ -56,19 +56,19 @@ type UpdatePeekCardData struct {
 }
 
 type UpdateSwapCardsData struct {
-	CardPositions []int    `json:"cardPositions"`
-	Players       []string `json:"players"`
+	CardsPositions []int    `json:"cardsPositions"`
+	Players        []string `json:"players"`
 }
 
 type UpdateDiscardData struct {
 	Player         string `json:"player"`
-	CardsPositions []int  `json:"cardPosition"`
-	Cards          []Card `json:"card"`
+	CardsPositions []int  `json:"cardsPositions"`
+	Cards          []Card `json:"cards"`
 }
 
 type UpdateTypeFailedDoubleDiscardData struct {
 	Player         string `json:"player"`
-	CardsPositions []int  `json:"cardPositions"`
+	CardsPositions []int  `json:"cardsPositions"`
 	Cards          []Card `json:"cards"`
 }
 

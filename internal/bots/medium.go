@@ -184,7 +184,7 @@ func (s *MediumStrategy) SwapCards(player tincho.Player, data tincho.UpdateSwapC
 	if myIX == -1 {
 		return tincho.Action{}, nil
 	}
-	cardPos := data.CardPositions[myIX]
+	cardPos := data.CardsPositions[myIX]
 	s.hand.Forget(cardPos)
 	return tincho.Action{}, nil
 }
