@@ -41,6 +41,7 @@ func (p *Player) UnmarshalJSON(data []byte) error {
 	p.ID = mp.ID
 	p.PendingFirstPeek = mp.PendingFirstPeek
 	p.Points = mp.Points
+	p.Hand = make(Hand, mp.CardsInHand)
 	return nil
 }
 

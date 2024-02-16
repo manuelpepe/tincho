@@ -46,7 +46,7 @@
             - Doesn't double discard
             - Doesn't swap or peek opponents cards cards
             - Does peek own cards
-            - Only cuts with =< 10 points (5% chance of mistake)
+            - 75% chance of cutting when <= 10 points (5% chance of mistake)
             - Never declares hand
         3. Hard:
             - Keeps track of cards in hand
