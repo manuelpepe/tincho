@@ -2,7 +2,7 @@ import "./types.js";
 
 import { hide, show, moveNode } from "./utils.js";
 import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
-import { queueAnimation, queueAnimationInstantly, startProcessingAnimations } from "./animations.js";
+import { queueActions, queueActionInstantly, startProcessingActions } from "./actions.js";
 import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
 
 window.onload = function () {
@@ -137,7 +137,7 @@ window.onload = function () {
         const playerData = PLAYERS[player].data;
         drawHand(playerHand, player, playerData.cards_in_hand, cards, positions)
         // TODO: Store timeout for skip button
-        queueAnimationInstantly(async () => {
+        queueActionInstantly(async () => {
             await new Promise(r => setTimeout(r, timeout));
             drawHand(playerHand, player, playerData.cards_in_hand, [], []);
         });
@@ -187,45 +187,26 @@ window.onload = function () {
      */
     function showDraw(player, source, card, effect) {
         const playerDraw = PLAYERS[player].draw;
+        setDrawScreen(player == THIS_PLAYER, effect);
         switch (source) {
             case "pile":
-                queueAnimation(
-                    async () => setDrawScreen(player == THIS_PLAYER, effect),
-                    async () => drawCard(deckPile, playerDraw),
-                    async () => {
-                        playerDraw.innerHTML = "";
-                        let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
-                        if (effect && effect != "none") {
-                            text += " (Effect: " + EFFECTS[effect] + ")"
-                        }
-                        const textNode = document.createTextNode(text);
-                        const node = createCardTemplate();
-                        node.appendChild(textNode);
-                        playerDraw.appendChild(node);
-                    }
-                );
+                drawCard(deckPile, playerDraw);
                 break;
             case "discard":
-                queueAnimation(
-                    async () => setDrawScreen(player == THIS_PLAYER, effect),
-                    async () => drawCard(deckDiscard, playerDraw),
-                    async () => {
-                        playerDraw.innerHTML = "";
-                        let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
-                        if (effect && effect != "none") {
-                            text += " (Effect: " + EFFECTS[effect] + ")"
-                        }
-                        const textNode = document.createTextNode(text);
-                        const node = createCardTemplate();
-                        node.appendChild(textNode);
-                        playerDraw.appendChild(node);
-                    }
-                );
+                drawCard(deckDiscard, playerDraw);
                 break;
             default:
                 console.error("unknown draw source: ", source)
                 break;
         }
+        playerDraw.innerHTML = "";
+        let text = card.suit ? "[" + cardValue(card) + "]" : "[ ]";
+        if (effect && effect != "none") {
+            text += " (Effect: " + EFFECTS[effect] + ")"
+        }
+        const node = createCardTemplate();
+        node.appendChild(document.createTextNode(text));
+        playerDraw.appendChild(node);
     }
 
     /** 
@@ -238,47 +219,35 @@ window.onload = function () {
         const playerDraw = PLAYERS[player].draw;
         const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
         const tmpContainer = createCardTemplate();
+        setDiscardScreen();
         if (cardPosition >= 0) {
-            queueAnimation(
-                async () => setDiscardScreen(),
-                async () => {
-                    const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
-                    cardInHand.innerHTML = "[" + cardValue(card) + "]";
-                    cardInHand.replaceWith(tmpContainer);
-                    cardInHand.onclick = () => sendAction({
-                        "type": "draw",
-                        "data": { "source": "discard" },
-                    });
-                    tmpContainer.appendChild(cardInHand);
-                    moveNode(drawnCard, tmpContainer);
-                },
-                async () => {
-                    const drawnCard = /** @type {HTMLElement} */ (tmpContainer.lastChild);
-                    moveNode(cardInHand, deckDiscard)
-                    while (deckDiscard.firstChild && deckDiscard.firstChild !== cardInHand) {
-                        deckDiscard.removeChild(deckDiscard.firstChild);
-                    }
-                    tmpContainer.replaceWith(drawnCard);
-                    drawnCard.innerHTML = "[ ]";
-                    drawnCard.onclick = () => sendCurrentAction(player, cardPosition);
-                }
-            );
+            const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+            cardInHand.innerHTML = "[" + cardValue(card) + "]";
+            cardInHand.replaceWith(tmpContainer);
+            cardInHand.onclick = () => sendAction({
+                "type": "draw",
+                "data": { "source": "discard" },
+            });
+            tmpContainer.appendChild(cardInHand);
+            moveNode(drawnCard, tmpContainer);
+            moveNode(cardInHand, deckDiscard)
+            while (deckDiscard.firstChild && deckDiscard.firstChild !== cardInHand) {
+                deckDiscard.removeChild(deckDiscard.firstChild);
+            }
+            tmpContainer.replaceWith(drawnCard);
+            drawnCard.innerHTML = "[ ]";
+            drawnCard.onclick = () => sendCurrentAction(player, cardPosition);
         } else {
-            queueAnimation(
-                async () => setDiscardScreen(),
-                async () => {
-                    const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
-                    drawnCard.innerHTML = "[" + cardValue(card) + "]"
-                    drawnCard.onclick = () => sendAction({
-                        "type": "draw",
-                        "data": { "source": "discard" },
-                    });
-                    moveNode(drawnCard, deckDiscard)
-                    while (deckDiscard.firstChild && deckDiscard.firstChild !== drawnCard) {
-                        deckDiscard.removeChild(deckDiscard.firstChild);
-                    }
-                }
-            );
+            const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+            drawnCard.innerHTML = "[" + cardValue(card) + "]"
+            drawnCard.onclick = () => sendAction({
+                "type": "draw",
+                "data": { "source": "discard" },
+            });
+            moveNode(drawnCard, deckDiscard)
+            while (deckDiscard.firstChild && deckDiscard.firstChild !== drawnCard) {
+                deckDiscard.removeChild(deckDiscard.firstChild);
+            }
         }
     }
 
@@ -287,44 +256,29 @@ window.onload = function () {
      * @param {number[]} cardPositions
      * @param {Card[]} cards
      */
-    function showFailedDoubleDiscard(player, cardPositions, cards) {
+    async function showFailedDoubleDiscard(player, cardPositions, cards) {
         const playerHand = PLAYERS[player].hand;
         const playerDraw = PLAYERS[player].draw;
+        const tmpContainer = createCardTemplate();
+        const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
+
         for (let ix = 0; ix < cardPositions.length; ix++) {
             const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
             cardInHand.innerHTML = "[" + cardValue(cards[ix]) + "]";
         }
-        const tmpContainer = createCardTemplate();
-        queueAnimation(
-            async () => {
-                const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
-                playerHand.appendChild(tmpContainer);
-                moveNode(drawnCard, tmpContainer)
-            },
-            async () => {
-                const drawnCard = /** @type {HTMLElement} */ (tmpContainer.lastChild);
-                tmpContainer.replaceWith(drawnCard);
-                drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
 
-                await new Promise(r => setTimeout(r, 1000));
-                drawnCard.innerHTML = "[ ]";
-                for (let ix = 0; ix < cardPositions.length; ix++) {
-                    const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
-                    cardInHand.innerHTML = "[ ]";
-                }
-            }
-        );
-    }
+        playerHand.appendChild(tmpContainer);
+        moveNode(drawnCard, tmpContainer)
+        tmpContainer.replaceWith(drawnCard);
+        drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
 
-    /** 
-     * @param {string} player
-     * @param {number} cardPosition
-     * @param {Card} card 
-     */
-    function showPeek(player, cardPosition, card) {
-        queueAnimation(async () => {
-            showCards(player, [card], [cardPosition]);
-        });
+        await new Promise(r => setTimeout(r, 1000));
+
+        drawnCard.innerHTML = "[ ]";
+        for (let ix = 0; ix < cardPositions.length; ix++) {
+            const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
+            cardInHand.innerHTML = "[ ]";
+        }
     }
 
     /** 
@@ -338,24 +292,20 @@ window.onload = function () {
         const playerTwoCard = /** @type {HTMLElement} */ (playerTwoHand.childNodes[cardPositions[1]]);
         const tmpContainerOne = createCardTemplate();
         const tmpContainerTwo = createCardTemplate();
-        queueAnimation(
-            async () => {
-                playerOneCard.replaceWith(tmpContainerOne);
-                tmpContainerOne.appendChild(playerOneCard);
-                playerTwoCard.replaceWith(tmpContainerTwo)
-                tmpContainerTwo.appendChild(playerTwoCard);
-                moveNode(playerOneCard, tmpContainerTwo, 2000);
-            },
-            async () => {
-                moveNode(playerTwoCard, tmpContainerOne, 2000);
-            },
-            async () => {
-                tmpContainerOne.replaceWith(playerTwoCard);
-                tmpContainerTwo.replaceWith(playerOneCard);
-                playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
-                playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
-            }
-        );
+
+
+        playerOneCard.replaceWith(tmpContainerOne);
+        tmpContainerOne.appendChild(playerOneCard);
+        playerTwoCard.replaceWith(tmpContainerTwo)
+        tmpContainerTwo.appendChild(playerTwoCard);
+
+        moveNode(playerOneCard, tmpContainerTwo, 2000);
+        moveNode(playerTwoCard, tmpContainerOne, 2000);
+
+        tmpContainerOne.replaceWith(playerTwoCard);
+        tmpContainerTwo.replaceWith(playerOneCard);
+        playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
+        playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
     }
 
     /** 
@@ -367,17 +317,12 @@ window.onload = function () {
      */
     function showCut(players, player, withCount, declared, hands) {
         // TODO: Show player, withcount and declared
-        queueAnimation(
-            async () => {
-                setCutScreen();
-                setPlayers(players);
-                for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
-                    const positions = [...Array(hands[ix].length).keys()];
-                    showCards(player, hands[ix], positions, NEXT_ROUND_TIMEOUT);
-                }
-            }
-        );
-
+        setCutScreen();
+        setPlayers(players);
+        for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
+            const positions = [...Array(hands[ix].length).keys()];
+            showCards(player, hands[ix], positions, NEXT_ROUND_TIMEOUT);
+        }
     }
 
     /** @param {{playerID: string, score: number}[][]} scores */
@@ -416,89 +361,80 @@ window.onload = function () {
     }
 
     /** @param {UpdatePlayersChangedData} data */
-    function handlePlayersChanged(data) {
+    async function handlePlayersChanged(data) {
         setPlayers(data.players)
     }
 
     /** @param {UpdateStartNextRoundData} data */
-    function handleGameStart(data) {
+    async function handleGameStart(data) {
         FIRST_TURN = true;
-        queueAnimation(async () => {
-            setStartGameScreen();
-            setPlayers(data.players);
-        });
+        setStartGameScreen();
+        setPlayers(data.players);
     }
 
     /** @param {UpdatePlayerFirstPeekedData} data */
-    function handlePlayerPeeked(data) {
+    async function handlePlayerPeeked(data) {
         if (data.player == THIS_PLAYER) {
-            queueAnimation(async () => {
-                setPlayerPeekedScreen()
-                showCards(data.player, data.cards, [0, 1])
-            });
+            setPlayerPeekedScreen()
+            showCards(data.player, data.cards, [0, 1])
         }
         markReady(data.player)
     }
 
     /** @param {UpdateTurnData} data */
-    function handleTurn(data) {
+    async function handleTurn(data) {
         if (FIRST_TURN) {
             clearCheckmarks();
             FIRST_TURN = false;
         }
-        queueAnimation(() => {
-            setTurnScreen(data.player == THIS_PLAYER);
-        });
+        setTurnScreen(data.player == THIS_PLAYER);
     }
 
     /** @param {UpdateDrawData} data */
-    function handleDraw(data) {
+    async function handleDraw(data) {
         showDraw(data.player, data.source, data.card, data.effect);
     }
 
     /** @param {UpdateDiscardData} data */
-    function handleDiscard(data) {
+    async function handleDiscard(data) {
         for (let ix = 0; ix < data.cards.length; ix++) {
             showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
         }
     }
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */
-    function handleDoubleDiscard(data) {
-        showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards);
+    async function handleDoubleDiscard(data) {
+        await showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards);
     }
 
     /** @param {UpdatePeekCardData} data */
-    function handleEffectPeek(data) {
-        showPeek(data.player, data.cardPosition, data.card)
+    async function handleEffectPeek(data) {
+        showCards(data.player, [data.card], [data.cardPosition]);
+
     }
 
     /** @param {UpdateSwapCardsData} data */
-    function handleEffectSwap(data) {
+    async function handleEffectSwap(data) {
         showSwap(data.players, data.cardsPositions)
     }
 
     /** @param {UpdateCutData} data */
-    function handleCut(data) {
+    async function handleCut(data) {
         showCut(data.players, data.player, data.withCount, data.declared, data.hands);
     }
 
     /** @param {UpdateStartNextRoundData} data */
-    function handleNextRound(data) {
+    async function handleNextRound(data) {
         // TODO: Refactor to show next round button
-        queueAnimation(async () => {
-            await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
-            FIRST_TURN = true;
-            setStartRoundScreen();
-            setPlayers(data.players)
-        });
+        await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
+        FIRST_TURN = true;
+        setStartRoundScreen();
+        setPlayers(data.players)
     }
 
     /** @param {UpdateEndGameData} data */
-    function handleEndGame(data) {
-        queueAnimation(async () => {
-            showEndGame(data.scores);
-        });
+    async function handleEndGame(data) {
+        showEndGame(data.scores);
     }
 
     /** @param {MessageEvent<any>} event} */
@@ -508,40 +444,40 @@ window.onload = function () {
         console.log("Received message:", data)
         switch (data.type) {
             case "players_changed":
-                handlePlayersChanged(msgData);
+                queueActions(async () => await handlePlayersChanged(msgData));
                 break;
             case "game_start":
-                handleGameStart(msgData);
+                queueActions(async () => await handleGameStart(msgData));
                 break;
             case "player_peeked":
-                handlePlayerPeeked(msgData);
+                queueActions(async () => await handlePlayerPeeked(msgData));
                 break;
             case "turn":
-                handleTurn(msgData);
+                queueActions(async () => await handleTurn(msgData));
                 break;
             case "draw":
-                handleDraw(msgData);
+                queueActions(async () => await handleDraw(msgData));
                 break;
             case "discard":
-                handleDiscard(msgData);
+                queueActions(async () => await handleDiscard(msgData));
                 break;
             case "failed_double_discard":
-                handleDoubleDiscard(msgData);
+                queueActions(async () => await handleDoubleDiscard(msgData));
                 break;
             case "effect_peek":
-                handleEffectPeek(msgData);
+                queueActions(async () => await handleEffectPeek(msgData));
                 break;
             case "effect_swap":
-                handleEffectSwap(msgData);
+                queueActions(async () => await handleEffectSwap(msgData));
                 break;
             case "cut":
-                handleCut(msgData);
+                queueActions(async () => await handleCut(msgData));
                 break;
             case "start_next_round":
-                handleNextRound(msgData);
+                queueActions(async () => await handleNextRound(msgData));
                 break;
             case "end_game":
-                handleEndGame(msgData);
+                queueActions(async () => await handleEndGame(msgData));
                 break;
             default:
                 console.error("Unknown message type", data.type, msgData)
@@ -732,5 +668,5 @@ window.onload = function () {
         return card;
     }
 
-    startProcessingAnimations();
+    startProcessingActions();
 };
