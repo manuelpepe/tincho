@@ -55,6 +55,16 @@
             border-collapse: collapse;
             padding: 0.4em 1em;
         }
+
+        .cols {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .row {
+            display: flex;
+            flex-direction: row;
+        }
     </style>
 
     <template id="player-template">
@@ -99,9 +109,19 @@
 
     </div>
 
-    <div class="buttons">
-        <button id="btn-start" style="display: none;">Start</button>
-        <button id="btn-add-bot" style="display: none;">Add Bot</button>
+    <div class="buttons cols">
+        <div class="row">
+            <button id="btn-start" style="display: none;">Start</button>
+        </div>
+        <div class="row">
+            <button id="btn-add-bot" style="display: none;">Add Bot</button>
+            <select id="bot-diff-select" style="display: none;">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <!-- <option value="hard">Hard</option> -->
+                <!-- <option value="hard">Expert</option> -->
+            </select>
+        </div>
     </div>
 
     <div class="buttons">

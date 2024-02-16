@@ -38,8 +38,9 @@ func NewBot(ctx context.Context, player *tincho.Player, difficulty string) (Bot,
 	case "easy":
 		strategy = &EasyStrategy{}
 	case "medium":
-	case "hard":
-	case "expert":
+		strategy = &MediumStrategy{}
+	// case "hard":
+	// case "expert":
 	default:
 		return Bot{}, fmt.Errorf("invalid difficulty: %s", difficulty)
 	}

@@ -3,7 +3,9 @@ import { hide, show } from './utils.js';
 
 
 // TODO: Do away with repeated declarations 
+const selectBotDiff = /** @type {HTMLSelectElement} */ (document.getElementById("bot-diff-select"));
 const buttonAddBot = document.getElementById("btn-add-bot");
+
 const buttonStart = document.getElementById("btn-start");
 const buttonFirstPeek = document.getElementById("btn-first-peek");
 const buttonDraw = document.getElementById("btn-draw");
@@ -63,6 +65,7 @@ function hideAllButtons() {
 export function setStartGameScreen() {
     hide(buttonStart);
     hide(buttonAddBot);
+    hide(selectBotDiff);
     show(buttonFirstPeek);
     show(deckPile);
     show(deckDiscard);

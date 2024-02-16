@@ -40,7 +40,9 @@ window.onload = function () {
     const formJoin = document.getElementById("room-join");
     const formNew = document.getElementById("room-new");
 
+    const selectBotDiff = /** @type {HTMLSelectElement} */ (document.getElementById("bot-diff-select"));
     const buttonAddBot = document.getElementById("btn-add-bot");
+
     const buttonStart = document.getElementById("btn-start");
     const buttonFirstPeek = document.getElementById("btn-first-peek");
     const buttonDraw = document.getElementById("btn-draw");
@@ -481,6 +483,7 @@ window.onload = function () {
         show(roomTitle);
         show(buttonStart);
         show(buttonAddBot);
+        show(selectBotDiff);
         console.log("connected to room " + roomid.value);
         THIS_PLAYER = username.value;
         return false;
@@ -504,7 +507,8 @@ window.onload = function () {
         if (!roomid.value) {
             return false;
         }
-        fetch("http://" + location.host + "/add-bot?difficulty=easy&room=" + roomid.value)
+        const botdiff = selectBotDiff.options[selectBotDiff.selectedIndex].value;
+        fetch("http://" + location.host + "/add-bot?difficulty=" + botdiff + "&room=" + roomid.value)
             .then(response => response.text())
             .then(data => console.log(data));
         return false;
