@@ -415,6 +415,92 @@ window.onload = function () {
         CURRENT_ACTION = action
     }
 
+    /** @param {UpdatePlayersChangedData} data */
+    function handlePlayersChanged(data) {
+        setPlayers(data.players)
+    }
+
+    /** @param {UpdateStartNextRoundData} data */
+    function handleGameStart(data) {
+        FIRST_TURN = true;
+        queueAnimation(async () => {
+            setStartGameScreen();
+            setPlayers(data.players);
+        });
+    }
+
+    /** @param {UpdatePlayerFirstPeekedData} data */
+    function handlePlayerPeeked(data) {
+        if (data.player == THIS_PLAYER) {
+            queueAnimation(async () => {
+                setPlayerPeekedScreen()
+                showCards(data.player, data.cards, [0, 1])
+            });
+        }
+        markReady(data.player)
+    }
+
+    /** @param {UpdateTurnData} data */
+    function handleTurn(data) {
+        if (FIRST_TURN) {
+            clearCheckmarks();
+            FIRST_TURN = false;
+        }
+        queueAnimation(() => {
+            setTurnScreen(data.player == THIS_PLAYER);
+        });
+    }
+
+    /** @param {UpdateDrawData} data */
+    function handleDraw(data) {
+        showDraw(data.player, data.source, data.card, data.effect);
+    }
+
+    /** @param {UpdateDiscardData} data */
+    function handleDiscard(data) {
+        for (let ix = 0; ix < data.cards.length; ix++) {
+            showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
+        }
+    }
+
+    /** @param {UpdateTypeFailedDoubleDiscardData} data */
+    function handleDoubleDiscard(data) {
+        showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards);
+    }
+
+    /** @param {UpdatePeekCardData} data */
+    function handleEffectPeek(data) {
+        showPeek(data.player, data.cardPosition, data.card)
+    }
+
+    /** @param {UpdateSwapCardsData} data */
+    function handleEffectSwap(data) {
+        showSwap(data.players, data.cardsPositions)
+    }
+
+    /** @param {UpdateCutData} data */
+    function handleCut(data) {
+        showCut(data.players, data.player, data.withCount, data.declared, data.hands);
+    }
+
+    /** @param {UpdateStartNextRoundData} data */
+    function handleNextRound(data) {
+        // TODO: Refactor to show next round button
+        queueAnimation(async () => {
+            await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
+            FIRST_TURN = true;
+            setStartRoundScreen();
+            setPlayers(data.players)
+        });
+    }
+
+    /** @param {UpdateEndGameData} data */
+    function handleEndGame(data) {
+        queueAnimation(async () => {
+            showEndGame(data.scores);
+        });
+    }
+
     /** @param {MessageEvent<any>} event} */
     function processWSMessage(event) {
         const data = JSON.parse(event.data)
@@ -422,66 +508,40 @@ window.onload = function () {
         console.log("Received message:", data)
         switch (data.type) {
             case "players_changed":
-                setPlayers(msgData.players)
+                handlePlayersChanged(msgData);
                 break;
             case "game_start":
-                FIRST_TURN = true;
-                queueAnimation(async () => {
-                    setStartGameScreen();
-                    setPlayers(msgData.players);
-                });
+                handleGameStart(msgData);
                 break;
             case "player_peeked":
-                if (msgData.player == THIS_PLAYER) {
-                    queueAnimation(async () => {
-                        setPlayerPeekedScreen()
-                        showCards(msgData.player, msgData.cards, [0, 1])
-                    });
-                }
-                markReady(msgData.player)
+                handlePlayerPeeked(msgData);
                 break;
             case "turn":
-                if (FIRST_TURN) {
-                    clearCheckmarks();
-                    FIRST_TURN = false;
-                }
-                queueAnimation(() => {
-                    setTurnScreen(msgData.player == THIS_PLAYER);
-                });
+                handleTurn(msgData);
                 break;
             case "draw":
-                showDraw(msgData.player, msgData.source, msgData.card, msgData.effect);
+                handleDraw(msgData);
                 break;
             case "discard":
-                for (let ix = 0; ix < msgData.card.length; ix++) {
-                    showDiscard(msgData.player, msgData.cardPosition[ix], msgData.card[ix])
-                }
+                handleDiscard(msgData);
                 break;
             case "failed_double_discard":
-                showFailedDoubleDiscard(msgData.player, msgData.cardPositions, msgData.cards);
+                handleDoubleDiscard(msgData);
                 break;
             case "effect_peek":
-                showPeek(msgData.player, msgData.cardPosition, msgData.card)
+                handleEffectPeek(msgData);
                 break;
             case "effect_swap":
-                showSwap(msgData.players, msgData.cardPositions)
+                handleEffectSwap(msgData);
                 break;
             case "cut":
-                showCut(msgData.players, msgData.player, msgData.withCount, msgData.declared, msgData.hands);
+                handleCut(msgData);
                 break;
             case "start_next_round":
-                // TODO: Refactor to show next round button
-                queueAnimation(async () => {
-                    await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
-                    FIRST_TURN = true;
-                    setStartRoundScreen();
-                    setPlayers(msgData.players)
-                });
+                handleNextRound(msgData);
                 break;
             case "end_game":
-                queueAnimation(async () => {
-                    showEndGame(msgData.scores);
-                });
+                handleEndGame(msgData);
                 break;
             default:
                 console.error("Unknown message type", data.type, msgData)
