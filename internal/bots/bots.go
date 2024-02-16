@@ -5,11 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
+
+type Strategy interface {
+	PlayersChanged(player tincho.Player, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
+	GameStart(player tincho.Player) (tincho.Action, error)
+	PlayerFirstPeeked(player tincho.Player, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
+	Turn(player tincho.Player, data tincho.UpdateTurnData) (tincho.Action, error)
+	Draw(player tincho.Player, data tincho.UpdateDrawData) (tincho.Action, error)
+	PeekCard(player tincho.Player, data tincho.UpdatePeekCardData) (tincho.Action, error)
+	SwapCards(player tincho.Player, data tincho.UpdateSwapCardsData) (tincho.Action, error)
+	Discard(player tincho.Player, data tincho.UpdateDiscardData) (tincho.Action, error)
+	FailedDoubleDiscard(player tincho.Player) (tincho.Action, error)
+	Cut(player tincho.Player, data tincho.UpdateCutData) (tincho.Action, error)
+	Error(player tincho.Player, data tincho.UpdateErrorData) (tincho.Action, error)
+	StartNextRound(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
+	EndGame(player tincho.Player, data tincho.UpdateEndGameData) (tincho.Action, error)
+}
 
 type Bot struct {
 	ctx      context.Context
@@ -42,7 +57,7 @@ func (b *Bot) Start() error {
 		select {
 		case update := <-b.player.Updates:
 			log.Printf("Bot %s recieved update: {Type:%s, Data:\"%s\"}\n", b.player.ID, update.Type, update.Data)
-			action, err := b.strategy.RespondToUpdate(*b.player, update)
+			action, err := b.RespondToUpdate(*b.player, update)
 			if err != nil {
 				return fmt.Errorf("error responding to update: %w", err)
 			}
@@ -57,68 +72,78 @@ func (b *Bot) Start() error {
 	}
 }
 
-type Strategy interface {
-	RespondToUpdate(tincho.Player, tincho.Update) (tincho.Action, error)
-}
-
-type EasyStrategy struct{}
-
-func (s EasyStrategy) RespondToUpdate(player tincho.Player, update tincho.Update) (tincho.Action, error) {
+func (b *Bot) RespondToUpdate(player tincho.Player, update tincho.Update) (tincho.Action, error) {
 	switch update.Type {
 	case tincho.UpdateTypeGameStart:
-		return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+		return b.strategy.GameStart(player)
+	case tincho.UpdateTypePlayersChanged:
+		var data tincho.UpdatePlayersChangedData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.PlayersChanged(player, data)
+	case tincho.UpdateTypePlayerFirstPeeked:
+		var data tincho.UpdatePlayerFirstPeekedData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.PlayerFirstPeeked(player, data)
 	case tincho.UpdateTypeTurn:
 		var data tincho.UpdateTurnData
 		if err := json.Unmarshal(update.Data, &data); err != nil {
 			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
 		}
-		if data.Player == player.ID {
-			return s.decideTurn(player)
-		}
+		return b.strategy.Turn(player, data)
 	case tincho.UpdateTypeDraw:
 		var data tincho.UpdateDrawData
 		if err := json.Unmarshal(update.Data, &data); err != nil {
 			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
 		}
-		if data.Player == player.ID {
-			data, err := json.Marshal(tincho.ActionDiscardData{
-				CardPosition: rand.Intn(len(player.Hand)),
-			})
-			if err != nil {
-				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-			}
-			return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(data)}, nil
+		return b.strategy.Draw(player, data)
+	case tincho.UpdateTypePeekCard:
+		var data tincho.UpdatePeekCardData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
 		}
+		return b.strategy.PeekCard(player, data)
+	case tincho.UpdateTypeSwapCards:
+		var data tincho.UpdateSwapCardsData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.SwapCards(player, data)
+	case tincho.UpdateTypeDiscard:
+		var data tincho.UpdateDiscardData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.Discard(player, data)
+	case tincho.UpdateTypeFailedDoubleDiscard:
+		return b.strategy.FailedDoubleDiscard(player)
+	case tincho.UpdateTypeCut:
+		var data tincho.UpdateCutData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.Cut(player, data)
 	case tincho.UpdateTypeError:
-		return tincho.Action{}, fmt.Errorf("recieved error update: %s", update.Data)
+		var data tincho.UpdateErrorData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.Error(player, data)
 	case tincho.UpdateTypeStartNextRound:
-		return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+		var data tincho.UpdateStartNextRoundData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.StartNextRound(player, data)
+	case tincho.UpdateTypeEndGame:
+		var data tincho.UpdateEndGameData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.EndGame(player, data)
 	}
 	return tincho.Action{}, nil
-}
-
-func (s EasyStrategy) decideTurn(player tincho.Player) (tincho.Action, error) {
-	triggerCut := rand.Float32() < 0.05
-	if triggerCut {
-		data, err := json.Marshal(tincho.ActionCutData{
-			WithCount: false,
-			Declared:  0,
-		})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-		}
-		return tincho.Action{Type: tincho.ActionCut, Data: data}, nil
-	} else {
-		data, err := json.Marshal(tincho.ActionDrawData{
-			Source: RandChoice([]tincho.DrawSource{tincho.DrawSourcePile, tincho.DrawSourceDiscard}),
-		})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-		}
-		return tincho.Action{Type: tincho.ActionDraw, Data: data}, nil
-	}
-}
-
-func RandChoice[T any](choices []T) T {
-	return choices[rand.Intn(len(choices))]
 }

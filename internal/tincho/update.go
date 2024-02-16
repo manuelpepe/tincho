@@ -15,7 +15,6 @@ const (
 	UpdateTypeDiscard             UpdateType = "discard"
 	UpdateTypeFailedDoubleDiscard UpdateType = "failed_double_discard"
 	UpdateTypeCut                 UpdateType = "cut"
-	UpdateTypeShuffledPiles       UpdateType = "shuffled_piles"
 	UpdateTypeError               UpdateType = "error"
 	UpdateTypeStartNextRound      UpdateType = "start_next_round"
 	UpdateTypeEndGame             UpdateType = "end_game"
@@ -26,11 +25,11 @@ type Update struct {
 	Data json.RawMessage `json:"data"`
 }
 
-type UpdatePlayersChanged struct {
+type UpdatePlayersChangedData struct {
 	Players []*Player `json:"players"`
 }
 
-type UpdateStartNextRound struct {
+type UpdateStartNextRoundData struct {
 	Players []*Player `json:"players"`
 }
 

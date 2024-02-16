@@ -54,7 +54,7 @@ func (r *Room) addPlayer(player *Player) error {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
 	go r.watchPlayer(player)
-	data, err := json.Marshal(UpdatePlayersChanged{
+	data, err := json.Marshal(UpdatePlayersChangedData{
 		Players: r.state.GetPlayers(),
 	})
 	if err != nil {

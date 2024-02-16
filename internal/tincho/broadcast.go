@@ -58,7 +58,7 @@ func (r *Room) broadcastPassTurn() error {
 }
 
 func (r *Room) broadcastStartGame() error {
-	data, err := json.Marshal(UpdateStartNextRound{
+	data, err := json.Marshal(UpdateStartNextRoundData{
 		Players: r.state.GetPlayers(),
 	})
 	if err != nil {
@@ -186,7 +186,7 @@ func (r *Room) broadcastCut(playerID string, withCount bool, declared int) error
 }
 
 func (r *Room) broadcastNextRound() error {
-	data, err := json.Marshal(UpdateStartNextRound{
+	data, err := json.Marshal(UpdateStartNextRoundData{
 		Players: r.state.GetPlayers(),
 	})
 	if err != nil {
