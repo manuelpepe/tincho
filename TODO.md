@@ -76,3 +76,6 @@
 - [ ] When swapping cards, an intermediate container should be used to pass them around (improves animation)
 - [ ] UI error when peeking 5th opponent card after failed double discard
 - [ ] Prevent discarding drawed card if it was drawed from the discard pile
+- [ ] Points are not being correctly calculated
+- [ ] Bots can draw from empty discard deck and crash
+- [ ] Refactor `queueAnimation` to `queueAction` and queue actions as they come in through the socket. queuing only animations results in ui bugs.
