@@ -157,8 +157,7 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := h.game.rooms[rix].Context
-	player := NewPlayer("bot")
-	log.Printf("p channels: %v\n", player.Updates)
+	player := NewPlayer(RandomBotName())
 
 	bot, err := NewBot(ctx, player, difficulty)
 	if err != nil {
