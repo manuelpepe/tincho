@@ -62,9 +62,9 @@ func TestPlayersJoinRoom(t *testing.T) {
 	defer ws1.Close()
 	defer ws2.Close()
 	time.Sleep(1 * time.Second) // wait for connection
-	roomix, exists := g.GetRoomIndex(roomID)
+	room, exists := g.GetRoom(roomID)
 	assert.True(t, exists)
-	assert.Equal(t, 2, len(g.rooms[roomix].state.GetPlayers()))
+	assert.Equal(t, 2, len(room.state.GetPlayers()))
 }
 
 func TestDoubleDiscard(t *testing.T) {

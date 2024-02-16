@@ -78,12 +78,20 @@ func (g *Game) GetRoomIndex(roomID string) (int, bool) {
 	return 0, false
 }
 
-func (g *Game) JoinRoom(roomID string, player *Player) error {
+func (g *Game) GetRoom(roomID string) (*Room, bool) {
 	roomix, exists := g.GetRoomIndex(roomID)
+	if !exists {
+		return nil, false
+	}
+	return g.rooms[roomix], true
+}
+
+func (g *Game) JoinRoom(roomID string, player *Player) error {
+	room, exists := g.GetRoom(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
 	}
-	g.rooms[roomix].AddPlayer(player)
+	room.AddPlayer(player)
 	return nil
 }
 

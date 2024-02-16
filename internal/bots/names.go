@@ -1,4 +1,4 @@
-package tincho
+package bots
 
 import (
 	"fmt"

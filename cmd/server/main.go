@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/manuelpepe/tincho/internal/bots"
 	"github.com/manuelpepe/tincho/internal/front"
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
@@ -26,10 +27,11 @@ func main() {
 		log.Fatal(err)
 	}
 	handlers := tincho.NewHandlers(&game)
+	bots := bots.NewHandlers(&game)
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
-	r.HandleFunc("/add-bot", handlers.AddBot)
+	r.HandleFunc("/add-bot", bots.AddBot)
 	r.Handle("/{file:.*}", frontHandler)
 
 	log.Println("Listening on port 5555")
