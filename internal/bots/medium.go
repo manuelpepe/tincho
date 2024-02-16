@@ -15,7 +15,7 @@ func (s *MediumStrategy) PlayersChanged(player tincho.Player, data tincho.Update
 	return tincho.Action{}, nil
 }
 
-func (s *MediumStrategy) GameStart(player tincho.Player) (tincho.Action, error) {
+func (s *MediumStrategy) GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 

@@ -12,7 +12,7 @@ import (
 
 type Strategy interface {
 	PlayersChanged(player tincho.Player, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
-	GameStart(player tincho.Player) (tincho.Action, error)
+	GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
 	PlayerFirstPeeked(player tincho.Player, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
 	Turn(player tincho.Player, data tincho.UpdateTurnData) (tincho.Action, error)
 	Draw(player tincho.Player, data tincho.UpdateDrawData) (tincho.Action, error)
@@ -75,7 +75,11 @@ func (b *Bot) Start() error {
 func (b *Bot) RespondToUpdate(player tincho.Player, update tincho.Update) (tincho.Action, error) {
 	switch update.Type {
 	case tincho.UpdateTypeGameStart:
-		return b.strategy.GameStart(player)
+		var data tincho.UpdateStartNextRoundData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.GameStart(player, data)
 	case tincho.UpdateTypePlayersChanged:
 		var data tincho.UpdatePlayersChangedData
 		if err := json.Unmarshal(update.Data, &data); err != nil {

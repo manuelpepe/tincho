@@ -14,7 +14,7 @@ func (s EasyStrategy) PlayersChanged(player tincho.Player, data tincho.UpdatePla
 	return tincho.Action{}, nil
 }
 
-func (s EasyStrategy) GameStart(player tincho.Player) (tincho.Action, error) {
+func (s EasyStrategy) GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
