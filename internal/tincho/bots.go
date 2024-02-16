@@ -61,7 +61,7 @@ type Strategy interface {
 
 type EasyStrategy struct{}
 
-func (s *EasyStrategy) RespondToUpdate(player Player, update Update) (Action, error) {
+func (s EasyStrategy) RespondToUpdate(player Player, update Update) (Action, error) {
 	switch update.Type {
 	case UpdateTypeGameStart:
 		return Action{Type: ActionFirstPeek}, nil
@@ -71,13 +71,7 @@ func (s *EasyStrategy) RespondToUpdate(player Player, update Update) (Action, er
 			return Action{}, fmt.Errorf("json.Unmarshal: %w", err)
 		}
 		if data.Player == player.ID {
-			data, err := json.Marshal(ActionDrawData{
-				Source: RandChoice([]DrawSource{DrawSourcePile, DrawSourceDiscard}),
-			})
-			if err != nil {
-				return Action{}, fmt.Errorf("json.Marshal: %w", err)
-			}
-			return Action{Type: ActionDraw, Data: data}, nil
+			return s.decideTurn(player)
 		}
 	case UpdateTypeDraw:
 		var data UpdateDrawData
@@ -99,6 +93,28 @@ func (s *EasyStrategy) RespondToUpdate(player Player, update Update) (Action, er
 		return Action{Type: ActionFirstPeek}, nil
 	}
 	return Action{}, nil
+}
+
+func (s EasyStrategy) decideTurn(player Player) (Action, error) {
+	triggerCut := rand.Float32() < 0.05
+	if triggerCut {
+		data, err := json.Marshal(ActionCutData{
+			WithCount: false,
+			Declared:  0,
+		})
+		if err != nil {
+			return Action{}, fmt.Errorf("json.Marshal: %w", err)
+		}
+		return Action{Type: ActionCut, Data: data}, nil
+	} else {
+		data, err := json.Marshal(ActionDrawData{
+			Source: RandChoice([]DrawSource{DrawSourcePile, DrawSourceDiscard}),
+		})
+		if err != nil {
+			return Action{}, fmt.Errorf("json.Marshal: %w", err)
+		}
+		return Action{Type: ActionDraw, Data: data}, nil
+	}
 }
 
 func RandChoice[T any](choices []T) T {

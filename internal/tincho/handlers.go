@@ -108,7 +108,7 @@ func handleWebsocket(ws *websocket.Conn, player *Player, room *Room) {
 					return
 				}
 			case <-room.Context.Done():
-				log.Printf("Stopping watch loop for player %s", player.ID)
+				log.Printf("Stopping socket write loop for player %s", player.ID)
 				return
 			}
 		}
@@ -129,7 +129,7 @@ func handleWebsocket(ws *websocket.Conn, player *Player, room *Room) {
 				}
 				player.QueueAction(action)
 			case <-room.Context.Done():
-				log.Printf("Stopping watch loop for player %s", player.ID)
+				log.Printf("Stopping socket read for player %s", player.ID)
 				return
 			}
 		}

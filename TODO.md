@@ -28,7 +28,47 @@
 - [ ] Add styles to UI
 - [ ] Only room leader can start room
     - [ ] Transfer leadership to other players 
-
+- [ ] Bots:
+    - Room should process messages with channels instead of interacting directly with the websocket
+    - Handler should manage socket and use channels to communicate with the room
+    - Bot variations:
+        1. [x] Easy: 
+            - Performs actions completly randomly
+                - 50% draw from draw pile, 50% draw from discard pile
+                - 50% discard drawn 45% discard from hand 5% double discard
+            - Doesn't keep track of any card
+            - Doesn't activate any effect (peek, swap)
+            - Cuts randomly without declaring (5% chance every turn)
+        2. Medium: 
+            - Keeps track of cards in hand
+            - Discards unknown cards first
+            - Always discard the highest card (20% chance of mistake)
+            - Doesn't double discard
+            - Doesn't swap or peek opponents cards cards
+            - Does peek own cards
+            - Only cuts with =< 10 points (5% chance of mistake)
+            - Never declares hand
+        3. Hard:
+            - Keeps track of cards in hand
+            - Discards unknown cards first
+            - Always discard the highest card (0% chance of mistake)
+            - Only double discards if it peeks a repeated card
+            - Does swap oppenents cards for chaos
+            - Does peek own cards
+            - Only cuts with =< 5 points (0% chance of mistake)
+            - Always declares hand
+        4. Expert:
+            - Keeps track of cards in hand
+            - Discards unknown cards first
+            - Always discard the highest card (0% chance of mistake)
+            - Actively tries to double discard
+                - Stores drawn card if one of similar value is in hand and one of a higher value can be discarded
+                - Only double discards for a card of less total value
+            - Keeps track of oponent hands and swaps for advantage (todo: define advantage)
+            - Does peek own and unkown opponents cards
+            - Only cuts with =< 5 points (0% chance of mistake)
+            - Doesn't cut if it knows an opponent has less points
+            - Always declares hand
 
 ### Fixes
 
