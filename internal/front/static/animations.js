@@ -1,4 +1,5 @@
 /**
+ * @async
  * @callback animationCallback
  */
 
@@ -18,16 +19,19 @@ export function queueAnimation(...animations) {
 
 export function startProcessingAnimations() {
     // requestAnimationFrame instead of setInterval?
-    setInterval(() => {
+    setInterval(async () => {
         if (CURRENT_ANIMATION !== null) {
             return;
         }
         if (ANIMATION_BUFFER.length > 0) {
             var animation = ANIMATION_BUFFER.shift();
             CURRENT_ANIMATION = animation;
-            animation()
+            await animation();
             CURRENT_ANIMATION = null;
         }
     }, 1000);
 }
 
+export function queueAnimationInstantly(animation) {
+    ANIMATION_BUFFER.unshift(animation);
+}
