@@ -77,13 +77,13 @@ window.onload = function () {
      * @param {Element} sourcePile
      * @param {Element} target 
      */
-    function drawCard(sourcePile, target) {
+    async function drawCard(sourcePile, target) {
         const card = sourcePile.getElementsByClassName("card")[0];
         if (sourcePile == deckPile) {
             const cardClone = card.cloneNode(true);
             sourcePile.append(cardClone);
         }
-        return moveNode(card, target);
+        return await moveNode(card, target);
     }
 
     /** 
@@ -185,15 +185,15 @@ window.onload = function () {
      * @param {Card} card
      * @param {string} effect 
      */
-    function showDraw(player, source, card, effect) {
+    async function showDraw(player, source, card, effect) {
         const playerDraw = PLAYERS[player].draw;
         setDrawScreen(player == THIS_PLAYER, effect);
         switch (source) {
             case "pile":
-                drawCard(deckPile, playerDraw);
+                await drawCard(deckPile, playerDraw);
                 break;
             case "discard":
-                drawCard(deckDiscard, playerDraw);
+                await drawCard(deckDiscard, playerDraw);
                 break;
             default:
                 console.error("unknown draw source: ", source)
@@ -214,7 +214,7 @@ window.onload = function () {
      * @param {number} cardPosition
      * @param {Card} card
      */
-    function showDiscard(player, cardPosition, card) {
+    async function showDiscard(player, cardPosition, card) {
         const playerHand = PLAYERS[player].hand;
         const playerDraw = PLAYERS[player].draw;
         const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
@@ -229,8 +229,8 @@ window.onload = function () {
                 "data": { "source": "discard" },
             });
             tmpContainer.appendChild(cardInHand);
-            moveNode(drawnCard, tmpContainer);
-            moveNode(cardInHand, deckDiscard)
+            await moveNode(drawnCard, tmpContainer);
+            await moveNode(cardInHand, deckDiscard)
             while (deckDiscard.firstChild && deckDiscard.firstChild !== cardInHand) {
                 deckDiscard.removeChild(deckDiscard.firstChild);
             }
@@ -244,7 +244,7 @@ window.onload = function () {
                 "type": "draw",
                 "data": { "source": "discard" },
             });
-            moveNode(drawnCard, deckDiscard)
+            await moveNode(drawnCard, deckDiscard)
             while (deckDiscard.firstChild && deckDiscard.firstChild !== drawnCard) {
                 deckDiscard.removeChild(deckDiscard.firstChild);
             }
@@ -268,7 +268,7 @@ window.onload = function () {
         }
 
         playerHand.appendChild(tmpContainer);
-        moveNode(drawnCard, tmpContainer)
+        await moveNode(drawnCard, tmpContainer)
         tmpContainer.replaceWith(drawnCard);
         drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
 
@@ -285,7 +285,7 @@ window.onload = function () {
      * @param {string[]} players
      * @param {number[]} cardPositions 
      */
-    function showSwap(players, cardPositions) {
+    async function showSwap(players, cardPositions) {
         const playerOneHand = PLAYERS[players[0]].hand;
         const playerOneCard = /** @type {HTMLElement} */ (playerOneHand.childNodes[cardPositions[0]]);
         const playerTwoHand = PLAYERS[players[1]].hand;
@@ -299,8 +299,8 @@ window.onload = function () {
         playerTwoCard.replaceWith(tmpContainerTwo)
         tmpContainerTwo.appendChild(playerTwoCard);
 
-        moveNode(playerOneCard, tmpContainerTwo, 2000);
-        moveNode(playerTwoCard, tmpContainerOne, 2000);
+        await moveNode(playerOneCard, tmpContainerTwo, 2000);
+        await moveNode(playerTwoCard, tmpContainerOne, 2000);
 
         tmpContainerOne.replaceWith(playerTwoCard);
         tmpContainerTwo.replaceWith(playerOneCard);
@@ -392,13 +392,13 @@ window.onload = function () {
 
     /** @param {UpdateDrawData} data */
     async function handleDraw(data) {
-        showDraw(data.player, data.source, data.card, data.effect);
+        await showDraw(data.player, data.source, data.card, data.effect);
     }
 
     /** @param {UpdateDiscardData} data */
     async function handleDiscard(data) {
         for (let ix = 0; ix < data.cards.length; ix++) {
-            showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
+            await showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
         }
     }
 
@@ -415,7 +415,7 @@ window.onload = function () {
 
     /** @param {UpdateSwapCardsData} data */
     async function handleEffectSwap(data) {
-        showSwap(data.players, data.cardsPositions)
+        await showSwap(data.players, data.cardsPositions)
     }
 
     /** @param {UpdateCutData} data */

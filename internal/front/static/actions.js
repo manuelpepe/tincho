@@ -17,20 +17,19 @@ export function queueActions(...actions) {
     ACTIONS_BUFFER.push(...actions);
 }
 
-export function startProcessingActions() {
+export async function startProcessingActions() {
     // requestAnimationFrame instead of setInterval?
-    setInterval(async () => {
-        if (CURRENT_ACTION !== null) {
-            return;
-        }
-        if (ACTIONS_BUFFER.length > 0) {
-            var action = ACTIONS_BUFFER.shift();
-            console.log('Processing action:', action);
-            CURRENT_ACTION = action;
-            await action();
-            CURRENT_ACTION = null;
-        }
-    }, 1000);
+    if (CURRENT_ACTION !== null) {
+        return;
+    }
+    if (ACTIONS_BUFFER.length > 0) {
+        var action = ACTIONS_BUFFER.shift();
+        console.log('Processing action:', action);
+        CURRENT_ACTION = action;
+        await action();
+        CURRENT_ACTION = null;
+    }
+    requestAnimationFrame(startProcessingActions);
 }
 
 export function queueActionInstantly(action) {

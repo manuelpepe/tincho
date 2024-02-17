@@ -13,7 +13,7 @@ export function show(node) {
  * @param {Element} target 
  * @param {number | null} duration
  */
-export function moveNode(node, target, duration = 1000) {
+export async function moveNode(node, target, duration = 1000) {
     if (duration == null || duration == undefined) {
         duration = 1000;
     }
@@ -38,5 +38,5 @@ export function moveNode(node, target, duration = 1000) {
         duration: duration,
         easing: 'linear',
     });
-    return animation
+    return new Promise(r => animation.finished.then(r))
 }
