@@ -275,6 +275,7 @@ window.onload = function () {
         tmpContainer.replaceWith(drawnCard);
         drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
 
+        PLAYERS[player].data.cards_in_hand += 1;
         await new Promise(r => setTimeout(r, 1000));
 
         drawnCard.innerHTML = "[ ]";
@@ -403,6 +404,8 @@ window.onload = function () {
         for (let ix = 0; ix < data.cards.length; ix++) {
             await showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
         }
+        // decrease cards_in_hand on succesfull double discard
+        PLAYERS[data.player].data.cards_in_hand -= (data.cards.length - 1);
     }
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */
