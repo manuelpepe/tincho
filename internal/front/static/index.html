@@ -86,7 +86,7 @@
     </form>
     <form id="room-join">
         <input type="submit" value="Join Room" />
-        <input type="text" id="username" size="12" placeholder="username" value="test" />
+        <input type="text" id="username" size="12" placeholder="username" />
         <input type="text" id="room-id" size="6" placeholder="roomid" />
     </form>
 
@@ -130,7 +130,12 @@
         <button id="btn-discard" style="display: none;">Discard</button>
         <button id="btn-discard-two" style="display: none;">Discard Two</button>
         <button id="btn-cancel-discard-two" style="display: none;">Cancel Discard Two</button>
-        <button id="btn-cut" style="display: none;">Cut</button>
+        <div id="cut-ui" style="display: none;">
+            <button id="btn-cut">Cut</button>
+            <input type="checkbox" id="input-cut-declare" />
+            <label for="input-cut-declare">Declare</label>
+            <input type="number" name="" id="input-cut-declared" value="0" style="display: none;" />
+        </div>
     </div>
     <div class="buttons">
         <button id="btn-swap" style="display: none;">Swap</button>

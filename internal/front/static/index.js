@@ -49,10 +49,13 @@ window.onload = function () {
     const buttonDiscard = document.getElementById("btn-discard");
     const buttonDiscardTwo = document.getElementById("btn-discard-two");
     const buttonCancelDiscardTwo = document.getElementById("btn-cancel-discard-two");
-    const buttonCut = document.getElementById("btn-cut");
     const buttonSwap = document.getElementById("btn-swap");
     const buttonPeekOwn = document.getElementById("btn-peek-own");
     const buttonPeekCartaAjena = document.getElementById("btn-peek-carta-ajena");
+
+    const buttonCut = document.getElementById("btn-cut");
+    const inputCutDeclare = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declare"));
+    const inputCutDeclared = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declared"));
 
     const playerTemplate = /** @type {HTMLTemplateElement} */ (document.getElementById("player-template"))
     const playerList = document.getElementById("player-list");
@@ -547,8 +550,19 @@ window.onload = function () {
 
     buttonCut.onclick = () => sendAction({
         "type": "cut",
-        "data": { "withCount": true, "declared": 3 }, // TODO: Implement cut configuration by player
+        "data": {
+            "withCount": inputCutDeclare.checked,
+            "declared": parseInt(inputCutDeclared.value)
+        },
     });
+
+    inputCutDeclare.onclick = () => {
+        if (inputCutDeclare.checked) {
+            show(inputCutDeclared);
+        } else {
+            hide(inputCutDeclared);
+        }
+    }
 
     buttonDiscard.onclick = () => sendDiscard(-1);
     buttonDiscardTwo.onclick = () => {

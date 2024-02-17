@@ -12,10 +12,14 @@ const buttonDraw = document.getElementById("btn-draw");
 const buttonDiscard = document.getElementById("btn-discard");
 const buttonDiscardTwo = document.getElementById("btn-discard-two");
 const buttonCancelDiscardTwo = document.getElementById("btn-cancel-discard-two");
-const buttonCut = document.getElementById("btn-cut");
 const buttonSwap = document.getElementById("btn-swap");
 const buttonPeekOwn = document.getElementById("btn-peek-own");
 const buttonPeekCartaAjena = document.getElementById("btn-peek-carta-ajena");
+
+const cutUI = document.getElementById("cut-ui");
+const inputCutDeclare = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declare"));
+const inputCutDeclared = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declared"));
+
 
 const deckPile = document.getElementById("deck-pile");
 const deckDiscard = document.getElementById("deck-discard");
@@ -53,7 +57,7 @@ function showEffectButton(effect) {
 function hideAllButtons() {
     hide(buttonFirstPeek);
     hide(buttonDraw);
-    hide(buttonCut);
+    hide(cutUI);
     hide(buttonDiscard);
     hide(buttonDiscardTwo);
     hide(buttonCancelDiscardTwo);
@@ -80,7 +84,9 @@ export function setTurnScreen(isCurPlayer) {
     hideAllButtons();
     if (isCurPlayer) {
         show(buttonDraw);
-        show(buttonCut);
+        show(cutUI);
+        inputCutDeclare.checked = false;
+        inputCutDeclared.value = "0";
     }
 }
 
@@ -93,7 +99,7 @@ export function setDrawScreen(isCurPlayer, effect) {
         hide(buttonDraw);
         show(buttonDiscard);
         show(buttonDiscardTwo);
-        hide(buttonCut);
+        hide(cutUI);
         showEffectButton(effect);
     }
 }
