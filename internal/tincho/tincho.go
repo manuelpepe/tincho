@@ -336,7 +336,7 @@ func (t *Tincho) updatePlayerPoints(winner *Player, pointsForWinner int) {
 		if t.players[ix].ID == winner.ID {
 			value = pointsForWinner
 		} else {
-			value = winner.Hand.Sum()
+			value = t.players[ix].Hand.Sum()
 		}
 		t.players[ix].Points += value
 	}
