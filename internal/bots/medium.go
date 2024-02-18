@@ -87,7 +87,8 @@ func (h *KnownHand) GetHighestValueCardOrRandom() int {
 }
 
 type MediumStrategy struct {
-	hand KnownHand
+	hand      KnownHand
+	firstTurn bool
 }
 
 func (s *MediumStrategy) PlayersChanged(player tincho.Player, data tincho.UpdatePlayersChangedData) (tincho.Action, error) {
@@ -95,6 +96,7 @@ func (s *MediumStrategy) PlayersChanged(player tincho.Player, data tincho.Update
 }
 
 func (s *MediumStrategy) GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+	s.firstTurn = true
 	for _, p := range data.Players {
 		if p.ID == player.ID {
 			s.hand = make(KnownHand, len(p.Hand))
@@ -128,12 +130,17 @@ func (s *MediumStrategy) Turn(player tincho.Player, data tincho.UpdateTurnData) 
 		}
 		return tincho.Action{Type: tincho.ActionCut, Data: data}, nil
 	} else {
-		data, err := json.Marshal(tincho.ActionDrawData{
-			Source: RandChoice([]tincho.DrawSource{tincho.DrawSourcePile, tincho.DrawSourceDiscard}),
-		})
+		var choices []tincho.DrawSource
+		if s.firstTurn {
+			choices = []tincho.DrawSource{tincho.DrawSourcePile}
+		} else {
+			choices = []tincho.DrawSource{tincho.DrawSourcePile, tincho.DrawSourceDiscard}
+		}
+		data, err := json.Marshal(tincho.ActionDrawData{Source: RandChoice(choices)})
 		if err != nil {
 			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
 		}
+		s.firstTurn = false
 		return tincho.Action{Type: tincho.ActionDraw, Data: data}, nil
 	}
 }
@@ -206,6 +213,7 @@ func (s *MediumStrategy) Error(player tincho.Player, data tincho.UpdateErrorData
 }
 
 func (s *MediumStrategy) StartNextRound(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+	s.firstTurn = true
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
