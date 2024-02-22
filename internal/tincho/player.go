@@ -17,6 +17,7 @@ type marshalledPlayer struct {
 // but this should probably be split.
 type Player struct {
 	ID               string
+	SessionToken     string
 	Points           int
 	PendingFirstPeek bool
 	Hand             Hand
@@ -47,11 +48,12 @@ func (p *Player) UnmarshalJSON(data []byte) error {
 
 func NewPlayer(id string) *Player {
 	return &Player{
-		ID:      id,
-		Hand:    make(Hand, 0),
-		Actions: make(chan Action),
-		Updates: make(chan Update),
-		Points:  0,
+		ID:           id,
+		SessionToken: generateRandomString(20),
+		Hand:         make(Hand, 0),
+		Actions:      make(chan Action),
+		Updates:      make(chan Update),
+		Points:       0,
 	}
 }
 

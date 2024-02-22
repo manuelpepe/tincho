@@ -16,10 +16,10 @@ type Room struct {
 	state     *Tincho
 
 	// actions recieved from all players
-	ActionsChan chan Action
+	actionsChan chan Action
 
 	// channel used to update goroutine state
-	NewPlayersChan chan *Player
+	playersChan chan *Player
 
 	started bool
 	closed  bool
@@ -27,24 +27,33 @@ type Room struct {
 
 func NewRoomWithDeck(ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck) Room {
 	return Room{
-		Context:        ctx,
-		closeRoom:      ctxCancel,
-		ID:             roomID,
-		ActionsChan:    make(chan Action),
-		NewPlayersChan: make(chan *Player),
-		state:          NewTinchoWithDeck(deck),
-		closed:         false,
+		Context:     ctx,
+		closeRoom:   ctxCancel,
+		ID:          roomID,
+		actionsChan: make(chan Action),
+		playersChan: make(chan *Player),
+		state:       NewTinchoWithDeck(deck),
+		closed:      false,
 	}
 }
 
 func (r *Room) HasClosed() bool {
-	return r.started && r.closed
+	return r.closed
 }
 
 func (r *Room) Close() {
 	r.closeRoom()
 	r.closed = true
 }
+
+func (r *Room) GetPlayer(id string) (Player, bool) {
+	player, exists := r.state.GetPlayer(id)
+	if !exists {
+		return Player{}, false
+	}
+	return *player, true
+}
+
 func (r *Room) AddPlayer(p *Player) {
 	r.NewPlayersChan <- p
 }
@@ -168,7 +177,7 @@ func (r *Room) watchPlayer(player *Player) {
 	for {
 		select {
 		case action := <-player.Actions:
-			r.ActionsChan <- action
+			r.actionsChan <- action
 		case <-r.Context.Done():
 			log.Printf("Stopping watch loop for player %s", player.ID)
 			return

@@ -96,11 +96,14 @@ const OutOfRangeNumber = 999
 //   - The joker value is the same as the value of the lowest card in the hand.
 //   - If the hand contains only jokers, the value is 0.
 //   - The rest of the cards are worth their value.
-func (h Hand) Sum() int {
+func (h *Hand) Sum() int {
+	if h == nil {
+		panic("summing empty hand") // TODO: maybe change to error instead of panic
+	}
 	min := OutOfRangeNumber
 	jokers := 0
 	sum := 0
-	for _, card := range h {
+	for _, card := range *h {
 		if card.IsTwelveOfDiamonds() {
 			min = 0
 			continue

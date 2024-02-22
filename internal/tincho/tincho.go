@@ -59,7 +59,7 @@ func (t *Tincho) GetPlayers() []*Player {
 	return t.players
 }
 
-func (t *Tincho) getPlayer(playerID string) (*Player, bool) {
+func (t *Tincho) GetPlayer(playerID string) (*Player, bool) {
 	for _, player := range t.players {
 		if player.ID == playerID {
 			return player, true
@@ -72,7 +72,7 @@ func (t *Tincho) AddPlayer(p *Player) error {
 	if t.playing {
 		return ErrGameAlreadyStarted
 	}
-	if _, exists := t.getPlayer(p.ID); exists {
+	if _, exists := t.GetPlayer(p.ID); exists {
 		return ErrPlayerAlreadyInRoom
 	}
 	t.players = append(t.players, p)
@@ -140,7 +140,7 @@ func (t *Tincho) recordScores() {
 
 // GetFirstPeek allows to peek two cards from a players hand if it hasn't peeked yet.
 func (t *Tincho) GetFirstPeek(playerID string) ([]Card, error) {
-	player, exists := t.getPlayer(playerID)
+	player, exists := t.GetPlayer(playerID)
 	if !exists {
 		return nil, fmt.Errorf("unkown player: %s", playerID)
 	}
@@ -372,7 +372,7 @@ func (t *Tincho) UseEffectPeekCartaAjena(playerID string, position int) (PeekedC
 	if t.pendingStorage.GetEffect() != CardEffectPeekCartaAjena {
 		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
-	player, ok := t.getPlayer(playerID)
+	player, ok := t.GetPlayer(playerID)
 	if !ok {
 		return Card{}, Card{}, fmt.Errorf("player not found: %s", playerID)
 	}
@@ -411,11 +411,11 @@ func (t *Tincho) swapCards(players []string, cardPositions []int) error {
 	if len(cardPositions) != 2 {
 		return fmt.Errorf("invalid number of cards: %d", len(cardPositions))
 	}
-	player1, exists := t.getPlayer(players[0])
+	player1, exists := t.GetPlayer(players[0])
 	if !exists {
 		return fmt.Errorf("unkown player: %s", players[0])
 	}
-	player2, exists := t.getPlayer(players[1])
+	player2, exists := t.GetPlayer(players[1])
 	if !exists {
 		return fmt.Errorf("unkown player: %s", players[1])
 	}
