@@ -45,6 +45,7 @@ func (c Card) GetEffect() CardEffect {
 
 type Deck []Card
 
+// NewDeck create a standard deck of 50 cards.
 func NewDeck() Deck {
 	deck := make([]Card, 0, 50)
 	for _, suit := range []Suit{SuitSpades, SuitHearts, SuitDiamonds, SuitClubs} {
@@ -61,6 +62,36 @@ func NewDeck() Deck {
 			Value: 0,
 		})
 	}
+	return deck
+}
+
+func AddExtendedVariation(deck Deck) Deck {
+	// TODO: Review cards added
+	cards := []Card{
+		{Suit: SuitDiamonds, Value: 1},
+		{Suit: SuitHearts, Value: 2},
+		{Suit: SuitClubs, Value: 3},
+		{Suit: SuitSpades, Value: 4},
+		{Suit: SuitDiamonds, Value: 5},
+		{Suit: SuitHearts, Value: 6},
+		{Suit: SuitClubs, Value: 7},
+		{Suit: SuitSpades, Value: 8},
+		{Suit: SuitDiamonds, Value: 9},
+		{Suit: SuitHearts, Value: 10},
+		{Suit: SuitClubs, Value: 11},
+		{Suit: SuitSpades, Value: 12},
+	}
+	deck = append(deck, cards...)
+	return deck
+}
+
+func AddChaosVariation(deck Deck) Deck {
+	cards := []Card{
+		{Suit: SuitSpades, Value: 9},
+		{Suit: SuitHearts, Value: 9},
+		{Suit: SuitJoker, Value: 0},
+	}
+	deck = append(deck, cards...)
 	return deck
 }
 

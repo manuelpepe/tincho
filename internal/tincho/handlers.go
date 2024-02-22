@@ -23,8 +23,37 @@ func NewHandlers(game *Game) Handlers {
 	return Handlers{game: game}
 }
 
+type RoomConfig struct {
+	DeckOptions DeckOptions `json:"deck"`
+}
+
+type DeckOptions struct {
+	Extended bool `json:"extended"`
+	Chaos    bool `json:"chaos"`
+}
+
+func buildDeck(options DeckOptions) Deck {
+	deck := NewDeck()
+	if options.Extended {
+		deck = AddExtendedVariation(deck)
+	}
+	if options.Chaos {
+		deck = AddChaosVariation(deck)
+	}
+	deck.Shuffle()
+	return deck
+}
+
 func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
-	roomID, err := h.game.NewRoom()
+	var roomConfig RoomConfig
+	if err := json.NewDecoder(r.Body).Decode(&roomConfig); err != nil {
+		log.Printf("Error decoding room config: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error decoding room config"))
+		return
+	}
+	deck := buildDeck(roomConfig.DeckOptions)
+	roomID, err := h.game.NewRoom(deck)
 	if err != nil {
 		log.Printf("Error creating room: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)

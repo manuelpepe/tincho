@@ -51,13 +51,13 @@ func (g *Game) getUnusedID() string {
 	return roomID
 }
 
-func (g *Game) NewRoom() (string, error) {
+func (g *Game) NewRoomBasic() (string, error) {
 	deck := NewDeck()
 	deck.Shuffle()
-	return g.NewRoomWithDeck(deck)
+	return g.NewRoom(deck)
 }
 
-func (g *Game) NewRoomWithDeck(deck Deck) (string, error) {
+func (g *Game) NewRoom(deck Deck) (string, error) {
 	if g.ActiveRooms() >= g.cfg.MaxRooms {
 		return "", ErrRoomsLimitReached
 	}
