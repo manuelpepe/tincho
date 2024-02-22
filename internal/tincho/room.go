@@ -21,6 +21,9 @@ type Room struct {
 	// channel used to update goroutine state
 	playersChan chan *Player
 
+	pause   chan struct{}
+	unpause chan struct{}
+
 	started bool
 	closed  bool
 }
@@ -55,7 +58,15 @@ func (r *Room) GetPlayer(id string) (Player, bool) {
 }
 
 func (r *Room) AddPlayer(p *Player) {
-	r.NewPlayersChan <- p
+	r.playersChan <- p
+}
+
+func (r *Room) Pause() {
+	r.pause <- struct{}{}
+}
+
+func (r *Room) Unpause() {
+	r.unpause <- struct{}{}
 }
 
 func (r *Room) addPlayer(player *Player) error {
@@ -81,12 +92,16 @@ func (r *Room) Start() {
 	r.started = true
 	for {
 		select {
-		case player := <-r.NewPlayersChan:
+		case <-r.pause:
+			<-r.unpause
+		}
+		select {
+		case player := <-r.playersChan:
 			if err := r.addPlayer(player); err != nil {
 				fmt.Printf("r.addPlayer: %s\n", err)
 			}
 			log.Printf("Player joined #%s: %+v\n", r.ID, player)
-		case action := <-r.ActionsChan:
+		case action := <-r.actionsChan:
 			log.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
 			r.doAction(action)
 		case <-r.Context.Done():
