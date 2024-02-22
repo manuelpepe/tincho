@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func NewServer() (*Game, *httptest.Server, context.CancelFunc) {
+func NewServer() (*Service, *httptest.Server, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
-	game := NewGame(ctx, GameConfig{MaxRooms: 3, RoomTimeout: 5 * time.Minute})
+	game := NewService(ctx, ServiceConfig{MaxRooms: 3, RoomTimeout: 5 * time.Minute})
 	r := mux.NewRouter()
 	handlers := NewHandlers(&game)
 	r.HandleFunc("/join", handlers.JoinRoom)

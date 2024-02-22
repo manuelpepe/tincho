@@ -11,21 +11,21 @@ import (
 var ErrRoomNotFound = errors.New("room not found")
 var ErrRoomsLimitReached = errors.New("rooms limit reached")
 
-type GameConfig struct {
+type ServiceConfig struct {
 	MaxRooms    int
 	RoomTimeout time.Duration
 }
 
-// Game is the object keeping state of all games.
+// Service is the object keeping state of all games.
 // Contains a map of rooms, where the key is the room ID.
-type Game struct {
+type Service struct {
 	context context.Context
 	rooms   []*Room
-	cfg     GameConfig
+	cfg     ServiceConfig
 }
 
-func NewGame(ctx context.Context, cfg GameConfig) Game {
-	return Game{
+func NewService(ctx context.Context, cfg ServiceConfig) Service {
+	return Service{
 		context: ctx,
 		rooms:   make([]*Room, 0, cfg.MaxRooms),
 		cfg:     cfg,
@@ -43,21 +43,21 @@ func generateRandomString(length int) string {
 	return string(result)
 }
 
-func (g *Game) getUnusedID() string {
+func (g *Service) getUnusedID() string {
 	roomID := generateRandomString(6)
-	for exists := true; exists; _, exists = g.GetRoomIndex(roomID) {
+	for exists := true; exists; _, exists = g.getRoomIndex(roomID) {
 		roomID = generateRandomString(6)
 	}
 	return roomID
 }
 
-func (g *Game) NewRoomBasic() (string, error) {
+func (g *Service) NewRoomBasic() (string, error) {
 	deck := NewDeck()
 	deck.Shuffle()
 	return g.NewRoom(deck)
 }
 
-func (g *Game) NewRoom(deck Deck) (string, error) {
+func (g *Service) NewRoom(deck Deck) (string, error) {
 	if g.ActiveRooms() >= g.cfg.MaxRooms {
 		return "", ErrRoomsLimitReached
 	}
@@ -69,7 +69,7 @@ func (g *Game) NewRoom(deck Deck) (string, error) {
 	return roomID, nil
 }
 
-func (g *Game) GetRoomIndex(roomID string) (int, bool) {
+func (g *Service) getRoomIndex(roomID string) (int, bool) {
 	for idx, room := range g.rooms {
 		if room != nil && room.ID == roomID {
 			return idx, true
@@ -78,15 +78,15 @@ func (g *Game) GetRoomIndex(roomID string) (int, bool) {
 	return 0, false
 }
 
-func (g *Game) GetRoom(roomID string) (*Room, bool) {
-	roomix, exists := g.GetRoomIndex(roomID)
+func (g *Service) GetRoom(roomID string) (*Room, bool) {
+	roomix, exists := g.getRoomIndex(roomID)
 	if !exists {
 		return nil, false
 	}
 	return g.rooms[roomix], true
 }
 
-func (g *Game) JoinRoom(roomID string, player *Player) error {
+func (g *Service) JoinRoom(roomID string, player *Player) error {
 	room, exists := g.GetRoom(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
@@ -95,12 +95,12 @@ func (g *Game) JoinRoom(roomID string, player *Player) error {
 	return nil
 }
 
-func (g *Game) ActiveRooms() int {
+func (g *Service) ActiveRooms() int {
 	g.ClearClosedRooms()
 	return len(g.rooms)
 }
 
-func (g *Game) ClearClosedRooms() {
+func (g *Service) ClearClosedRooms() {
 	toRemove := make([]int, 0)
 	for idx, room := range g.rooms {
 		if room != nil && room.HasClosed() {

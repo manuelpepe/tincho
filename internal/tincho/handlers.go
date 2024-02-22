@@ -16,11 +16,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type Handlers struct {
-	game *Game
+	service *Service
 }
 
-func NewHandlers(game *Game) Handlers {
-	return Handlers{game: game}
+func NewHandlers(service *Service) Handlers {
+	return Handlers{service: service}
 }
 
 type RoomConfig struct {
@@ -53,7 +53,7 @@ func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deck := buildDeck(roomConfig.DeckOptions)
-	roomID, err := h.game.NewRoom(deck)
+	roomID, err := h.service.NewRoom(deck)
 	if err != nil {
 		log.Printf("Error creating room: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -72,8 +72,8 @@ type RoomInfo struct {
 
 func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Listing rooms")
-	rooms := make([]RoomInfo, 0, len(h.game.rooms))
-	for _, room := range h.game.rooms {
+	rooms := make([]RoomInfo, 0, len(h.service.rooms))
+	for _, room := range h.service.rooms {
 		rooms = append(rooms, RoomInfo{
 			ID:      room.ID,
 			Players: len(room.state.GetPlayers()),
@@ -94,7 +94,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("missing attributes"))
 		return
 	}
-	room, exists := h.game.GetRoom(roomID)
+	room, exists := h.service.GetRoom(roomID)
 	if !exists {
 		log.Printf("Error getting room index")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -133,7 +133,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID stri
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
-	if err := h.game.JoinRoom(room.ID, player); err != nil {
+	if err := h.service.JoinRoom(room.ID, player); err != nil {
 		log.Printf("Error joining room: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))

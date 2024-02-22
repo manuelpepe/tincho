@@ -8,11 +8,11 @@ import (
 )
 
 type Handlers struct {
-	game *tincho.Game
+	service *tincho.Service
 }
 
-func NewHandlers(game *tincho.Game) Handlers {
-	return Handlers{game: game}
+func NewHandlers(service *tincho.Service) Handlers {
+	return Handlers{service: service}
 }
 
 func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("missing difficulty attribute"))
 		return
 	}
-	room, ok := h.game.GetRoom(roomID)
+	room, ok := h.service.GetRoom(roomID)
 	if !ok {
 		log.Printf("Error getting room index")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -43,7 +43,7 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error creating bot"))
 		return
 	}
-	if err := h.game.JoinRoom(roomID, player); err != nil {
+	if err := h.service.JoinRoom(roomID, player); err != nil {
 		log.Printf("Error joining room: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))

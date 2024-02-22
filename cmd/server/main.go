@@ -17,7 +17,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	game := tincho.NewGame(ctx, tincho.GameConfig{
+	service := tincho.NewService(ctx, tincho.ServiceConfig{
 		MaxRooms:    10,
 		RoomTimeout: 60 * time.Minute,
 	})
@@ -26,8 +26,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	handlers := tincho.NewHandlers(&game)
-	bots := bots.NewHandlers(&game)
+	handlers := tincho.NewHandlers(&service)
+	bots := bots.NewHandlers(&service)
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
