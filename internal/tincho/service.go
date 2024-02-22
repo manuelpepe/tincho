@@ -32,25 +32,6 @@ func NewService(ctx context.Context, cfg ServiceConfig) Service {
 	}
 }
 
-// Function to generate a random string with a given length
-func generateRandomString(length int) string {
-	chars := "abcdefghijklmnopqrstuvwxyz"
-	rand.Seed(time.Now().UnixNano())
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = chars[rand.Intn(len(chars))]
-	}
-	return string(result)
-}
-
-func (g *Service) getUnusedID() string {
-	roomID := generateRandomString(6)
-	for exists := true; exists; _, exists = g.getRoomIndex(roomID) {
-		roomID = generateRandomString(6)
-	}
-	return roomID
-}
-
 func (g *Service) NewRoomBasic() (string, error) {
 	deck := NewDeck()
 	deck.Shuffle()
@@ -118,4 +99,23 @@ func unordered_remove[T any](a []T, i int) []T {
 	a[i] = a[len(a)-1]
 	a = a[:len(a)-1]
 	return a
+}
+
+func (g *Service) getUnusedID() string {
+	roomID := generateRandomString(6)
+	for exists := true; exists; _, exists = g.getRoomIndex(roomID) {
+		roomID = generateRandomString(6)
+	}
+	return roomID
+}
+
+// Function to generate a random string with a given length
+func generateRandomString(length int) string {
+	chars := "abcdefghijklmnopqrstuvwxyz"
+	rand.Seed(time.Now().UnixNano())
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
 }

@@ -72,7 +72,7 @@ type RoomInfo struct {
 
 func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Listing rooms")
-	rooms := make([]RoomInfo, 0, len(h.service.rooms))
+	rooms := make([]RoomInfo, 0, h.service.ActiveRooms())
 	for _, room := range h.service.rooms {
 		rooms = append(rooms, RoomInfo{
 			ID:      room.ID,
