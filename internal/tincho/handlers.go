@@ -90,6 +90,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := r.URL.Query().Get("room")
 	playerID := PlayerID(r.URL.Query().Get("player"))
 	if playerID == "" || roomID == "" {
+		log.Printf("Missing attributes")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("missing attributes"))
 		return

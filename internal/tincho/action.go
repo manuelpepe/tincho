@@ -173,7 +173,7 @@ func (r *Room) doEffectPeekOwnCard(action Action) error {
 	if err != nil {
 		return err
 	}
-	if err := r.sendPeekToPlayer(action.PlayerID, action.PlayerID, data.CardPosition, card); err != nil {
+	if err := r.broadcastPeek(action.PlayerID, action.PlayerID, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
 	updateData, err := json.Marshal(UpdateDiscardData{
@@ -203,7 +203,7 @@ func (r *Room) doEffectPeekCartaAjena(action Action) error {
 	if err != nil {
 		return err
 	}
-	if err := r.sendPeekToPlayer(action.PlayerID, data.Player, data.CardPosition, card); err != nil {
+	if err := r.broadcastPeek(action.PlayerID, data.Player, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
 	if err := r.broadcastDiscard(action.PlayerID, []int{-1}, []Card{discarded}); err != nil {

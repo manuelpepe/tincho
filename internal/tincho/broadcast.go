@@ -245,7 +245,7 @@ func (r *Room) broadcastSwapCards(playerID PlayerID, positions []int, players []
 	return nil
 }
 
-func (r *Room) sendPeekToPlayer(targetPlayer PlayerID, peekedPlayer PlayerID, cardIndex int, card Card) error {
+func (r *Room) broadcastPeek(targetPlayer PlayerID, peekedPlayer PlayerID, cardIndex int, card Card) error {
 	updateData, err := json.Marshal(UpdatePeekCardData{
 		CardPosition: cardIndex,
 		Card:         card,
@@ -258,5 +258,16 @@ func (r *Room) sendPeekToPlayer(targetPlayer PlayerID, peekedPlayer PlayerID, ca
 		Type: UpdateTypePeekCard,
 		Data: json.RawMessage(updateData),
 	})
+	updateData, err = json.Marshal(UpdatePeekCardData{
+		CardPosition: cardIndex,
+		Player:       peekedPlayer,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdateExcept(Update{
+		Type: UpdateTypePeekCard,
+		Data: json.RawMessage(updateData),
+	}, targetPlayer)
 	return nil
 }

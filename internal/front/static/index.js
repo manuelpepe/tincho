@@ -28,8 +28,8 @@ window.onload = function () {
     /** @type {boolean} */
     var FIRST_TURN = true;
 
-    const NEXT_ROUND_TIMEOUT = 1000;
-    const FIRST_PEEK_TIMEOUT = 1000;
+    const NEXT_ROUND_TIMEOUT = 10000;
+    const PEEK_TIMEOUT = 5000;
 
 
     const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
@@ -134,16 +134,25 @@ window.onload = function () {
      * @param {Card[]} cards 
      * @param {number[]} positions
      * @param {number} timeout
+     * @param {string} mask
      */
-    function showCards(player, cards, positions, timeout = 3000) {
+    function showCards(player, cards, positions, timeout = PEEK_TIMEOUT, mask = null) {
         const playerHand = PLAYERS[player].hand;
         const playerData = PLAYERS[player].data;
-        drawHand(playerHand, player, playerData.cards_in_hand, cards, positions)
+        drawHand(playerHand, player, playerData.cards_in_hand, cards, positions, mask)
         // TODO: Store timeout for skip button
         queueActionInstantly(async () => {
             await new Promise(r => setTimeout(r, timeout));
-            drawHand(playerHand, player, playerData.cards_in_hand, [], []);
+            drawHand(playerHand, player, playerData.cards_in_hand, [], [], null);
         });
+    }
+
+    /**
+     * @param {string} player 
+     * @param {number} cardPosition 
+     */
+    function showPeek(player, cardPosition) {
+        showCards(player, [], [cardPosition], PEEK_TIMEOUT, "👁");
     }
 
     /** 
@@ -152,14 +161,16 @@ window.onload = function () {
      * @param {number} cardsInHand
      * @param {Card[]} cards
      * @param {number[]} positions 
+     * @param {string} mask
      */
-    function drawHand(container, player, cardsInHand, cards, positions) {
+    function drawHand(container, player, cardsInHand, cards, positions, mask = null) {
         while (container.firstChild) { container.removeChild(container.lastChild) }
         let cardix = 0;
         for (let i = 0; i < cardsInHand; i++) {
             let text;
             if (positions && positions[cardix] == i) {
-                text = document.createTextNode("[" + cardValue(cards[cardix]) + "]");
+                let value = mask ?? cardValue(cards[cardix]);
+                text = document.createTextNode("[" + value + "]");
                 cardix = cardix + 1
             } else {
                 text = document.createTextNode("[ ]");
@@ -415,8 +426,11 @@ window.onload = function () {
 
     /** @param {UpdatePeekCardData} data */
     async function handleEffectPeek(data) {
-        showCards(data.player, [data.card], [data.cardPosition]);
-
+        if (data.player == THIS_PLAYER) {
+            showCards(data.player, [data.card], [data.cardPosition]);
+        } else {
+            showPeek(data.player, data.cardPosition);
+        }
     }
 
     /** @param {UpdateSwapCardsData} data */
@@ -513,7 +527,10 @@ window.onload = function () {
 
     formNew.onsubmit = async (evt) => {
         evt.preventDefault();
-        await fetch("http://" + location.host + "/new")
+        await fetch("http://" + location.host + "/new", {
+            method: "POST",
+            body: JSON.stringify({}),
+        })
             .then(response => response.text())
             .then(data => roomid.value = data);
         connectToRoom();
