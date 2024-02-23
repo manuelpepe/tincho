@@ -21,9 +21,6 @@ type Room struct {
 	// channel used to update goroutine state
 	playersChan chan *Player
 
-	pause   chan struct{}
-	unpause chan struct{}
-
 	started bool
 	closed  bool
 }
@@ -61,14 +58,6 @@ func (r *Room) AddPlayer(p *Player) {
 	r.playersChan <- p
 }
 
-func (r *Room) Pause() {
-	r.pause <- struct{}{}
-}
-
-func (r *Room) Unpause() {
-	r.unpause <- struct{}{}
-}
-
 func (r *Room) addPlayer(player *Player) error {
 	if err := r.state.AddPlayer(player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
@@ -91,10 +80,6 @@ func (r *Room) addPlayer(player *Player) error {
 func (r *Room) Start() {
 	r.started = true
 	for {
-		select {
-		case <-r.pause:
-			<-r.unpause
-		}
 		select {
 		case player := <-r.playersChan:
 			if err := r.addPlayer(player); err != nil {
