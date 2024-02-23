@@ -61,7 +61,12 @@ type ActionCutData struct {
 	Declared  int  `json:"declared"`
 }
 
+var ErrNotRoomLeader = errors.New("not room leader")
+
 func (r *Room) doStartGame(action Action) error {
+	if r.state.GetPlayers()[0].ID != action.PlayerID {
+		return ErrNotRoomLeader
+	}
 	if err := r.state.StartGame(); err != nil {
 		return fmt.Errorf("tsm.StartGame: %w", err)
 	}

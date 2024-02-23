@@ -42,12 +42,11 @@ func (g *Service) NewRoom(deck Deck) (string, error) {
 	if g.ActiveRooms() >= g.cfg.MaxRooms {
 		return "", ErrRoomsLimitReached
 	}
-	roomID := g.getUnusedID()
 	ctx, cancel := context.WithTimeout(g.context, g.cfg.RoomTimeout)
-	room := NewRoomWithDeck(ctx, cancel, roomID, deck)
+	room := NewRoomWithDeck(ctx, cancel, g.getUnusedID(), deck)
 	g.rooms = append(g.rooms, &room)
 	go room.Start()
-	return roomID, nil
+	return room.ID, nil
 }
 
 func (g *Service) getRoomIndex(roomID string) (int, bool) {
