@@ -88,7 +88,7 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := r.URL.Query().Get("room")
-	playerID := r.URL.Query().Get("player")
+	playerID := PlayerID(r.URL.Query().Get("player"))
 	if playerID == "" || roomID == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("missing attributes"))
@@ -119,7 +119,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID string, room *Room) {
+func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID PlayerID, room *Room) {
 	player := NewPlayer(playerID)
 	sesCookie := &http.Cookie{
 		Name:    "session_token",

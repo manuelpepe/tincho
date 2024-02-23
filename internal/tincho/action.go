@@ -22,7 +22,7 @@ const (
 type Action struct {
 	Type     ActionType      `json:"type"`
 	Data     json.RawMessage `json:"data"`
-	PlayerID string
+	PlayerID PlayerID
 }
 
 type ActionDrawData struct {
@@ -41,13 +41,13 @@ type ActionPeekOwnCardData struct {
 }
 
 type ActionPeekCartaAjenaData struct {
-	CardPosition int    `json:"cardPosition"`
-	Player       string `json:"player"`
+	CardPosition int      `json:"cardPosition"`
+	Player       PlayerID `json:"player"`
 }
 
 type ActionSwapCardsData struct {
-	CardPositions []int    `json:"cardPositions"`
-	Players       []string `json:"players"`
+	CardPositions []int      `json:"cardPositions"`
+	Players       []PlayerID `json:"players"`
 }
 
 type ActionDiscardData struct {

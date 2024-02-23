@@ -12,8 +12,8 @@ var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
 type PlayerScore struct {
-	PlayerID string `json:"playerID"`
-	Score    int    `json:"score"`
+	PlayerID PlayerID `json:"playerID"`
+	Score    int      `json:"score"`
 }
 
 type Tincho struct {
@@ -59,7 +59,7 @@ func (t *Tincho) GetPlayers() []*Player {
 	return t.players
 }
 
-func (t *Tincho) GetPlayer(playerID string) (*Player, bool) {
+func (t *Tincho) GetPlayer(playerID PlayerID) (*Player, bool) {
 	for _, player := range t.players {
 		if player.ID == playerID {
 			return player, true
@@ -139,7 +139,7 @@ func (t *Tincho) recordScores() {
 }
 
 // GetFirstPeek allows to peek two cards from a players hand if it hasn't peeked yet.
-func (t *Tincho) GetFirstPeek(playerID string) ([]Card, error) {
+func (t *Tincho) GetFirstPeek(playerID PlayerID) ([]Card, error) {
 	player, exists := t.GetPlayer(playerID)
 	if !exists {
 		return nil, fmt.Errorf("unkown player: %s", playerID)
@@ -155,7 +155,7 @@ func (t *Tincho) GetFirstPeek(playerID string) ([]Card, error) {
 	return peekedCards, nil
 }
 
-func (r *Tincho) setPlayerFirstPeekDone(player string) {
+func (r *Tincho) setPlayerFirstPeekDone(player PlayerID) {
 	for i := range r.players {
 		if r.players[i].ID == player {
 			r.players[i].PendingFirstPeek = false
@@ -368,7 +368,7 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 	return card, discarded, nil
 }
 
-func (t *Tincho) UseEffectPeekCartaAjena(playerID string, position int) (PeekedCard, DiscardedCard, error) {
+func (t *Tincho) UseEffectPeekCartaAjena(playerID PlayerID, position int) (PeekedCard, DiscardedCard, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekCartaAjena {
 		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
@@ -392,7 +392,7 @@ func (t *Tincho) peekCard(player *Player, cardIndex int) (PeekedCard, error) {
 	return player.Hand[cardIndex], nil
 }
 
-func (t *Tincho) UseEffectSwapCards(players []string, positions []int) (DiscardedCard, error) {
+func (t *Tincho) UseEffectSwapCards(players []PlayerID, positions []int) (DiscardedCard, error) {
 	if t.pendingStorage.GetEffect() != CardEffectSwapCards {
 		return Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
@@ -404,7 +404,7 @@ func (t *Tincho) UseEffectSwapCards(players []string, positions []int) (Discarde
 	return discarded, nil
 }
 
-func (t *Tincho) swapCards(players []string, cardPositions []int) error {
+func (t *Tincho) swapCards(players []PlayerID, cardPositions []int) error {
 	if len(players) != 2 {
 		return fmt.Errorf("invalid number of players: %d", len(players))
 	}

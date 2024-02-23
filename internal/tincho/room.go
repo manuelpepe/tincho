@@ -49,7 +49,7 @@ func (r *Room) Close() {
 	r.closed = true
 }
 
-func (r *Room) GetPlayer(id string) (Player, bool) {
+func (r *Room) GetPlayer(id PlayerID) (Player, bool) {
 	player, exists := r.state.GetPlayer(id)
 	if !exists {
 		return Player{}, false

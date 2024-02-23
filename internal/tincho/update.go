@@ -34,48 +34,48 @@ type UpdateStartNextRoundData struct {
 }
 
 type UpdatePlayerFirstPeekedData struct {
-	Player string `json:"player"`
-	Cards  []Card `json:"cards"`
+	Player PlayerID `json:"player"`
+	Cards  []Card   `json:"cards"`
 }
 
 type UpdateTurnData struct {
-	Player string `json:"player"`
+	Player PlayerID `json:"player"`
 }
 
 type UpdateDrawData struct {
-	Player string     `json:"player"`
+	Player PlayerID   `json:"player"`
 	Source DrawSource `json:"source"`
 	Card   Card       `json:"card"`
 	Effect CardEffect `json:"effect"`
 }
 
 type UpdatePeekCardData struct {
-	CardPosition int    `json:"cardPosition"`
-	Card         Card   `json:"card"`
-	Player       string `json:"player"`
+	CardPosition int      `json:"cardPosition"`
+	Card         Card     `json:"card"`
+	Player       PlayerID `json:"player"`
 }
 
 type UpdateSwapCardsData struct {
-	CardsPositions []int    `json:"cardsPositions"`
-	Players        []string `json:"players"`
+	CardsPositions []int      `json:"cardsPositions"`
+	Players        []PlayerID `json:"players"`
 }
 
 type UpdateDiscardData struct {
-	Player         string `json:"player"`
-	CardsPositions []int  `json:"cardsPositions"`
-	Cards          []Card `json:"cards"`
+	Player         PlayerID `json:"player"`
+	CardsPositions []int    `json:"cardsPositions"`
+	Cards          []Card   `json:"cards"`
 }
 
 type UpdateTypeFailedDoubleDiscardData struct {
-	Player         string `json:"player"`
-	CardsPositions []int  `json:"cardsPositions"`
-	Cards          []Card `json:"cards"`
+	Player         PlayerID `json:"player"`
+	CardsPositions []int    `json:"cardsPositions"`
+	Cards          []Card   `json:"cards"`
 }
 
 type UpdateCutData struct {
 	WithCount bool      `json:"withCount"`
 	Declared  int       `json:"declared"`
-	Player    string    `json:"player"`
+	Player    PlayerID  `json:"player"`
 	Players   []*Player `json:"players"`
 	Hands     [][]Card  `json:"hands"`
 }

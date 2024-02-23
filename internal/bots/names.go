@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
 var adjectives = []string{"Big", "Small", "Fast", "Slow", "Bright", "Dark", "Cold", "Hot", "Loud", "Quiet"}
 var nouns = []string{"Dog", "Cat", "Car", "House", "Tree", "Mountain", "River", "Ocean", "Sun", "Moon"}
 
-func RandomBotName() string {
+func RandomBotName() tincho.PlayerID {
 	rand.Seed(time.Now().UnixNano())
 
 	adjIndex := rand.Intn(len(adjectives))
@@ -19,5 +21,5 @@ func RandomBotName() string {
 
 	adj := adjectives[adjIndex]
 	noun := nouns[nounIndex]
-	return fmt.Sprintf("[bot]%s%s%d", adj, noun, number)
+	return tincho.PlayerID(fmt.Sprintf("[bot]%s%s%d", adj, noun, number))
 }
