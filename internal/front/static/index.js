@@ -67,6 +67,7 @@ window.onload = function () {
     const deckPile = document.getElementById("deck-pile");
     const deckDiscard = document.getElementById("deck-discard");
 
+    const errorContainer = document.getElementById("error-container");
 
     /** @param {Card} card */
     function cardValue(card) {
@@ -503,7 +504,16 @@ window.onload = function () {
                 console.error("Unknown message type", data.type, msgData)
                 break;
         }
+    }
 
+    /** @param {string | null} message */
+    function setError(message) {
+        if (message) {
+            errorContainer.innerHTML = message;
+            show(errorContainer);
+        } else {
+            hide(errorContainer);
+        }
     }
 
     function connectToRoom() {
@@ -511,17 +521,21 @@ window.onload = function () {
             return false;
         }
         conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid.value + "&player=" + username.value);
+        conn.onerror = () => setError("Error connecting to room");
         conn.onclose = () => console.log("connection closed");
         conn.onmessage = processWSMessage;
-        hide(formNew);
-        hide(formJoin);
-        roomTitle.innerHTML = "Room " + roomid.value;
-        show(roomTitle);
-        show(buttonStart);
-        show(buttonAddBot);
-        show(selectBotDiff);
-        console.log("connected to room " + roomid.value);
-        THIS_PLAYER = username.value;
+        conn.onopen = () => {
+            setError(null);
+            hide(formNew);
+            hide(formJoin);
+            roomTitle.innerHTML = "Room " + roomid.value;
+            show(roomTitle);
+            show(buttonStart);
+            show(buttonAddBot);
+            show(selectBotDiff);
+            console.log("connected to room " + roomid.value);
+            THIS_PLAYER = username.value;
+        }
         return false;
     }
 
@@ -532,8 +546,8 @@ window.onload = function () {
             body: JSON.stringify({}),
         })
             .then(response => response.text())
-            .then(data => roomid.value = data);
-        connectToRoom();
+            .then(data => roomid.value = data)
+            .then(connectToRoom);
     };
 
 
