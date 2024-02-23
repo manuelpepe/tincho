@@ -426,7 +426,7 @@ window.onload = function () {
 
     /** @param {UpdatePeekCardData} data */
     async function handleEffectPeek(data) {
-        if (data.player == THIS_PLAYER) {
+        if (data.card.value != 0 && data.card.suit != "") {
             showCards(data.player, [data.card], [data.cardPosition]);
         } else {
             showPeek(data.player, data.cardPosition);
