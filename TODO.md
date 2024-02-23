@@ -20,17 +20,17 @@
     - Prevent duplicated players from joining game (prevent dup join without token).
 - [ ] Make room parametrizable:
     - Options:
-        - [ ] Extended deck option (add some cards to allow for more players)
-        - [ ] Chaos (Adds two 9 cards for more swaps)
+        - [-] Extended deck option (add some cards to allow for more players)
+        - [-] Chaos (Adds two 9 cards for more swaps)
         - [ ] Make private (set password for room)
+        - [ ] Max players
     - [ ] UI for room creation
 - [ ] Roomlist in UI with join buttons and private status
 - [ ] Add styles to UI
-- [ ] Only room leader can start room
-    - [ ] Transfer leadership to other players 
+- [x] Only room leader can start room
 - [ ] Bots:
-    - Room should process messages with channels instead of interacting directly with the websocket
-    - Handler should manage socket and use channels to communicate with the room
+    - [x] Room should process messages with channels instead of interacting directly with the websocket
+    - [x] Handler should manage socket and use channels to communicate with the room
     - Bot variations:
         1. [x] Easy: 
             - Performs actions completly randomly
