@@ -18,6 +18,12 @@
             background-color: #004daa;
         }
 
+        body {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+
         .main {
             display: flex;
             flex-direction: column;
@@ -25,6 +31,7 @@
             padding: 1em;
             border: thin solid #0000b3;
             position: relative;
+            margin-top: 1em;
         }
 
         .main:before {
@@ -56,6 +63,7 @@
             display: flex;
             flex-direction: row;
             justify-content: center;
+            flex-wrap: wrap;
             margin-top: 2em;
         }
 
@@ -64,6 +72,7 @@
             flex-direction: column;
             align-items: center;
             margin: 0em 0.5em;
+            width: 12em;
         }
 
         .player-datafield {
@@ -106,6 +115,7 @@
             display: flex;
             flex-direction: row;
             justify-content: center;
+            margin: 0.4em 0em;
         }
     </style>
 
