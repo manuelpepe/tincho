@@ -101,8 +101,8 @@ func TestDoubleDiscard(t *testing.T) {
 	// both players prompted to peek
 	u1 := assertRecieved(t, ws1, UpdateTypeGameStart)
 	u2 := assertRecieved(t, ws2, UpdateTypeGameStart)
-	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true}, {ID: "p2", PendingFirstPeek: true}}})
-	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true}, {ID: "p2", PendingFirstPeek: true}}})
+	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
+	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
 
 	// p1 peeks
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionFirstPeek}))
@@ -193,8 +193,8 @@ func TestBasicGame(t *testing.T) {
 	// both players prompted to peek
 	u1 := assertRecieved(t, ws1, UpdateTypeGameStart)
 	u2 := assertRecieved(t, ws2, UpdateTypeGameStart)
-	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true}, {ID: "p2", PendingFirstPeek: true}}})
-	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true}, {ID: "p2", PendingFirstPeek: true}}})
+	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
+	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
 
 	// p1 peeks
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionFirstPeek}))
