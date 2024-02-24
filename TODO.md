@@ -79,3 +79,4 @@
 - [x] Points are not being correctly calculated
 - [x] Bots can draw from empty discard deck and crash
 - [x] Refactor `queueAnimation` to `queueAction` and queue actions as they come in through the socket. queuing only animations results in ui bugs.
+- [ ] After cutting, timeout runs for every player, hiding their cards in order instead of all at once, and creating long wait times
