@@ -5,7 +5,7 @@ export function hide(node) {
 
 /** @param {HTMLElement} node */
 export function show(node) {
-    node.style.display = "block";
+    node.style.display = "flex";
 }
 
 /** 

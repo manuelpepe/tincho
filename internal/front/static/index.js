@@ -36,6 +36,7 @@ window.onload = function () {
     const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
 
     const roomTitle = document.getElementById("room-title");
+    const mainMenu = document.getElementById("main-menu");
 
     const formJoin = document.getElementById("room-join");
     const formNew = document.getElementById("room-new");
@@ -516,6 +517,11 @@ window.onload = function () {
         }
     }
 
+    function setTitle(message) {
+        var style = /** @type {HTMLElement} */(document.querySelector('.main')).style;
+        style.setProperty('--title', '"' + message + '"');
+    }
+
     function connectToRoom() {
         if (!roomid.value) {
             return false;
@@ -526,9 +532,8 @@ window.onload = function () {
         conn.onmessage = processWSMessage;
         conn.onopen = () => {
             setError(null);
-            hide(formNew);
-            hide(formJoin);
-            roomTitle.innerHTML = "Room " + roomid.value;
+            hide(mainMenu)
+            setTitle("ROOM CODE: " + roomid.value)
             show(roomTitle);
             show(buttonStart);
             show(buttonAddBot);
@@ -539,8 +544,7 @@ window.onload = function () {
         return false;
     }
 
-    formNew.onsubmit = async (evt) => {
-        evt.preventDefault();
+    formNew.onclick = async () => {
         await fetch("http://" + location.host + "/new", {
             method: "POST",
             body: JSON.stringify({}),
@@ -550,11 +554,7 @@ window.onload = function () {
             .then(connectToRoom);
     };
 
-
-    formJoin.onsubmit = (evt) => {
-        evt.preventDefault();
-        connectToRoom();
-    }
+    formJoin.onclick = () => connectToRoom();
 
     buttonAddBot.onclick = () => {
         if (!roomid.value) {
