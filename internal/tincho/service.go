@@ -32,18 +32,15 @@ func NewService(ctx context.Context, cfg ServiceConfig) Service {
 	}
 }
 
-func (g *Service) NewRoomBasic() (string, error) {
-	deck := NewDeck()
-	deck.Shuffle()
-	return g.NewRoom(deck)
-}
-
-func (g *Service) NewRoom(deck Deck) (string, error) {
-	if g.ActiveRooms() >= g.cfg.MaxRooms {
+func (g *Service) NewRoom(deck Deck, maxPlayers int) (string, error) {
+	if maxPlayers <= 0 {
+		return "", fmt.Errorf("max players should be greater than 0, got %d", maxPlayers)
+	}
+	if g.ActiveRoomCount() >= g.cfg.MaxRooms {
 		return "", ErrRoomsLimitReached
 	}
 	ctx, cancel := context.WithTimeout(g.context, g.cfg.RoomTimeout)
-	room := NewRoomWithDeck(ctx, cancel, g.getUnusedID(), deck)
+	room := NewRoomWithDeck(ctx, cancel, g.getUnusedID(), deck, maxPlayers)
 	g.rooms = append(g.rooms, &room)
 	go room.Start()
 	return room.ID, nil
@@ -71,11 +68,13 @@ func (g *Service) JoinRoom(roomID string, player *Player) error {
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
 	}
-	room.AddPlayer(player)
+	if err := room.AddPlayer(player); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (g *Service) ActiveRooms() int {
+func (g *Service) ActiveRoomCount() int {
 	g.ClearClosedRooms()
 	return len(g.rooms)
 }

@@ -29,6 +29,7 @@ func (s *EasyStrategy) Turn(player tincho.Player, data tincho.UpdateTurnData) (t
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
+	// TODO: prevent cutting in the first N rounds
 	triggerCut := rand.Float32() < 0.05
 	if triggerCut {
 		data, err := json.Marshal(tincho.ActionCutData{

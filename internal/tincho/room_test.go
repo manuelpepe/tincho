@@ -31,15 +31,21 @@ func NewSocket(server *httptest.Server, user string, room string) *websocket.Con
 	return ws
 }
 
+func NewRoomBasic(g *Service) (string, error) {
+	deck := NewDeck()
+	deck.Shuffle()
+	return g.NewRoom(deck, 4)
+}
+
 func TestRoomLimit(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
 	defer s.Close()
 	for i := 0; i < 3; i++ {
-		_, err := g.NewRoomBasic()
+		_, err := NewRoomBasic(g)
 		assert.NoError(t, err)
 	}
-	_, err := g.NewRoomBasic()
+	_, err := NewRoomBasic(g)
 	assert.ErrorIs(t, err, ErrRoomsLimitReached)
 	for _, room := range g.rooms {
 		if room != nil {
@@ -47,7 +53,7 @@ func TestRoomLimit(t *testing.T) {
 		}
 	}
 	time.Sleep(1 * time.Second) // wait for rooms to close
-	_, err = g.NewRoomBasic()
+	_, err = NewRoomBasic(g)
 	assert.NoError(t, err)
 }
 
@@ -55,7 +61,7 @@ func TestPlayersJoinRoom(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
 	defer s.Close()
-	roomID, err := g.NewRoomBasic()
+	roomID, err := NewRoomBasic(g)
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
@@ -84,7 +90,7 @@ func TestDoubleDiscard(t *testing.T) {
 		{Suit: SuitClubs, Value: 9},
 		{Suit: SuitClubs, Value: 10},
 	}
-	roomID, err := g.NewRoom(deck)
+	roomID, err := g.NewRoom(deck, 4)
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
@@ -176,7 +182,7 @@ func TestBasicGame(t *testing.T) {
 	defer cancel()
 	defer s.Close()
 	deck := NewDeck()
-	roomID, err := g.NewRoom(deck)
+	roomID, err := g.NewRoom(deck, 4)
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)

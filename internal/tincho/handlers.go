@@ -24,6 +24,7 @@ func NewHandlers(service *Service) Handlers {
 }
 
 type RoomConfig struct {
+	MaxPlayers  int         `json:"max_players"`
 	DeckOptions DeckOptions `json:"deck"`
 }
 
@@ -53,7 +54,7 @@ func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deck := buildDeck(roomConfig.DeckOptions)
-	roomID, err := h.service.NewRoom(deck)
+	roomID, err := h.service.NewRoom(deck, roomConfig.MaxPlayers)
 	if err != nil {
 		log.Printf("Error creating room: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -72,7 +73,7 @@ type RoomInfo struct {
 
 func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Listing rooms")
-	rooms := make([]RoomInfo, 0, h.service.ActiveRooms())
+	rooms := make([]RoomInfo, 0, h.service.ActiveRoomCount())
 	for _, room := range h.service.rooms {
 		rooms = append(rooms, RoomInfo{
 			ID:      room.ID,
@@ -134,13 +135,14 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
+	stopWS := handleWS(ws, player, room)
 	if err := h.service.JoinRoom(room.ID, player); err != nil {
+		stopWS()
 		log.Printf("Error joining room: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))
 		return
 	}
-	go handleWS(ws, player, room)
 	log.Printf("Player %s joined room %s", playerID, room.ID)
 }
 
@@ -153,7 +155,7 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Pla
 		return
 	}
 	// TODO: Send state to player
-	go handleWS(ws, player, room)
+	handleWS(ws, player, room)
 	log.Printf("Player %s reconnected to room %s", player.ID, room.ID)
 }
 
@@ -169,7 +171,7 @@ func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cook
 	return ws, nil
 }
 
-func handleWS(ws *websocket.Conn, player *Player, room *Room) {
+func handleWS(ws *websocket.Conn, player *Player, room *Room) func() {
 	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	ctx, cancelWSContext := context.WithCancel(room.Context)
 	stopWS := func() {
@@ -214,4 +216,5 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room) {
 			}
 		}
 	}()
+	return stopWS
 }

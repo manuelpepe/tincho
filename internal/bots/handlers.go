@@ -43,12 +43,6 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error creating bot"))
 		return
 	}
-	if err := h.service.JoinRoom(roomID, player); err != nil {
-		log.Printf("Error joining room: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error joining room"))
-		return
-	}
 	go func() {
 		if err := bot.Start(); err != nil {
 			log.Printf("Error with bot: %s", err)
@@ -56,5 +50,11 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		// TODO: If bot fails, broadcasts are stuck because noone is reading from the updates channel.
 		// probably should tear down room and remove players.
 	}()
+	if err := h.service.JoinRoom(roomID, player); err != nil {
+		log.Printf("Error joining room: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error joining room"))
+		return
+	}
 	log.Printf("Bot %s joined room %s", player.ID, roomID)
 }

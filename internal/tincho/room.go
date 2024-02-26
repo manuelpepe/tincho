@@ -8,6 +8,11 @@ import (
 	"log"
 )
 
+type AddPlayerRequest struct {
+	Player *Player
+	Res    chan error
+}
+
 // Room represents an ongoing game and contains all necessary state to represent it.
 type Room struct {
 	Context   context.Context
@@ -19,19 +24,22 @@ type Room struct {
 	actionsChan chan Action
 
 	// channel used to update goroutine state
-	playersChan chan *Player
+	playersChan chan AddPlayerRequest
+
+	maxPlayers int
 
 	started bool
 	closed  bool
 }
 
-func NewRoomWithDeck(ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck) Room {
+func NewRoomWithDeck(ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck, maxPlayers int) Room {
 	return Room{
 		Context:     ctx,
 		closeRoom:   ctxCancel,
 		ID:          roomID,
 		actionsChan: make(chan Action),
-		playersChan: make(chan *Player),
+		playersChan: make(chan AddPlayerRequest),
+		maxPlayers:  maxPlayers,
 		state:       NewTinchoWithDeck(deck),
 		closed:      false,
 	}
@@ -54,11 +62,21 @@ func (r *Room) GetPlayer(id PlayerID) (Player, bool) {
 	return *player, true
 }
 
-func (r *Room) AddPlayer(p *Player) {
-	r.playersChan <- p
+func (r *Room) AddPlayer(p *Player) error {
+	req := AddPlayerRequest{
+		Player: p,
+		Res:    make(chan error),
+	}
+	log.Printf("Adding player %s to room %s", p.ID, r.ID)
+	r.playersChan <- req
+	log.Printf("Waiting for response from room %s", r.ID)
+	return <-req.Res
 }
 
 func (r *Room) addPlayer(player *Player) error {
+	if len(r.state.GetPlayers()) >= r.maxPlayers {
+		return fmt.Errorf("room is full")
+	}
 	if err := r.state.AddPlayer(player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
@@ -78,14 +96,19 @@ func (r *Room) addPlayer(player *Player) error {
 }
 
 func (r *Room) Start() {
+	log.Printf("Starting room %s", r.ID)
 	r.started = true
 	for {
 		select {
-		case player := <-r.playersChan:
-			if err := r.addPlayer(player); err != nil {
+		case req := <-r.playersChan:
+			fmt.Printf("Recieved from %s: {Player: %+v}\n", req.Player.ID, req.Player)
+			if err := r.addPlayer(req.Player); err != nil {
 				fmt.Printf("r.addPlayer: %s\n", err)
+				req.Res <- err
+				continue
 			}
-			log.Printf("Player joined #%s: %+v\n", r.ID, player)
+			log.Printf("Player joined #%s: %+v\n", r.ID, req.Player)
+			req.Res <- nil
 		case action := <-r.actionsChan:
 			log.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
 			r.doAction(action)
