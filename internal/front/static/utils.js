@@ -4,8 +4,8 @@ export function hide(node) {
 }
 
 /** @param {HTMLElement} node */
-export function show(node) {
-    node.style.display = "flex";
+export function show(node, display = "block") {
+    node.style.display = display;
 }
 
 /** 

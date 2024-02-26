@@ -19,6 +19,9 @@ window.onload = function () {
     /** @type {string | null} */
     var THIS_PLAYER = null;
 
+    /** @type {string | null} */
+    var THIS_ROOM = null;
+
     /** @type {SwapBuffer | null} */
     var SWAP_BUFFER = null;
 
@@ -32,14 +35,22 @@ window.onload = function () {
     const PEEK_TIMEOUT = 5000;
 
 
-    const roomid = /** @type {HTMLInputElement} */ (document.getElementById("room-id"));
-    const username = /** @type {HTMLInputElement} */ (document.getElementById("username"));
+    const joinMenuRoomID = /** @type {HTMLInputElement} */ (document.getElementById("join-room-id"));
+    const joinMenuUsername = /** @type {HTMLInputElement} */ (document.getElementById("join-username"));
+    const createMenuUsername = /** @type {HTMLInputElement} */ (document.getElementById("create-username"));
+    const createMenuMaxPlayers = /** @type {HTMLInputElement} */ (document.getElementById("max-players"));
+    const createMenuUseExtendedDeck = /** @type {HTMLInputElement} */ (document.getElementById("use-extended-deck"));
+    const createMenuUseChaosDeck = /** @type {HTMLInputElement} */ (document.getElementById("use-chaos-deck"));
 
-    const roomTitle = document.getElementById("room-title");
+    const menuContainer = document.getElementById("menu-container");
     const mainMenu = document.getElementById("main-menu");
+    const buttonShowCreateMenu = document.getElementById("btn-show-create-menu");
+    const buttonShowJoinMenu = document.getElementById("btn-show-join-menu");
+    const menuJoin = document.getElementById("join-menu");
+    const menuCreate = document.getElementById("create-menu");
 
-    const formJoin = document.getElementById("room-join");
-    const formNew = document.getElementById("room-new");
+    const buttonJoinRooom = document.getElementById("room-join");
+    const buttonNewRoom = document.getElementById("room-new");
 
     const selectBotDiff = /** @type {HTMLSelectElement} */ (document.getElementById("bot-diff-select"));
     const buttonAddBot = document.getElementById("btn-add-bot");
@@ -522,46 +533,62 @@ window.onload = function () {
         style.setProperty('--title', '"' + message + '"');
     }
 
-    function connectToRoom() {
-        if (!roomid.value) {
+    /** @param {string} username */
+    function connectToRoom(username, roomid) {
+        if (!roomid || !username) {
             return false;
         }
-        conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid.value + "&player=" + username.value);
+        conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid + "&player=" + username);
         conn.onerror = () => setError("Error connecting to room");
         conn.onclose = () => console.log("connection closed");
         conn.onmessage = processWSMessage;
         conn.onopen = () => {
             setError(null);
-            hide(mainMenu)
-            setTitle("ROOM CODE: " + roomid.value)
-            show(roomTitle);
+            hide(menuContainer)
             show(buttonStart);
             show(buttonAddBot);
             show(selectBotDiff);
-            console.log("connected to room " + roomid.value);
-            THIS_PLAYER = username.value;
+            setTitle("ROOM CODE: " + roomid)
+            console.log("connected to room " + roomid);
+            THIS_PLAYER = username;
+            THIS_ROOM = roomid;
         }
         return false;
     }
 
-    formNew.onclick = async () => {
+    buttonShowCreateMenu.onclick = () => {
+        hide(mainMenu);
+        show(menuCreate, "flex");
+    }
+
+    buttonShowJoinMenu.onclick = () => {
+        hide(mainMenu);
+        show(menuJoin, "flex");
+    }
+
+    buttonNewRoom.onclick = async () => {
         await fetch("http://" + location.host + "/new", {
             method: "POST",
-            body: JSON.stringify({}),
+            body: JSON.stringify({
+                "max_players": parseInt(createMenuMaxPlayers.value),
+                "deck": {
+                    "extended": createMenuUseExtendedDeck.checked,
+                    "chaos": createMenuUseChaosDeck.checked,
+                }
+            }),
         })
             .then(response => response.text())
-            .then(data => roomid.value = data)
-            .then(connectToRoom);
+            .then(roomid => connectToRoom(createMenuUsername.value, roomid));
     };
 
-    formJoin.onclick = () => connectToRoom();
+    buttonJoinRooom.onclick = () => connectToRoom(joinMenuUsername.value, joinMenuRoomID.value);
 
     buttonAddBot.onclick = () => {
-        if (!roomid.value) {
+        if (!THIS_ROOM) {
             return false;
         }
         const botdiff = selectBotDiff.options[selectBotDiff.selectedIndex].value;
-        fetch("http://" + location.host + "/add-bot?difficulty=" + botdiff + "&room=" + roomid.value)
+        fetch("http://" + location.host + "/add-bot?difficulty=" + botdiff + "&room=" + THIS_ROOM)
             .then(response => response.text())
             .then(data => console.log(data));
         return false;

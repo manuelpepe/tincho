@@ -20,7 +20,6 @@ const cutUI = document.getElementById("cut-ui");
 const inputCutDeclare = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declare"));
 const inputCutDeclared = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declared"));
 
-
 const deckPile = document.getElementById("deck-pile");
 const deckDiscard = document.getElementById("deck-discard");
 
@@ -71,8 +70,8 @@ export function setStartGameScreen() {
     hide(buttonAddBot);
     hide(selectBotDiff);
     show(buttonFirstPeek);
-    show(deckPile);
-    show(deckDiscard);
+    show(deckPile, "flex");
+    show(deckDiscard, "flex");
 }
 
 export function setPlayerPeekedScreen() {
