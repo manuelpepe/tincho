@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/manuelpepe/tincho/internal/tincho"
@@ -30,9 +30,10 @@ type Bot struct {
 	ctx      context.Context
 	player   *tincho.Player
 	strategy Strategy
+	logger   *slog.Logger
 }
 
-func NewBot(ctx context.Context, player *tincho.Player, difficulty string) (Bot, error) {
+func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Player, difficulty string) (Bot, error) {
 	var strategy Strategy
 	switch difficulty {
 	case "easy":
@@ -48,26 +49,26 @@ func NewBot(ctx context.Context, player *tincho.Player, difficulty string) (Bot,
 		ctx:      ctx,
 		player:   player,
 		strategy: strategy,
+		logger:   logger,
 	}, nil
 
 }
 
 func (b *Bot) Start() error {
+	b.logger.Info(fmt.Sprintf("Bot  %s started", b.player.ID))
 	for {
 		time.Sleep(1 * time.Second)
 		select {
 		case update := <-b.player.Updates:
-			log.Printf("Bot %s recieved update: {Type:%s, Data:\"%s\"}\n", b.player.ID, update.Type, update.Data)
 			action, err := b.RespondToUpdate(*b.player, update)
 			if err != nil {
 				return fmt.Errorf("error responding to update: %w", err)
 			}
 			if action.Type != "" {
-				log.Printf("Bot %s queued action: {Type:%s, Data:\"%s\"}\n", b.player.ID, action.Type, action.Data)
 				b.player.QueueAction(action)
 			}
 		case <-b.ctx.Done():
-			log.Printf("Bot %s finished\n", b.player.ID)
+			b.logger.Info(fmt.Sprintf("Bot  %s finished", b.player.ID))
 			return nil
 		}
 	}

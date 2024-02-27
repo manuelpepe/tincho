@@ -3,12 +3,14 @@ package bots
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math/rand"
 
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
 type EasyStrategy struct {
+	logger    *slog.Logger
 	firstTurn bool
 }
 

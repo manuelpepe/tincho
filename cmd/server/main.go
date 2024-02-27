@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -26,8 +28,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	handlers := tincho.NewHandlers(&service)
-	bots := bots.NewHandlers(&service)
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	handlers := tincho.NewHandlers(logger, &service)
+	bots := bots.NewHandlers(logger, &service)
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)

@@ -3,6 +3,7 @@ package tincho
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -17,7 +18,7 @@ func NewServer() (*Service, *httptest.Server, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 	game := NewService(ctx, ServiceConfig{MaxRooms: 3, RoomTimeout: 5 * time.Minute})
 	r := mux.NewRouter()
-	handlers := NewHandlers(&game)
+	handlers := NewHandlers(slog.Default(), &game)
 	r.HandleFunc("/join", handlers.JoinRoom)
 	return &game, httptest.NewServer(r), cancel
 }
@@ -34,7 +35,7 @@ func NewSocket(server *httptest.Server, user string, room string) *websocket.Con
 func NewRoomBasic(g *Service) (string, error) {
 	deck := NewDeck()
 	deck.Shuffle()
-	return g.NewRoom(deck, 4)
+	return g.NewRoom(slog.Default(), deck, 4)
 }
 
 func TestRoomLimit(t *testing.T) {
@@ -90,7 +91,7 @@ func TestDoubleDiscard(t *testing.T) {
 		{Suit: SuitClubs, Value: 9},
 		{Suit: SuitClubs, Value: 10},
 	}
-	roomID, err := g.NewRoom(deck, 4)
+	roomID, err := g.NewRoom(slog.Default(), deck, 4)
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
@@ -182,7 +183,7 @@ func TestBasicGame(t *testing.T) {
 	defer cancel()
 	defer s.Close()
 	deck := NewDeck()
-	roomID, err := g.NewRoom(deck, 4)
+	roomID, err := g.NewRoom(slog.Default(), deck, 4)
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)

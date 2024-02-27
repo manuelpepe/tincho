@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"time"
 )
@@ -32,7 +33,7 @@ func NewService(ctx context.Context, cfg ServiceConfig) Service {
 	}
 }
 
-func (g *Service) NewRoom(deck Deck, maxPlayers int) (string, error) {
+func (g *Service) NewRoom(logger *slog.Logger, deck Deck, maxPlayers int) (string, error) {
 	if maxPlayers <= 0 {
 		return "", fmt.Errorf("max players should be greater than 0, got %d", maxPlayers)
 	}
@@ -40,7 +41,9 @@ func (g *Service) NewRoom(deck Deck, maxPlayers int) (string, error) {
 		return "", ErrRoomsLimitReached
 	}
 	ctx, cancel := context.WithTimeout(g.context, g.cfg.RoomTimeout)
-	room := NewRoomWithDeck(ctx, cancel, g.getUnusedID(), deck, maxPlayers)
+	roomID := g.getUnusedID()
+	roomLogger := logger.With("room_id", roomID, "component", "room")
+	room := NewRoomWithDeck(roomLogger, ctx, cancel, roomID, deck, maxPlayers)
 	g.rooms = append(g.rooms, &room)
 	go room.Start()
 	return room.ID, nil

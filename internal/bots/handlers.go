@@ -1,7 +1,8 @@
 package bots
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/manuelpepe/tincho/internal/tincho"
@@ -9,10 +10,11 @@ import (
 
 type Handlers struct {
 	service *tincho.Service
+	logger  *slog.Logger
 }
 
-func NewHandlers(service *tincho.Service) Handlers {
-	return Handlers{service: service}
+func NewHandlers(logger *slog.Logger, service *tincho.Service) Handlers {
+	return Handlers{service: service, logger: logger.With("component", "bots-handlers")}
 }
 
 func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
@@ -30,31 +32,32 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 	}
 	room, ok := h.service.GetRoom(roomID)
 	if !ok {
-		log.Printf("Error getting room index")
+		h.logger.Error("Error getting room index")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error getting room index"))
 		return
 	}
 	player := tincho.NewPlayer(RandomBotName())
-	bot, err := NewBot(room.Context, player, difficulty)
+	newLogger := h.logger.With("player", player.ID)
+	bot, err := NewBot(newLogger, room.Context, player, difficulty)
 	if err != nil {
-		log.Printf("Error creating bot: %s", err)
+		h.logger.Error("Error creating bot", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error creating bot"))
 		return
 	}
 	go func() {
 		if err := bot.Start(); err != nil {
-			log.Printf("Error with bot: %s", err)
+			h.logger.Error("Error with bot: %s", err)
 		}
 		// TODO: If bot fails, broadcasts are stuck because noone is reading from the updates channel.
 		// probably should tear down room and remove players.
 	}()
 	if err := h.service.JoinRoom(roomID, player); err != nil {
-		log.Printf("Error joining room: %s", err)
+		h.logger.Error("Error joining room", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))
 		return
 	}
-	log.Printf("Bot %s joined room %s", player.ID, roomID)
+	h.logger.Info(fmt.Sprintf("Bot %s joined room %s", player.ID, roomID))
 }

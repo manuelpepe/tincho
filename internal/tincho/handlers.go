@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -17,10 +17,11 @@ var upgrader = websocket.Upgrader{
 
 type Handlers struct {
 	service *Service
+	logger  *slog.Logger
 }
 
-func NewHandlers(service *Service) Handlers {
-	return Handlers{service: service}
+func NewHandlers(logger *slog.Logger, service *Service) Handlers {
+	return Handlers{service: service, logger: logger.With("component", "tincho-handlers")}
 }
 
 type RoomConfig struct {
@@ -48,19 +49,19 @@ func buildDeck(options DeckOptions) Deck {
 func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 	var roomConfig RoomConfig
 	if err := json.NewDecoder(r.Body).Decode(&roomConfig); err != nil {
-		log.Printf("Error decoding room config: %s", err)
+		h.logger.Warn(fmt.Sprintf("Error decoding room config: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error decoding room config"))
 		return
 	}
 	deck := buildDeck(roomConfig.DeckOptions)
-	roomID, err := h.service.NewRoom(deck, roomConfig.MaxPlayers)
+	roomID, err := h.service.NewRoom(h.logger, deck, roomConfig.MaxPlayers)
 	if err != nil {
-		log.Printf("Error creating room: %s", err)
+		h.logger.Warn(fmt.Sprintf("Error creating room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("error: %s", err)))
 	} else {
-		log.Printf("New room created: %s", roomID)
+		h.logger.Info(fmt.Sprintf("New room created: %s", roomID))
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(roomID))
 	}
@@ -72,7 +73,6 @@ type RoomInfo struct {
 }
 
 func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Listing rooms")
 	rooms := make([]RoomInfo, 0, h.service.ActiveRoomCount())
 	for _, room := range h.service.rooms {
 		rooms = append(rooms, RoomInfo{
@@ -81,7 +81,7 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	if err := json.NewEncoder(w).Encode(rooms); err != nil {
-		log.Printf("Error encoding rooms: %s", err)
+		h.logger.Warn(fmt.Sprintf("Error encoding rooms: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -91,14 +91,14 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := r.URL.Query().Get("room")
 	playerID := PlayerID(r.URL.Query().Get("player"))
 	if playerID == "" || roomID == "" {
-		log.Printf("Missing attributes")
+		h.logger.Warn("Missing attributes")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("missing attributes"))
 		return
 	}
 	room, exists := h.service.GetRoom(roomID)
 	if !exists {
-		log.Printf("Error getting room index")
+		h.logger.Warn("Error getting room index")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error getting room index"))
 		return
@@ -115,7 +115,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	} else if curPlayer.SessionToken == sessionToken {
 		h.reconnect(w, r, &curPlayer, room)
 	} else {
-		log.Printf("Player %s already exists in room %s", playerID, roomID)
+		h.logger.Warn(fmt.Sprintf("Player %s already exists in room %s", playerID, roomID))
 		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte("player already exists in room"))
 	}
@@ -130,33 +130,35 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 	}
 	ws, err := upgradeConnection(w, r, sesCookie)
 	if err != nil {
-		log.Printf("Error upgrading connection: %s", err)
+		h.logger.Warn(fmt.Sprintf("Error upgrading connection: %s", err))
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
-	stopWS := handleWS(ws, player, room)
+	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
+	stopWS := handleWS(ws, player, room, wslogger)
 	if err := h.service.JoinRoom(room.ID, player); err != nil {
 		stopWS()
-		log.Printf("Error joining room: %s", err)
+		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))
 		return
 	}
-	log.Printf("Player %s joined room %s", playerID, room.ID)
+	h.logger.Info(fmt.Sprintf("Player %s joined room %s", playerID, room.ID))
 }
 
 func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Player, room *Room) {
 	ws, err := upgradeConnection(w, r, nil)
 	if err != nil {
-		log.Printf("Error upgrading connection: %s", err)
+		h.logger.Warn(fmt.Sprintf("Error upgrading connection: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
 	// TODO: Send state to player
-	handleWS(ws, player, room)
-	log.Printf("Player %s reconnected to room %s", player.ID, room.ID)
+	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
+	handleWS(ws, player, room, wslogger)
+	h.logger.Info("Player %s reconnected to room %s", player.ID, room.ID)
 }
 
 func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cookie) (*websocket.Conn, error) {
@@ -171,7 +173,7 @@ func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cook
 	return ws, nil
 }
 
-func handleWS(ws *websocket.Conn, player *Player, room *Room) func() {
+func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logger) func() {
 	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	ctx, cancelWSContext := context.WithCancel(room.Context)
 	stopWS := func() {
@@ -182,14 +184,17 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room) func() {
 		for {
 			select {
 			case update := <-player.Updates:
-				log.Printf("Sending update to player %s: {Type:%s, Data:\"%s\"}", player.ID, update.Type, update.Data)
+				logger.Info(
+					fmt.Sprintf("Sending update to player %s", player.ID),
+					"update", update,
+				)
 				if err := ws.WriteJSON(update); err != nil {
-					log.Printf("error sending update to player %s: %s", player.ID, err)
+					logger.Error("error sending update to player %s: %s", player.ID, err)
 					stopWS()
 					return
 				}
 			case <-ctx.Done():
-				log.Printf("Stopping socket write loop for player %s", player.ID)
+				logger.Info(fmt.Sprintf("Stopping socket write loop for player %s", player.ID))
 				return
 			}
 		}
@@ -200,18 +205,18 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room) func() {
 			case <-tick.C:
 				_, message, err := ws.ReadMessage()
 				if err != nil {
-					log.Printf("Error reading message from player %s: %s", player.ID, err)
+					logger.Error(fmt.Sprintf("Error reading message from player %s: %s", player.ID, err), "err", err)
 					stopWS()
 					return
 				}
 				var action Action
 				if err := json.Unmarshal(message, &action); err != nil {
-					log.Println(err)
+					logger.Error("error unmarshalling action", "err", err)
 					return // TODO: Prevent disconnect
 				}
 				player.QueueAction(action)
 			case <-ctx.Done():
-				log.Printf("Stopping socket read for player %s", player.ID)
+				logger.Info(fmt.Sprintf("Stopping socket read for player %s", player.ID))
 				return
 			}
 		}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 )
 
 type AddPlayerRequest struct {
@@ -17,8 +17,10 @@ type AddPlayerRequest struct {
 type Room struct {
 	Context   context.Context
 	closeRoom context.CancelFunc
-	ID        string
-	state     *Tincho
+	logger    *slog.Logger
+
+	ID    string
+	state *Tincho
 
 	// actions recieved from all players
 	actionsChan chan Action
@@ -32,10 +34,11 @@ type Room struct {
 	closed  bool
 }
 
-func NewRoomWithDeck(ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck, maxPlayers int) Room {
+func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck, maxPlayers int) Room {
 	return Room{
 		Context:     ctx,
 		closeRoom:   ctxCancel,
+		logger:      logger,
 		ID:          roomID,
 		actionsChan: make(chan Action),
 		playersChan: make(chan AddPlayerRequest),
@@ -67,9 +70,7 @@ func (r *Room) AddPlayer(p *Player) error {
 		Player: p,
 		Res:    make(chan error),
 	}
-	log.Printf("Adding player %s to room %s", p.ID, r.ID)
 	r.playersChan <- req
-	log.Printf("Waiting for response from room %s", r.ID)
 	return <-req.Res
 }
 
@@ -96,24 +97,23 @@ func (r *Room) addPlayer(player *Player) error {
 }
 
 func (r *Room) Start() {
-	log.Printf("Starting room %s", r.ID)
+	r.logger.Info("Starting room")
 	r.started = true
 	for {
 		select {
 		case req := <-r.playersChan:
-			fmt.Printf("Recieved from %s: {Player: %+v}\n", req.Player.ID, req.Player)
 			if err := r.addPlayer(req.Player); err != nil {
-				fmt.Printf("r.addPlayer: %s\n", err)
+				r.logger.Error("r.addPlayer: %s", err, "player", req.Player)
 				req.Res <- err
 				continue
 			}
-			log.Printf("Player joined #%s: %+v\n", r.ID, req.Player)
+			r.logger.Info(fmt.Sprintf("Player joined #%s: %s", r.ID, req.Player.ID))
 			req.Res <- nil
 		case action := <-r.actionsChan:
-			log.Printf("Recieved from %s: {Type: %s Data:%s}\n", action.PlayerID, action.Type, action.Data)
+			r.logger.Info(fmt.Sprintf("Recieved action from %s", action.PlayerID), "action", action)
 			r.doAction(action)
 		case <-r.Context.Done():
-			log.Printf("Stopping room %s", r.ID)
+			r.logger.Info("Stopping room")
 			r.Close()
 			return
 		}
@@ -125,84 +125,88 @@ var ErrActionOnClosedRoom = errors.New("action on closed room")
 
 func (r *Room) doAction(action Action) {
 	if r.HasClosed() {
-		log.Printf("ERR: %s", ErrActionOnClosedRoom)
+		r.logger.Error(ErrActionOnClosedRoom.Error())
 		r.TargetedError(action.PlayerID, ErrActionOnClosedRoom)
+		return
 	}
 	switch action.Type {
 	case ActionStart:
 		if err := r.doStartGame(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error starting game", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 		return
 	case ActionFirstPeek:
 		if err := r.doPeekTwo(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on first peek", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 		return
 	}
 	if !r.state.playing || action.PlayerID != r.state.PlayerToPlay().ID {
-		log.Printf("Player %s tried to perform action '%s' out of turn", action.PlayerID, action.Type)
+		r.logger.Warn(
+			fmt.Sprintf("Player %s tried to perform action out of turn", action.PlayerID),
+			"player_id", action.PlayerID,
+			"action", action)
 		r.TargetedError(action.PlayerID, ErrNotYourTurn)
 		return
 	}
 	switch action.Type {
 	case ActionDraw:
 		if err := r.doDraw(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on draw", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionDiscard:
 		if err := r.doDiscard(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on discard", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionCut:
 		if err := r.doCut(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on cut", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 	case ActionPeekOwnCard:
 		if err := r.doEffectPeekOwnCard(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on peek own", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 		return
 	case ActionPeekCartaAjena:
 		if err := r.doEffectPeekCartaAjena(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on peek carta ajena", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 		return
 	case ActionSwapCards:
 		if err := r.doEffectSwapCards(action); err != nil {
-			log.Println(err)
+			r.logger.Warn("error on swap cards", "err", err, "player_id", action.PlayerID)
 			r.TargetedError(action.PlayerID, err)
 			return
 		}
 		return
 	default:
-		log.Println("unknown action")
+		r.logger.Warn("unknown action", "player_id", action.PlayerID, "action", action)
 	}
 }
 
 // watchPlayer functions as a goroutine that watches for new actions from a given player.
 func (r *Room) watchPlayer(player *Player) {
-	log.Printf("Watching player '%s' on room '%s'", player.ID, r.ID)
+	r.logger.Info(fmt.Sprintf("Started watch loop for player '%s' on room '%s'", player.ID, r.ID))
 	for {
 		select {
 		case action := <-player.Actions:
 			r.actionsChan <- action
 		case <-r.Context.Done():
-			log.Printf("Stopping watch loop for player %s", player.ID)
+			r.logger.Info(fmt.Sprintf("Stopping watch loop for player '%s' on room '%s'", player.ID, r.ID))
 			return
 		}
 
