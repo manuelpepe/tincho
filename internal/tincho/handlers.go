@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -88,7 +89,7 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
-	roomID := r.URL.Query().Get("room")
+	roomID := strings.ToUpper(r.URL.Query().Get("room"))
 	playerID := PlayerID(r.URL.Query().Get("player"))
 	if playerID == "" || roomID == "" {
 		h.logger.Warn("Missing attributes")

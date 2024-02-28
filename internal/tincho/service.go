@@ -103,16 +103,16 @@ func unordered_remove[T any](a []T, i int) []T {
 }
 
 func (g *Service) getUnusedID() string {
-	roomID := generateRandomString(6)
+	roomID := generateRandomString(4)
 	for exists := true; exists; _, exists = g.getRoomIndex(roomID) {
-		roomID = generateRandomString(6)
+		roomID = generateRandomString(4)
 	}
 	return roomID
 }
 
 // Function to generate a random string with a given length
 func generateRandomString(length int) string {
-	chars := "abcdefghijklmnopqrstuvwxyz"
+	chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	rand.Seed(time.Now().UnixNano())
 	result := make([]byte, length)
 	for i := range result {
