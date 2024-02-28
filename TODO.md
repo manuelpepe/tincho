@@ -1,3 +1,63 @@
+## Pending
+
+### Features
+
+- [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
+- [ ] [BACK+FRONT] Implement reconnection
+    - Option 1: Verify (IP, Username, RoomID)
+    - Option 2:
+        - Generate token on join
+        - Send token to user
+        - Client stores token in local storage along with username
+        - Allow client to reconnect if using token
+    - Send necessary state on reconnection
+    - Prevent duplicated players from joining game (prevent dup join without token).
+- [ ] [BACK+FRONT] Make room parametrizable:
+    - Options:
+        - [-] Extended deck option (add some cards to allow for more players)
+        - [-] Chaos (Adds two 9 cards for more swaps)
+        - [ ] Make private (set password for room)
+        - [ ] Max players
+    - [ ] UI for room creation
+- [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
+    (requires private rooms)
+    - [ ] [BACK] Check room listing, add room capacity
+    - [ ] [FRONT] "Search games" option in menu, list component
+- [ ] [FRONT] Add styles to UI (this will never be finished)
+- [ ] [BACK] Bots:
+    1. [ ] Hard:
+        - Keeps track of cards in hand
+        - Discards unknown cards first
+        - Always discard the highest card (0% chance of mistake)
+        - Only double discards if it peeks a repeated card
+        - Does swap oppenents cards for chaos
+        - Does peek own cards
+        - Only cuts with =< 5 points (0% chance of mistake)
+        - Always declares hand
+    2. [ ] Expert:
+        - Keeps track of cards in hand
+        - Discards unknown cards first
+        - Always discard the highest card (0% chance of mistake)
+        - Actively tries to double discard
+            - Stores drawn card if one of similar value is in hand and one of a higher value can be discarded
+            - Only double discards for a card of less total value
+        - Keeps track of oponent hands and swaps for advantage (todo: define advantage)
+        - Does peek own and unkown opponents cards
+        - Only cuts with =< 5 points (0% chance of mistake)
+        - Doesn't cut if it knows an opponent has less points
+        - Always declares hand
+
+### Fixes
+
+- [ ] [FRONT] When swapping cards, an intermediate container should be used to pass them around (improves animation)
+- [ ] [BACK] Prevent discarding drawed card if it was drawed from the discard pile
+- [ ] [FRONT] After cutting, timeout runs for every player, hiding their cards in order instead of all at once, and creating long wait times
+
+
+
+
+## Completed
+
 ### Features
 
 - [x] Implement start game peek (2 cards from own hand each)
@@ -8,27 +68,8 @@
 - [x] Keep track of scores per round and send table every round
 - [x] Show scores in UI
 - [x] Rooms should timeout after a while
-- [ ] Implement turn time limit
-- [ ] Implement reconnection
-    - Option 1: Verify (IP, Username, RoomID)
-    - Option 2:
-        - Generate token on join
-        - Send token to user
-        - Client stores token in local storage along with username
-        - Allow client to reconnect if using token
-    - Send necessary state on reconnection
-    - Prevent duplicated players from joining game (prevent dup join without token).
-- [ ] Make room parametrizable:
-    - Options:
-        - [-] Extended deck option (add some cards to allow for more players)
-        - [-] Chaos (Adds two 9 cards for more swaps)
-        - [ ] Make private (set password for room)
-        - [ ] Max players
-    - [ ] UI for room creation
-- [ ] Roomlist in UI with join buttons and private status
-- [ ] Add styles to UI
 - [x] Only room leader can start room
-- [ ] Bots:
+- [-] Bots:
     - [x] Room should process messages with channels instead of interacting directly with the websocket
     - [x] Handler should manage socket and use channels to communicate with the room
     - Bot variations:
@@ -48,35 +89,11 @@
             - Does peek own cards
             - 75% chance of cutting when <= 10 points (5% chance of mistake)
             - Never declares hand
-        3. Hard:
-            - Keeps track of cards in hand
-            - Discards unknown cards first
-            - Always discard the highest card (0% chance of mistake)
-            - Only double discards if it peeks a repeated card
-            - Does swap oppenents cards for chaos
-            - Does peek own cards
-            - Only cuts with =< 5 points (0% chance of mistake)
-            - Always declares hand
-        4. Expert:
-            - Keeps track of cards in hand
-            - Discards unknown cards first
-            - Always discard the highest card (0% chance of mistake)
-            - Actively tries to double discard
-                - Stores drawn card if one of similar value is in hand and one of a higher value can be discarded
-                - Only double discards for a card of less total value
-            - Keeps track of oponent hands and swaps for advantage (todo: define advantage)
-            - Does peek own and unkown opponents cards
-            - Only cuts with =< 5 points (0% chance of mistake)
-            - Doesn't cut if it knows an opponent has less points
-            - Always declares hand
 
 ### Fixes
 
 - [x] When peeking, send peek position to all players so they know which card has been peeked (but not the value)
-- [ ] When swapping cards, an intermediate container should be used to pass them around (improves animation)
 - [x] UI error when peeking 5th opponent card after failed double discard
-- [ ] Prevent discarding drawed card if it was drawed from the discard pile
 - [x] Points are not being correctly calculated
 - [x] Bots can draw from empty discard deck and crash
 - [x] Refactor `queueAnimation` to `queueAction` and queue actions as they come in through the socket. queuing only animations results in ui bugs.
-- [ ] After cutting, timeout runs for every player, hiding their cards in order instead of all at once, and creating long wait times
