@@ -250,17 +250,15 @@ window.onload = function () {
         if (cardPosition >= 0) {
             const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
             cardInHand.innerHTML = "[" + cardValue(card) + "]";
-            cardInHand.replaceWith(tmpContainer);
             cardInHand.onclick = () => sendAction({
                 "type": "draw",
                 "data": { "source": "discard" },
             });
+            cardInHand.replaceWith(tmpContainer);
             tmpContainer.appendChild(cardInHand);
+            await moveNode(cardInHand, deckDiscard);
+            clearDiscardDeckExcept(cardInHand);
             await moveNode(drawnCard, tmpContainer);
-            await moveNode(cardInHand, deckDiscard)
-            while (deckDiscard.firstChild && deckDiscard.firstChild !== cardInHand) {
-                deckDiscard.removeChild(deckDiscard.firstChild);
-            }
             tmpContainer.replaceWith(drawnCard);
             drawnCard.innerHTML = "[ ]";
             drawnCard.onclick = () => sendCurrentAction(player, cardPosition);
@@ -272,10 +270,42 @@ window.onload = function () {
                 "data": { "source": "discard" },
             });
             await moveNode(drawnCard, deckDiscard)
-            while (deckDiscard.firstChild && deckDiscard.firstChild !== drawnCard) {
-                deckDiscard.removeChild(deckDiscard.firstChild);
-            }
+            clearDiscardDeckExcept(drawnCard);
         }
+    }
+
+    /** @param {HTMLElement} card */
+    function clearDiscardDeckExcept(card) {
+        while (deckDiscard.firstChild && deckDiscard.firstChild !== card) {
+            deckDiscard.removeChild(deckDiscard.firstChild);
+        }
+    }
+
+    /** 
+     * @param {string} player
+     * @param {number} cardPosition
+     * @param {Card} card
+     */
+    async function showExtraDiscard(player, cardPosition, card) {
+        if (cardPosition < 0) {
+            console.error("extra discard cannot be the drawn card")
+            return;
+        }
+        const playerHand = PLAYERS[player].hand;
+        const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPosition]);
+        cardInHand.innerHTML = "[" + cardValue(card) + "]"
+        cardInHand.onclick = () => sendAction({
+            "type": "draw",
+            "data": { "source": "discard" },
+        });
+        await moveNode(cardInHand, deckDiscard)
+        clearDiscardDeckExcept(cardInHand);
+        playerHand.childNodes.forEach((_, ix) => {
+            if (ix >= cardPosition) {
+                let card = /** @type {HTMLElement} */ (playerHand.childNodes[ix]);
+                card.onclick = () => sendCurrentAction(player, ix);
+            }
+        });
     }
 
     /**
@@ -426,10 +456,14 @@ window.onload = function () {
     /** @param {UpdateDiscardData} data */
     async function handleDiscard(data) {
         for (let ix = 0; ix < data.cards.length; ix++) {
-            await showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
+            if (ix == 0) {
+                await showDiscard(data.player, data.cardsPositions[ix], data.cards[ix])
+            } else {
+                await showExtraDiscard(data.player, data.cardsPositions[1], data.cards[1]);
+                PLAYERS[data.player].data.cards_in_hand -= 1;
+            }
         }
         // decrease cards_in_hand on succesfull double discard
-        PLAYERS[data.player].data.cards_in_hand -= (data.cards.length - 1);
     }
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */
