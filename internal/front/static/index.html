@@ -150,6 +150,10 @@
                     <input type="number" name="max-players" id="max-players" min="2" max="10" value="4">
                 </div>
                 <div>
+                    <label for="password">Password:</label>
+                    <input type="text" name="password" id="password" placeholder="password">
+                </div>
+                <div>
                     <input type="checkbox" id="use-extended-deck" />
                     <label for="use-extended-deck">Extended deck</label>
                 </div>
@@ -161,8 +165,9 @@
             </div>
 
             <div id="join-menu" style="display:none" class="buttons cols">
-                <input type="text" id="join-username" size="12" placeholder="username" />
+                <input type="text" id="join-username" size="12" placeholder="name" />
                 <input type="text" id="join-room-id" size="6" placeholder="roomid" />
+                <input type="text" id="join-password" size="12" placeholder="password">
                 <button id="room-join">Join</button>
             </div>
         </div>

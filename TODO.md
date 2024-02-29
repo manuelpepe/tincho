@@ -12,13 +12,6 @@
         - Allow client to reconnect if using token
     - Send necessary state on reconnection
     - Prevent duplicated players from joining game (prevent dup join without token).
-- [ ] [BACK+FRONT] Make room parametrizable:
-    - Options:
-        - [-] Extended deck option (add some cards to allow for more players)
-        - [-] Chaos (Adds two 9 cards for more swaps)
-        - [ ] Make private (set password for room)
-        - [ ] Max players
-    - [ ] UI for room creation
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
     (requires private rooms)
     - [ ] [BACK] Check room listing, add room capacity
@@ -89,6 +82,13 @@
             - Does peek own cards
             - 75% chance of cutting when <= 10 points (5% chance of mistake)
             - Never declares hand
+- [x] Make room parametrizable:
+    - Options:
+        - [x] Extended deck option (add some cards to allow for more players)
+        - [x] Chaos (Adds two 9 cards for more swaps)
+        - [x] Make private (set password for room)
+        - [x] Max players
+    - [x] UI for room creation
 
 ### Fixes
 

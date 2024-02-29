@@ -26,6 +26,7 @@ func NewHandlers(logger *slog.Logger, service *Service) Handlers {
 }
 
 type RoomConfig struct {
+	Password    string      `json:"password"`
 	MaxPlayers  int         `json:"max_players"`
 	DeckOptions DeckOptions `json:"deck"`
 }
@@ -56,7 +57,7 @@ func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deck := buildDeck(roomConfig.DeckOptions)
-	roomID, err := h.service.NewRoom(h.logger, deck, roomConfig.MaxPlayers)
+	roomID, err := h.service.NewRoom(h.logger, deck, roomConfig.MaxPlayers, roomConfig.Password)
 	if err != nil {
 		h.logger.Warn(fmt.Sprintf("Error creating room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -91,6 +92,7 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := strings.ToUpper(r.URL.Query().Get("room"))
 	playerID := PlayerID(r.URL.Query().Get("player"))
+	password := r.URL.Query().Get("password")
 	if playerID == "" || roomID == "" {
 		h.logger.Warn("Missing attributes")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -112,8 +114,9 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	curPlayer, exists := room.GetPlayer(playerID)
 	if !exists {
-		h.connect(w, r, playerID, room)
+		h.connect(w, r, playerID, room, password)
 	} else if curPlayer.SessionToken == sessionToken {
+		// TODO: Check password for reconnection
 		h.reconnect(w, r, &curPlayer, room)
 	} else {
 		h.logger.Warn(fmt.Sprintf("Player %s already exists in room %s", playerID, roomID))
@@ -122,7 +125,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID PlayerID, room *Room) {
+func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID PlayerID, room *Room, password string) {
 	player := NewPlayer(playerID)
 	sesCookie := &http.Cookie{
 		Name:    "session_token",
@@ -138,7 +141,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 	}
 	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
 	stopWS := handleWS(ws, player, room, wslogger)
-	if err := h.service.JoinRoom(room.ID, player); err != nil {
+	if err := h.service.JoinRoom(room.ID, player, password); err != nil {
 		stopWS()
 		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)

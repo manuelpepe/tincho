@@ -37,8 +37,10 @@ window.onload = function () {
 
     const joinMenuRoomID = /** @type {HTMLInputElement} */ (document.getElementById("join-room-id"));
     const joinMenuUsername = /** @type {HTMLInputElement} */ (document.getElementById("join-username"));
+    const joinMenuPassword = /** @type {HTMLInputElement} */ (document.getElementById("join-password"));
     const createMenuUsername = /** @type {HTMLInputElement} */ (document.getElementById("create-username"));
     const createMenuMaxPlayers = /** @type {HTMLInputElement} */ (document.getElementById("max-players"));
+    const createMenuPassword = /** @type {HTMLInputElement} */ (document.getElementById("password"));
     const createMenuUseExtendedDeck = /** @type {HTMLInputElement} */ (document.getElementById("use-extended-deck"));
     const createMenuUseChaosDeck = /** @type {HTMLInputElement} */ (document.getElementById("use-chaos-deck"));
 
@@ -567,12 +569,16 @@ window.onload = function () {
         style.setProperty('--title', '"' + message + '"');
     }
 
-    /** @param {string} username */
-    function connectToRoom(username, roomid) {
+    /** 
+     * @param {string} username 
+     * @param {string} roomid 
+     * @param {string} password 
+     * */
+    function connectToRoom(username, roomid, password) {
         if (!roomid || !username) {
             return false;
         }
-        conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid + "&player=" + username);
+        conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid + "&player=" + username + "&password=" + password);
         conn.onerror = () => setError("Error connecting to room");
         conn.onclose = () => console.log("connection closed");
         conn.onmessage = processWSMessage;
@@ -601,10 +607,12 @@ window.onload = function () {
     }
 
     buttonNewRoom.onclick = async () => {
+        const password = createMenuPassword.value;
         await fetch("http://" + location.host + "/new", {
             method: "POST",
             body: JSON.stringify({
                 "max_players": parseInt(createMenuMaxPlayers.value),
+                "password": password,
                 "deck": {
                     "extended": createMenuUseExtendedDeck.checked,
                     "chaos": createMenuUseChaosDeck.checked,
@@ -612,10 +620,10 @@ window.onload = function () {
             }),
         })
             .then(response => response.text())
-            .then(roomid => connectToRoom(createMenuUsername.value, roomid));
+            .then(roomid => connectToRoom(createMenuUsername.value, roomid, password));
     };
 
-    buttonJoinRooom.onclick = () => connectToRoom(joinMenuUsername.value, joinMenuRoomID.value);
+    buttonJoinRooom.onclick = () => connectToRoom(joinMenuUsername.value, joinMenuRoomID.value, joinMenuPassword.value);
 
     buttonAddBot.onclick = () => {
         if (!THIS_ROOM) {

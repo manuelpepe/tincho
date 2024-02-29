@@ -35,7 +35,7 @@ func NewSocket(server *httptest.Server, user string, room string) *websocket.Con
 func NewRoomBasic(g *Service) (string, error) {
 	deck := NewDeck()
 	deck.Shuffle()
-	return g.NewRoom(slog.Default(), deck, 4)
+	return g.NewRoom(slog.Default(), deck, 4, "")
 }
 
 func TestRoomLimit(t *testing.T) {
@@ -91,7 +91,7 @@ func TestDoubleDiscard(t *testing.T) {
 		{Suit: SuitClubs, Value: 9},
 		{Suit: SuitClubs, Value: 10},
 	}
-	roomID, err := g.NewRoom(slog.Default(), deck, 4)
+	roomID, err := g.NewRoom(slog.Default(), deck, 4, "")
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)
@@ -183,7 +183,7 @@ func TestBasicGame(t *testing.T) {
 	defer cancel()
 	defer s.Close()
 	deck := NewDeck()
-	roomID, err := g.NewRoom(slog.Default(), deck, 4)
+	roomID, err := g.NewRoom(slog.Default(), deck, 4, "")
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
 	ws2 := NewSocket(s, "p2", roomID)

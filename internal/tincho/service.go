@@ -20,20 +20,22 @@ type ServiceConfig struct {
 // Service is the object keeping state of all games.
 // Contains a map of rooms, where the key is the room ID.
 type Service struct {
-	context context.Context
-	rooms   []*Room
-	cfg     ServiceConfig
+	context   context.Context
+	rooms     []*Room
+	passwords map[string]string
+	cfg       ServiceConfig
 }
 
 func NewService(ctx context.Context, cfg ServiceConfig) Service {
 	return Service{
-		context: ctx,
-		rooms:   make([]*Room, 0, cfg.MaxRooms),
-		cfg:     cfg,
+		context:   ctx,
+		rooms:     make([]*Room, 0, cfg.MaxRooms),
+		passwords: make(map[string]string),
+		cfg:       cfg,
 	}
 }
 
-func (g *Service) NewRoom(logger *slog.Logger, deck Deck, maxPlayers int) (string, error) {
+func (g *Service) NewRoom(logger *slog.Logger, deck Deck, maxPlayers int, password string) (string, error) {
 	if maxPlayers <= 0 {
 		return "", fmt.Errorf("max players should be greater than 0, got %d", maxPlayers)
 	}
@@ -45,6 +47,9 @@ func (g *Service) NewRoom(logger *slog.Logger, deck Deck, maxPlayers int) (strin
 	roomLogger := logger.With("room_id", roomID, "component", "room")
 	room := NewRoomWithDeck(roomLogger, ctx, cancel, roomID, deck, maxPlayers)
 	g.rooms = append(g.rooms, &room)
+	if password != "" {
+		g.passwords[roomID] = password
+	}
 	go room.Start()
 	return room.ID, nil
 }
@@ -66,10 +71,17 @@ func (g *Service) GetRoom(roomID string) (*Room, bool) {
 	return g.rooms[roomix], true
 }
 
-func (g *Service) JoinRoom(roomID string, player *Player) error {
+func (g *Service) GetRoomPassword(roomID string) string {
+	return g.passwords[roomID]
+}
+
+func (g *Service) JoinRoom(roomID string, player *Player, password string) error {
 	room, exists := g.GetRoom(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
+	}
+	if pass, exists := g.passwords[roomID]; exists && pass != password {
+		return fmt.Errorf("invalid password")
 	}
 	if err := room.AddPlayer(player); err != nil {
 		return err
@@ -90,6 +102,7 @@ func (g *Service) ClearClosedRooms() {
 		}
 	}
 	for _, idx := range toRemove {
+		delete(g.passwords, g.rooms[idx].ID)
 		g.rooms = unordered_remove(g.rooms, idx)
 	}
 }
