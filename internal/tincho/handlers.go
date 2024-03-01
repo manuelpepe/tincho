@@ -178,13 +178,14 @@ func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cook
 }
 
 func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logger) func() {
-	tick := time.NewTicker(1 * time.Second) // TODO: Make global
 	ctx, cancelWSContext := context.WithCancel(room.Context)
 	stopWS := func() {
 		cancelWSContext()
 		ws.Close()
 	}
 	go func() {
+		logger.Info(fmt.Sprintf("Started socket write loop for player %s", player.ID))
+		tick := time.NewTicker(10 * time.Second)
 		for {
 			select {
 			case update := <-player.Updates:
@@ -197,6 +198,12 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logge
 					stopWS()
 					return
 				}
+			case <-tick.C:
+				if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+					logger.Error("error sending ping to player %s: %s", player.ID, err)
+					stopWS()
+					return
+				}
 			case <-ctx.Done():
 				logger.Info(fmt.Sprintf("Stopping socket write loop for player %s", player.ID))
 				return
@@ -204,6 +211,8 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logge
 		}
 	}()
 	go func() {
+		logger.Info(fmt.Sprintf("Started socket read loop for player %s", player.ID))
+		tick := time.NewTicker(1 * time.Second)
 		for {
 			select {
 			case <-tick.C:
