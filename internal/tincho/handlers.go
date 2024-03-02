@@ -107,7 +107,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionToken := ""
-	if token, err := r.Cookie("session_token"); err != nil {
+	if token, err := r.Cookie("session_token"); err == nil {
 		if token != nil {
 			sessionToken = token.Value
 		}
@@ -116,8 +116,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		h.connect(w, r, playerID, room, password)
 	} else if curPlayer.SessionToken == sessionToken {
-		// TODO: Check password for reconnection
-		h.reconnect(w, r, &curPlayer, room)
+		h.reconnect(w, r, &curPlayer, room, password)
 	} else {
 		h.logger.Warn(fmt.Sprintf("Player %s already exists in room %s", playerID, roomID))
 		w.WriteHeader(http.StatusConflict)
@@ -130,7 +129,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 	sesCookie := &http.Cookie{
 		Name:    "session_token",
 		Value:   player.SessionToken,
-		Expires: time.Now().Add(1 * time.Hour),
+		Expires: time.Now().Add(24 * time.Hour),
 	}
 	ws, err := upgradeConnection(w, r, sesCookie)
 	if err != nil {
@@ -151,7 +150,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 	h.logger.Info(fmt.Sprintf("Player %s joined room %s", playerID, room.ID))
 }
 
-func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Player, room *Room) {
+func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Player, room *Room, password string) {
 	ws, err := upgradeConnection(w, r, nil)
 	if err != nil {
 		h.logger.Warn(fmt.Sprintf("Error upgrading connection: %s", err), "err", err)
@@ -159,16 +158,22 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Pla
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
-	// TODO: Send state to player
 	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
-	handleWS(ws, player, room, wslogger)
+	stopWS := handleWS(ws, player, room, wslogger)
+	if err := h.service.JoinRoom(room.ID, player, password); err != nil {
+		stopWS()
+		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error joining room"))
+		return
+	}
 	h.logger.Info("Player %s reconnected to room %s", player.ID, room.ID)
 }
 
 func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cookie) (*websocket.Conn, error) {
 	var header http.Header
 	if cookie != nil {
-		header = http.Header{"Cookie": []string{cookie.String()}}
+		header = http.Header{"Set-Cookie": []string{cookie.String()}}
 	}
 	ws, err := upgrader.Upgrade(w, r, header)
 	if err != nil {

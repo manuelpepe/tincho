@@ -8,14 +8,14 @@ import (
 
 func (r *Room) BroadcastUpdate(update Update) {
 	for _, player := range r.state.GetPlayers() {
-		player.Updates <- update
+		player.SendUpdateOrDrop(update)
 	}
 }
 
 func (r *Room) BroadcastUpdateExcept(update Update, player PlayerID) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID != player {
-			p.Updates <- update
+			p.SendUpdateOrDrop(update)
 		}
 	}
 }
@@ -23,7 +23,7 @@ func (r *Room) BroadcastUpdateExcept(update Update, player PlayerID) {
 func (r *Room) TargetedUpdate(player PlayerID, update Update) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID == player {
-			p.Updates <- update
+			p.SendUpdateOrDrop(update)
 			return
 		}
 	}
@@ -41,6 +41,33 @@ func (r *Room) TargetedError(player PlayerID, err error) {
 		Type: UpdateTypeError,
 		Data: data,
 	})
+}
+
+func (r *Room) sendRejoinState(player *Player) error {
+	curTurn := r.state.PlayerToPlay().ID
+	var cardInHandVal *Card
+	if (player.ID == curTurn && r.state.pendingStorage != Card{}) {
+		cardInHandVal = &r.state.pendingStorage
+	}
+	var lastDiscarded *Card
+	if len(r.state.discardPile) > 0 {
+		lastDiscarded = &r.state.discardPile[0]
+	}
+	data, err := json.Marshal(UpdateTypeRejoinData{
+		Players:       r.state.GetPlayers(),
+		CurrentTurn:   curTurn,
+		CardInHand:    r.state.pendingStorage != Card{},
+		CardInHandVal: cardInHandVal,
+		LastDiscarded: lastDiscarded,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.TargetedUpdate(player.ID, Update{
+		Type: UpdateTypeRejoin,
+		Data: data,
+	})
+	return nil
 }
 
 func (r *Room) broadcastPassTurn() error {

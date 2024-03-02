@@ -104,6 +104,29 @@ window.onload = function () {
         return await moveNode(card, target);
     }
 
+    /** @param {Card} card */
+    function setLastDiscarded(card) {
+        const node = createCardTemplate();
+        node.appendChild(document.createTextNode("[" + cardValue(card) + "]"));
+        node.onclick = () => sendAction({
+            "type": "draw",
+            "data": { "source": "discard" },
+        });
+        deckDiscard.appendChild(node);
+        clearDiscardDeckExcept(node);
+    }
+
+    /**
+     * @param {string} player 
+     * @param {Card} card 
+     */
+    function setCardInDraw(player, card) {
+        const playerDraw = PLAYERS[player].draw;
+        const node = createCardTemplate();
+        node.appendChild(document.createTextNode("[" + cardValue(card) + "]"));
+        playerDraw.appendChild(node);
+    }
+
     /** 
      * @param {Player[]} new_players 
      */
@@ -506,6 +529,23 @@ window.onload = function () {
         showEndGame(data.scores);
     }
 
+    /** @param {UpdateRejoinStateData} data */
+    async function handleRejoinState(data) {
+        setStartGameScreen();
+        setPlayers(data.players);
+        if (data.lastDiscarded) {
+            setLastDiscarded(data.lastDiscarded)
+        }
+        if (data.cardInHand) {
+            setCardInDraw(data.currentTurn, data.cardInHandValue)
+        }
+        if (data.currentTurn == THIS_PLAYER && data.cardInHand) {
+            setDrawScreen(true, "none");
+        } else {
+            setTurnScreen(data.currentTurn == THIS_PLAYER);
+        }
+    }
+
     /** @param {MessageEvent<any>} event} */
     function processWSMessage(event) {
         const data = JSON.parse(event.data)
@@ -548,6 +588,8 @@ window.onload = function () {
             case "end_game":
                 queueActions(async () => await handleEndGame(msgData));
                 break;
+            case "rejoin_state":
+                queueActions(async () => await handleRejoinState(msgData));
             default:
                 console.error("Unknown message type", data.type, msgData)
                 break;

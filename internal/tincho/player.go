@@ -2,6 +2,7 @@ package tincho
 
 import (
 	"encoding/json"
+	"log/slog"
 )
 
 type PlayerID string
@@ -54,7 +55,7 @@ func NewPlayer(id PlayerID) *Player {
 		SessionToken: generateRandomString(20),
 		Hand:         make(Hand, 0),
 		Actions:      make(chan Action),
-		Updates:      make(chan Update),
+		Updates:      make(chan Update, 10),
 		Points:       0,
 	}
 }
@@ -62,4 +63,23 @@ func NewPlayer(id PlayerID) *Player {
 func (p *Player) QueueAction(action Action) {
 	action.PlayerID = p.ID
 	p.Actions <- action
+}
+
+func (p *Player) SendUpdateOrDrop(update Update) {
+	select {
+	case p.Updates <- update:
+	default:
+		slog.Error("Dropping update", "player", p.ID, "update", update)
+	}
+}
+
+func (p *Player) ClearPendingUpdates() {
+loop:
+	for {
+		select {
+		case <-p.Updates:
+		default:
+			break loop
+		}
+	}
 }

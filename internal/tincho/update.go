@@ -18,6 +18,7 @@ const (
 	UpdateTypeError               UpdateType = "error"
 	UpdateTypeStartNextRound      UpdateType = "start_next_round"
 	UpdateTypeEndGame             UpdateType = "end_game"
+	UpdateTypeRejoin              UpdateType = "rejoin_state"
 )
 
 type Update struct {
@@ -86,4 +87,12 @@ type UpdateErrorData struct {
 
 type UpdateEndGameData struct {
 	Scores [][]PlayerScore `json:"scores"`
+}
+
+type UpdateTypeRejoinData struct {
+	Players       []*Player `json:"players"`
+	CurrentTurn   PlayerID  `json:"currentTurn"`
+	CardInHand    bool      `json:"cardInHand"`
+	CardInHandVal *Card     `json:"cardInHandValue"`
+	LastDiscarded *Card     `json:"lastDiscarded"`
 }

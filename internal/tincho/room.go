@@ -96,19 +96,35 @@ func (r *Room) addPlayer(player *Player) error {
 	return nil
 }
 
+func (r *Room) IsPlayerInRoom(playerID PlayerID) bool {
+	_, exists := r.state.GetPlayer(playerID)
+	return exists
+}
+
 func (r *Room) Start() {
 	r.logger.Info("Starting room")
 	r.started = true
 	for {
 		select {
 		case req := <-r.playersChan:
-			if err := r.addPlayer(req.Player); err != nil {
-				r.logger.Error("r.addPlayer: %s", err, "player", req.Player)
-				req.Res <- err
-				continue
+			if r.IsPlayerInRoom(req.Player.ID) {
+				req.Player.ClearPendingUpdates()
+				if err := r.sendRejoinState(req.Player); err != nil {
+					r.logger.Error("r.sendRejoinState: %s", err, "player", req.Player)
+					req.Res <- err
+				} else {
+					r.logger.Info(fmt.Sprintf("Player rejoined #%s: %s", r.ID, req.Player.ID))
+					req.Res <- nil
+				}
+			} else {
+				if err := r.addPlayer(req.Player); err != nil {
+					r.logger.Error("r.addPlayer: %s", err, "player", req.Player)
+					req.Res <- err
+				} else {
+					r.logger.Info(fmt.Sprintf("Player joined #%s: %s", r.ID, req.Player.ID))
+					req.Res <- nil
+				}
 			}
-			r.logger.Info(fmt.Sprintf("Player joined #%s: %s", r.ID, req.Player.ID))
-			req.Res <- nil
 		case action := <-r.actionsChan:
 			r.logger.Info(fmt.Sprintf("Recieved action from %s", action.PlayerID), "action", action)
 			r.doAction(action)

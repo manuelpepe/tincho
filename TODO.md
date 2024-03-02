@@ -3,15 +3,6 @@
 ### Features
 
 - [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
-- [ ] [BACK+FRONT] Implement reconnection
-    - Option 1: Verify (IP, Username, RoomID)
-    - Option 2:
-        - Generate token on join
-        - Send token to user
-        - Client stores token in local storage along with username
-        - Allow client to reconnect if using token
-    - Send necessary state on reconnection
-    - Prevent duplicated players from joining game (prevent dup join without token).
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
     (requires private rooms)
     - [ ] [BACK] Check room listing, add room capacity
@@ -89,6 +80,12 @@
         - [x] Make private (set password for room)
         - [x] Max players
     - [x] UI for room creation
+- [x] Reconnection
+    - Generate token on join
+    - Send token to user in cookie
+    - Allow client to reconnect if using token
+    - Send necessary state on reconnection
+    - Prevent duplicated players from joining game (prevent dup join without token).
 
 ### Fixes
 
