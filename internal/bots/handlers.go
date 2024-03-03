@@ -51,7 +51,8 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("Error with bot: %s", err)
 		}
 		// TODO: If bot fails, broadcasts are stuck because noone is reading from the updates channel.
-		// probably should tear down room and remove players.
+		// probably should tear down room and remove players or fallback to some known behaviour with an
+		// error sent to all players.
 	}()
 	if err := h.service.JoinRoom(roomID, player, h.service.GetRoomPassword(roomID)); err != nil {
 		h.logger.Error("Error joining room", "err", err)

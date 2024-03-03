@@ -9,9 +9,6 @@ var ACTIONS_BUFFER = [];
 /** @type {actionCallback} */
 var CURRENT_ACTION = null;
 
-
-
-// TODO: Implement timeout param
 /** @param {...actionCallback} actions */
 export function queueActions(...actions) {
     ACTIONS_BUFFER.push(...actions);

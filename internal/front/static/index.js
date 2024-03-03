@@ -488,7 +488,6 @@ window.onload = function () {
                 PLAYERS[data.player].data.cards_in_hand -= 1;
             }
         }
-        // decrease cards_in_hand on succesfull double discard
     }
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */

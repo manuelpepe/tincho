@@ -2,9 +2,10 @@
 
 ### Features
 
+- [ ] [FRONT] Display more info on cut
+- [ ] [FRONT] Configurable animation speed
 - [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
-    (requires private rooms)
     - [ ] [BACK] Check room listing, add room capacity
     - [ ] [FRONT] "Search games" option in menu, list component
 - [ ] [FRONT] Add styles to UI (this will never be finished)
