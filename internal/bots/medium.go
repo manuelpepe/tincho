@@ -11,19 +11,19 @@ import (
 
 type KnownHand tincho.Hand
 
-func (h *KnownHand) Forget(pos int) {
-	h.Replace(pos, tincho.Card{})
+func (h *KnownHand) Forget(pos int) error {
+	return h.Replace(pos, tincho.Card{})
 }
 
-func (h *KnownHand) Replace(position int, card tincho.Card) {
+func (h *KnownHand) Replace(position int, card tincho.Card) error {
 	if h == nil {
 		panic("nil KnownHand")
 	}
 	if position < 0 || position >= len(*h) {
-		// TODO: Replace panic
-		panic(fmt.Sprintf("invalid position: %d", position))
+		return fmt.Errorf("invalid position: %d", position)
 	}
 	(*h)[position] = card
+	return nil
 }
 
 func (h *KnownHand) KnownPoints() (int, bool) {
@@ -192,7 +192,9 @@ func (s *MediumStrategy) SwapCards(player tincho.Player, data tincho.UpdateSwapC
 		return tincho.Action{}, nil
 	}
 	cardPos := data.CardsPositions[myIX]
-	s.hand.Forget(cardPos)
+	if err := s.hand.Forget(cardPos); err != nil {
+		return tincho.Action{}, fmt.Errorf("s.hand.Forget: %w", err)
+	}
 	return tincho.Action{}, nil
 }
 
