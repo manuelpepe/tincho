@@ -2,6 +2,7 @@
 
 ### Features
 
+- [ ] [FRONT] Skip button for cut screen
 - [ ] [FRONT] Display more info on cut
 - [ ] [FRONT] Configurable animation speed
 - [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
@@ -36,7 +37,6 @@
 
 - [ ] [FRONT] When swapping cards, an intermediate container should be used to pass them around (improves animation)
 - [ ] [BACK] Prevent discarding drawed card if it was drawed from the discard pile
-- [ ] [FRONT] After cutting, timeout runs for every player, hiding their cards in order instead of all at once, and creating long wait times
 
 
 
@@ -95,3 +95,4 @@
 - [x] Points are not being correctly calculated
 - [x] Bots can draw from empty discard deck and crash
 - [x] Refactor `queueAnimation` to `queueAction` and queue actions as they come in through the socket. queuing only animations results in ui bugs.
+- [x] [FRONT] After cutting, timeout runs for every player, hiding their cards in order instead of all at once, and creating long wait times

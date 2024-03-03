@@ -31,7 +31,7 @@ window.onload = function () {
     /** @type {boolean} */
     var FIRST_TURN = true;
 
-    const NEXT_ROUND_TIMEOUT = 10000;
+    const NEXT_ROUND_TIMEOUT = 20000;
     const PEEK_TIMEOUT = 5000;
 
 
@@ -179,10 +179,12 @@ window.onload = function () {
         const playerData = PLAYERS[player].data;
         drawHand(playerHand, player, playerData.cards_in_hand, cards, positions, mask)
         // TODO: Store timeout for skip button
-        queueActionInstantly(async () => {
-            await new Promise(r => setTimeout(r, timeout));
-            drawHand(playerHand, player, playerData.cards_in_hand, [], [], null);
-        });
+        if (timeout > 0) {
+            queueActionInstantly(async () => {
+                await new Promise(r => setTimeout(r, timeout));
+                drawHand(playerHand, player, playerData.cards_in_hand, [], [], null);
+            });
+        }
     }
 
     /**
@@ -398,14 +400,16 @@ window.onload = function () {
      * @param {number} declared 
      * @param {Card[][]} hands
      */
-    function showCut(players, player, withCount, declared, hands) {
+    async function showCut(players, player, withCount, declared, hands) {
         // TODO: Show player, withcount and declared
         setCutScreen();
         setPlayers(players);
         for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
             const positions = [...Array(hands[ix].length).keys()];
-            showCards(player, hands[ix], positions, NEXT_ROUND_TIMEOUT);
+            showCards(player, hands[ix], positions, 0);
         }
+        await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
+        setPlayers(players);
     }
 
     /** @param {{playerID: string, score: number}[][]} scores */
