@@ -91,17 +91,22 @@ type MediumStrategy struct {
 	firstTurn bool
 }
 
+func (s *MediumStrategy) ResetHand(self tincho.Player, players []*tincho.Player) {
+	for _, p := range players {
+		if p.ID == self.ID {
+			s.hand = make(KnownHand, len(p.Hand))
+			return
+		}
+	}
+}
+
 func (s *MediumStrategy) PlayersChanged(player tincho.Player, data tincho.UpdatePlayersChangedData) (tincho.Action, error) {
 	return tincho.Action{}, nil
 }
 
 func (s *MediumStrategy) GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	s.firstTurn = true
-	for _, p := range data.Players {
-		if p.ID == player.ID {
-			s.hand = make(KnownHand, len(p.Hand))
-		}
-	}
+	s.ResetHand(player, data.Players)
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
@@ -149,40 +154,51 @@ func (s *MediumStrategy) Draw(player tincho.Player, data tincho.UpdateDrawData) 
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
-	// TODO: Handle peek own
-	// discard unkown
 	unkownCard, hasUnkownCard := s.hand.GetUnkownCard()
 	if hasUnkownCard {
-		res, err := json.Marshal(tincho.ActionDiscardData{
-			CardPosition: unkownCard,
-		})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
+		if data.Card.GetEffect() == tincho.CardEffectPeekOwnCard {
+			res, err := json.Marshal(tincho.ActionPeekOwnCardData{CardPosition: unkownCard})
+			if err != nil {
+				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
+			}
+			s.hand.Replace(unkownCard, data.Card)
+			return tincho.Action{Type: tincho.ActionPeekOwnCard, Data: json.RawMessage(res)}, nil
+		} else {
+			res, err := json.Marshal(tincho.ActionDiscardData{CardPosition: unkownCard})
+			if err != nil {
+				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
+			}
+			s.hand.Replace(unkownCard, data.Card)
+			return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 		}
-		return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 	}
-	// discard highest with change of making mistake
-	makesMistake := rand.Float32() < 0.20
-	if makesMistake {
-		res, err := json.Marshal(tincho.ActionDiscardData{
-			CardPosition: rand.Intn(len(s.hand)),
-		})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-		}
-		return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 
+	// chance of discarding a random card
+	if makesMistake := rand.Float32() < 0.20; makesMistake {
+		discardIx := rand.Intn(len(s.hand))
+		res, err := json.Marshal(tincho.ActionDiscardData{CardPosition: discardIx})
+		if err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
+		}
+		s.hand.Replace(discardIx, data.Card)
+		return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 	}
-	res, err := json.Marshal(tincho.ActionDiscardData{
-		CardPosition: s.hand.GetHighestValueCardOrRandom(),
-	})
+
+	// discard highest value card
+	discardIx := s.hand.GetHighestValueCardOrRandom()
+	res, err := json.Marshal(tincho.ActionDiscardData{CardPosition: discardIx})
 	if err != nil {
 		return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
 	}
+	s.hand.Replace(discardIx, data.Card)
 	return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 }
 
 func (s *MediumStrategy) PeekCard(player tincho.Player, data tincho.UpdatePeekCardData) (tincho.Action, error) {
+	if data.Player != player.ID {
+		return tincho.Action{}, nil
+	}
+	s.hand.Replace(data.CardPosition, data.Card)
 	return tincho.Action{}, nil
 }
 
@@ -216,6 +232,7 @@ func (s *MediumStrategy) Error(player tincho.Player, data tincho.UpdateErrorData
 
 func (s *MediumStrategy) StartNextRound(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	s.firstTurn = true
+	s.ResetHand(player, data.Players)
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
