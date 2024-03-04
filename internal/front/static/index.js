@@ -31,8 +31,8 @@ window.onload = function () {
     /** @type {boolean} */
     var FIRST_TURN = true;
 
-    const NEXT_ROUND_TIMEOUT = 20000;
-    const PEEK_TIMEOUT = 5000;
+    const NEXT_ROUND_TIMEOUT = 2000;
+    const PEEK_TIMEOUT = 1000;
 
 
     const joinMenuRoomID = /** @type {HTMLInputElement} */ (document.getElementById("join-room-id"));
@@ -416,25 +416,42 @@ window.onload = function () {
     function showEndGame(scores) {
         console.log(scores)
         hide(gameContainer);
+
         const tbl = document.createElement("table");
+        const tblHead = document.createElement("thead");
+        const headRow = document.createElement("tr");
         const tblBody = document.createElement("tbody");
-        for (const [ix, round] of Object.entries(scores)) {
+
+
+        for (const [_ix, round] of Object.entries(scores)) {
+            const ix = Number.parseInt(_ix);
+
+            if (ix == 0) {
+                const headCell = document.createElement("th");
+                headCell.appendChild(document.createTextNode("Round"));
+                headRow.appendChild(headCell);
+                for (const score of round) {
+                    const cell = document.createElement("th");
+                    cell.appendChild(document.createTextNode(score["playerID"]));
+                    headRow.appendChild(cell);
+                }
+            }
+
+            const roundNum = ix + 1;
             const row = document.createElement("tr");
             const roundCell = document.createElement("td");
-            const roundNum = ix + 1;
             roundCell.appendChild(document.createTextNode("Round " + roundNum));
             row.appendChild(roundCell);
             for (const score of round) {
-                const cell1 = document.createElement("td");
-                const cell2 = document.createElement("td");
-                cell1.appendChild(document.createTextNode(score["playerID"]));
-                cell2.appendChild(document.createTextNode("" + score["score"]));
-                row.appendChild(cell1);
-                row.appendChild(cell2);
+                const cell = document.createElement("td");
+                cell.appendChild(document.createTextNode("" + score["score"]));
+                row.appendChild(cell);
             }
             tblBody.appendChild(row);
-
         }
+
+        tblHead.appendChild(headRow);
+        tbl.appendChild(tblHead);
         tbl.appendChild(tblBody);
         endgameContainer.appendChild(tbl);
     }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type ActionType string
@@ -152,6 +153,8 @@ func (r *Room) doCut(action Action) error {
 		if err := r.broadcastEndGame(scores); err != nil {
 			return fmt.Errorf("broadcastEndGame: %w", err)
 		}
+		// wait a few seconds before closing to ensure everyone recieves updates
+		time.Sleep(3 * time.Second)
 		r.Close()
 	} else {
 		if err := r.state.StartNextRound(); err != nil {

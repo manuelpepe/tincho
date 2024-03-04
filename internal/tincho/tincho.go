@@ -133,7 +133,7 @@ func (t *Tincho) deal() error {
 func (t *Tincho) recordScores() {
 	scores := make([]PlayerScore, 0)
 	for _, p := range t.players {
-		scores = append(scores, PlayerScore{PlayerID: p.ID, Score: p.Hand.Sum()})
+		scores = append(scores, PlayerScore{PlayerID: p.ID, Score: p.Points})
 	}
 	t.scoreHistory = append(t.scoreHistory, scores)
 }
