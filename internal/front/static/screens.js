@@ -1,5 +1,5 @@
 import { EFFECT_PEEK_CARTA_AJENA, EFFECT_PEEK_OWN, EFFECT_SWAP } from './constants.js';
-import { hide, show } from './utils.js';
+import { createCardTemplate, hide, show } from './utils.js';
 
 
 // TODO: Do away with repeated declarations 
@@ -113,6 +113,9 @@ export function setCutScreen() {
 
 export function setStartRoundScreen() {
     deckPile.innerHTML = "";
+    let card = createCardTemplate();
+    card.innerHTML = "[ ]"
+    deckPile.append(card)
     deckDiscard.innerHTML = "";
     show(buttonFirstPeek)
 }

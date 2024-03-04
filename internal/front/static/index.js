@@ -1,6 +1,6 @@
 import "./types.js";
 
-import { hide, show, moveNode } from "./utils.js";
+import { hide, show, moveNode, createCardTemplate } from "./utils.js";
 import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
 import { queueActions, queueActionInstantly, startProcessingActions } from "./actions.js";
 import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
@@ -821,13 +821,6 @@ window.onload = function () {
         }
         console.log("Sent data:", data)
         conn.send(JSON.stringify(data));
-    }
-
-    /** @returns {HTMLElement} */
-    function createCardTemplate() {
-        const card = document.createElement("div");
-        card.className = "card";
-        return card;
     }
 
     startProcessingActions();

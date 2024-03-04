@@ -40,3 +40,10 @@ export async function moveNode(node, target, duration = 1000) {
     });
     return new Promise(r => animation.finished.then(r))
 }
+
+/** @returns {HTMLElement} */
+export function createCardTemplate() {
+    const card = document.createElement("div");
+    card.className = "card";
+    return card;
+}
