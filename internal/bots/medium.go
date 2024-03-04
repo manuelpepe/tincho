@@ -87,6 +87,8 @@ func (h *KnownHand) GetHighestValueCardOrRandom() int {
 }
 
 type MediumStrategy struct {
+	BaseStrategy // embedded to avoid implementing all the methods
+
 	hand      KnownHand
 	firstTurn bool
 }
@@ -98,10 +100,6 @@ func (s *MediumStrategy) ResetHand(self tincho.Player, players []*tincho.Player)
 			return
 		}
 	}
-}
-
-func (s *MediumStrategy) PlayersChanged(player tincho.Player, data tincho.UpdatePlayersChangedData) (tincho.Action, error) {
-	return tincho.Action{}, nil
 }
 
 func (s *MediumStrategy) GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
@@ -214,18 +212,6 @@ func (s *MediumStrategy) SwapCards(player tincho.Player, data tincho.UpdateSwapC
 	return tincho.Action{}, nil
 }
 
-func (s *MediumStrategy) Discard(player tincho.Player, data tincho.UpdateDiscardData) (tincho.Action, error) {
-	return tincho.Action{}, nil
-}
-
-func (s *MediumStrategy) FailedDoubleDiscard(player tincho.Player) (tincho.Action, error) {
-	return tincho.Action{}, nil
-}
-
-func (s *MediumStrategy) Cut(player tincho.Player, data tincho.UpdateCutData) (tincho.Action, error) {
-	return tincho.Action{}, nil
-}
-
 func (s *MediumStrategy) Error(player tincho.Player, data tincho.UpdateErrorData) (tincho.Action, error) {
 	return tincho.Action{}, fmt.Errorf("recieved error update: %s", data.Message)
 }
@@ -234,8 +220,4 @@ func (s *MediumStrategy) StartNextRound(player tincho.Player, data tincho.Update
 	s.firstTurn = true
 	s.ResetHand(player, data.Players)
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
-}
-
-func (s *MediumStrategy) EndGame(player tincho.Player, data tincho.UpdateEndGameData) (tincho.Action, error) {
-	return tincho.Action{}, nil
 }
