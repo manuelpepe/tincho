@@ -1,3 +1,5 @@
+import { ANIMATION_DURATION } from "./configs.js";
+
 /** @param {HTMLElement} node */
 export function hide(node) {
     node.style.display = "none";
@@ -13,9 +15,9 @@ export function show(node, display = "block") {
  * @param {Element} target 
  * @param {number | null} duration
  */
-export async function moveNode(node, target, duration = 1000) {
+export async function moveNode(node, target, duration = ANIMATION_DURATION) {
     if (duration == null || duration == undefined) {
-        duration = 1000;
+        duration = ANIMATION_DURATION;
     }
     const { left: x0, top: y0 } = node.getBoundingClientRect();
     target.append(node);

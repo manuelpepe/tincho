@@ -15,6 +15,7 @@ const buttonCancelDiscardTwo = document.getElementById("btn-cancel-discard-two")
 const buttonSwap = document.getElementById("btn-swap");
 const buttonPeekOwn = document.getElementById("btn-peek-own");
 const buttonPeekCartaAjena = document.getElementById("btn-peek-carta-ajena");
+const buttonSpeedToggle = document.getElementById("speed-toggle");
 
 const cutUI = document.getElementById("cut-ui");
 const inputCutDeclare = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declare"));
@@ -69,6 +70,7 @@ export function setStartGameScreen() {
     hide(buttonStart);
     hide(buttonAddBot);
     hide(selectBotDiff);
+    show(buttonSpeedToggle);
     show(buttonFirstPeek);
     show(deckPile, "flex");
     show(deckDiscard, "flex");

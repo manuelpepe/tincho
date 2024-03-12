@@ -4,6 +4,7 @@ import { hide, show, moveNode, createCardTemplate } from "./utils.js";
 import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
 import { queueActions, queueActionInstantly, startProcessingActions } from "./actions.js";
 import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
+import { PEEK_TIMEOUT, NEXT_ROUND_TIMEOUT, SWAP_DURATION } from './configs.js';
 
 window.onload = function () {
     var suitKind = "standard"
@@ -30,10 +31,6 @@ window.onload = function () {
 
     /** @type {boolean} */
     var FIRST_TURN = true;
-
-    const NEXT_ROUND_TIMEOUT = 2000;
-    const PEEK_TIMEOUT = 1000;
-
 
     const joinMenuRoomID = /** @type {HTMLInputElement} */ (document.getElementById("join-room-id"));
     const joinMenuUsername = /** @type {HTMLInputElement} */ (document.getElementById("join-username"));
@@ -384,8 +381,8 @@ window.onload = function () {
         playerTwoCard.replaceWith(tmpContainerTwo)
         tmpContainerTwo.appendChild(playerTwoCard);
 
-        await moveNode(playerOneCard, tmpContainerTwo, 2000);
-        await moveNode(playerTwoCard, tmpContainerOne, 2000);
+        await moveNode(playerOneCard, tmpContainerTwo, SWAP_DURATION);
+        await moveNode(playerTwoCard, tmpContainerOne, SWAP_DURATION);
 
         tmpContainerOne.replaceWith(playerTwoCard);
         tmpContainerTwo.replaceWith(playerOneCard);

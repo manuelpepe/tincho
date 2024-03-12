@@ -4,7 +4,6 @@
 
 - [ ] [FRONT] Skip button for cut screen
 - [ ] [FRONT] Display more info on cut
-- [ ] [FRONT] Configurable animation speed
 - [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
     - [ ] [BACK] Check room listing, add room capacity
@@ -86,6 +85,7 @@
     - Allow client to reconnect if using token
     - Send necessary state on reconnection
     - Prevent duplicated players from joining game (prevent dup join without token).
+- [x] Configurable animation speed
 
 ### Fixes
 

@@ -118,6 +118,10 @@
             justify-content: center;
             margin: 0.4em 0em;
         }
+
+        #speed-toggle {
+            width: 2em;
+        }
     </style>
 
     <template id="player-template">
@@ -175,6 +179,8 @@
 
 
         <div id="game">
+            <button id="speed-toggle" style="display:none;">x1.0</button>
+
             <div id="player-list" class="player-list"></div>
 
             <div class="decks">
