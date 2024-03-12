@@ -67,6 +67,7 @@ window.onload = function () {
     const buttonCut = document.getElementById("btn-cut");
     const inputCutDeclare = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declare"));
     const inputCutDeclared = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declared"));
+    const cutInfoDialog = document.getElementById("cut-info-dialog");
 
     const playerTemplate = /** @type {HTMLTemplateElement} */ (document.getElementById("player-template"))
     const playerList = document.getElementById("player-list");
@@ -162,6 +163,21 @@ window.onload = function () {
         }
         PLAYERS[player.id] = playerData;
         container.appendChild(clone);
+    }
+
+    /** 
+     * @param {string} player
+     * @param {boolean} withCount
+     * @param {number} declared
+     */
+    function setCutInfo(player, withCount, declared) {
+        show(cutInfoDialog);
+        cutInfoDialog.innerHTML = `Player ${player} cut ${withCount ? `declaring ${declared}` : "without declaring"}`;
+    }
+
+    function clearCutInfo() {
+        hide(cutInfoDialog);
+        cutInfoDialog.innerHTML = "";
     }
 
     /** 
@@ -398,14 +414,16 @@ window.onload = function () {
      * @param {Card[][]} hands
      */
     async function showCut(players, player, withCount, declared, hands) {
-        // TODO: Show player, withcount and declared
         setCutScreen();
         setPlayers(players);
         for (const [ix, [player, data]] of Object.entries(PLAYERS).entries()) {
             const positions = [...Array(hands[ix].length).keys()];
             showCards(player, hands[ix], positions, 0);
         }
+        setCutInfo(player, withCount, declared);
+        // TODO: Refactor to show next round button
         await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
+        clearCutInfo();
         setPlayers(players);
     }
 
@@ -529,13 +547,11 @@ window.onload = function () {
 
     /** @param {UpdateCutData} data */
     async function handleCut(data) {
-        showCut(data.players, data.player, data.withCount, data.declared, data.hands);
+        await showCut(data.players, data.player, data.withCount, data.declared, data.hands);
     }
 
     /** @param {UpdateStartNextRoundData} data */
     async function handleNextRound(data) {
-        // TODO: Refactor to show next round button
-        await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
         FIRST_TURN = true;
         setStartRoundScreen();
         setPlayers(data.players)

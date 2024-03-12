@@ -122,6 +122,10 @@
         #speed-toggle {
             width: 2em;
         }
+
+        #cut-info-dialog {
+            text-align: center;
+        }
     </style>
 
     <template id="player-template">
@@ -176,12 +180,13 @@
             </div>
         </div>
 
-
-
         <div id="game">
             <button id="speed-toggle" style="display:none;">x1.0</button>
 
             <div id="player-list" class="player-list"></div>
+
+            <div id="cut-info-dialog" style="display: none;">
+            </div>
 
             <div class="decks">
                 <div class="deck" id="deck-pile" style="display: none;">
@@ -226,6 +231,7 @@
                 <input type="number" name="" id="input-cut-declared" value="0" style="display: none;" />
             </div>
         </div>
+
         <div class="buttons row">
             <button id="btn-swap" style="display: none;">Swap</button>
             <button id="btn-peek-own" style="display: none;">Peek own card</button>
