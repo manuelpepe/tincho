@@ -49,3 +49,23 @@ export function createCardTemplate() {
     card.className = "card";
     return card;
 }
+
+/** @returns {{wait: () => Promise<void>, notify: () => void}} */
+export function getWaiter() {
+    const timeout = async ms => new Promise(res => setTimeout(res, ms));
+    let next = false;
+
+    async function wait() {
+        while (next === false) await timeout(50);
+        next = false;
+    }
+
+    function notify() {
+        next = true;
+    }
+
+    return {
+        wait,
+        notify,
+    }
+}

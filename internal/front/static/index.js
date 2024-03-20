@@ -5,6 +5,7 @@ import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, 
 import { queueActions, queueActionInstantly, startProcessingActions } from "./actions.js";
 import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
 import { PEEK_TIMEOUT, NEXT_ROUND_TIMEOUT, SWAP_DURATION } from './configs.js';
+import { getWaiter } from "./utils.js";
 
 window.onload = function () {
     var suitKind = "standard"
@@ -63,6 +64,7 @@ window.onload = function () {
     const buttonSwap = document.getElementById("btn-swap");
     const buttonPeekOwn = document.getElementById("btn-peek-own");
     const buttonPeekCartaAjena = document.getElementById("btn-peek-carta-ajena");
+    const buttonContinue = document.getElementById("btn-continue");
 
     const buttonCut = document.getElementById("btn-cut");
     const inputCutDeclare = /** @type {HTMLInputElement} */ (document.getElementById("input-cut-declare"));
@@ -80,6 +82,15 @@ window.onload = function () {
     const deckDiscard = document.getElementById("deck-discard");
 
     const errorContainer = document.getElementById("error-container");
+
+    let waiter = getWaiter();
+
+    async function waitUserInput() {
+        buttonContinue.onclick = () => waiter.notify();
+        show(buttonContinue);
+        await waiter.wait();
+        hide(buttonContinue);
+    }
 
     /** @param {Card} card */
     function cardValue(card) {
@@ -191,21 +202,23 @@ window.onload = function () {
         const playerHand = PLAYERS[player].hand;
         const playerData = PLAYERS[player].data;
         drawHand(playerHand, player, playerData.cards_in_hand, cards, positions, mask)
-        // TODO: Store timeout for skip button
         if (timeout > 0) {
             queueActionInstantly(async () => {
                 await new Promise(r => setTimeout(r, timeout));
-                drawHand(playerHand, player, playerData.cards_in_hand, [], [], null);
+                clearPlayerHand(player);
             });
         }
     }
 
-    /**
-     * @param {string} player 
-     * @param {number} cardPosition 
-     */
-    function showPeek(player, cardPosition) {
-        showCards(player, [], [cardPosition], PEEK_TIMEOUT, "👁");
+    function clearPlayersHands() {
+        for (const [player, _] of Object.entries(PLAYERS)) {
+            clearPlayerHand(player);
+        }
+    }
+
+    function clearPlayerHand(player) {
+        const p = PLAYERS[player];
+        drawHand(p.hand, player, p.data.cards_in_hand, [], [], null);
     }
 
     /** 
@@ -421,8 +434,8 @@ window.onload = function () {
             showCards(player, hands[ix], positions, 0);
         }
         setCutInfo(player, withCount, declared);
-        // TODO: Refactor to show next round button
-        await new Promise(r => setTimeout(r, NEXT_ROUND_TIMEOUT));
+        await waitUserInput();
+        clearPlayersHands();
         clearCutInfo();
         setPlayers(players);
     }
@@ -495,7 +508,9 @@ window.onload = function () {
     async function handlePlayerPeeked(data) {
         if (data.player == THIS_PLAYER) {
             setPlayerPeekedScreen()
-            showCards(data.player, data.cards, [0, 1])
+            showCards(data.player, data.cards, [0, 1], 0)
+            await waitUserInput();
+            clearPlayerHand(data.player);
         }
         markReady(data.player)
     }
@@ -536,7 +551,7 @@ window.onload = function () {
         if (data.card.value != 0 && data.card.suit != "") {
             showCards(data.player, [data.card], [data.cardPosition]);
         } else {
-            showPeek(data.player, data.cardPosition);
+            showCards(data.player, [], [data.cardPosition], PEEK_TIMEOUT, "👁");
         }
     }
 

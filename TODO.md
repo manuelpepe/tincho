@@ -2,7 +2,6 @@
 
 ### Features
 
-- [ ] [FRONT] Skip button for cut screen
 - [ ] [BACK+FRONT] With round history also store: cut info, all hands
     - [ ] [BACK] Record data
     - [ ] [FRONT] Display data
@@ -89,6 +88,7 @@
     - Prevent duplicated players from joining game (prevent dup join without token).
 - [x] Configurable animation speed
 - [x] Display more info on cut
+- [x] Skip button for cut screen and first peek
 
 ### Fixes
 
