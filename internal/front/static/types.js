@@ -1,7 +1,7 @@
 /** @typedef {{suit: string, value: number}} Card */
 /** @typedef {{id: string, points: number, pending_first_peek: boolean, cards_in_hand: number}} Player */
 /** @typedef {{player: string, cardPosition: number}} SwapBuffer */
-/** @typedef {{playerID: string, score: number}} PlayerScore */
+/** @typedef {{cutter: string, withCount: boolean, declared: number, scores: Object.<string, number>, hands: Object.<string, Card[]>}} Round */
 
 /** @typedef {{players: Player[]}} UpdatePlayersChangedData */
 /** @typedef {{players: Player[]}} UpdateStartNextRoundData */
@@ -14,5 +14,5 @@
 /** @typedef {{player: string, cardsPositions: number[], cards: Card[]}} UpdateTypeFailedDoubleDiscardData */
 /** @typedef {{withCount: boolean, declared: number, player: string, players: Player[], hands: Card[][]}} UpdateCutData */
 /** @typedef {{message: string}} UpdateErrorData */
-/** @typedef {{scores: PlayerScore[][]}} UpdateEndGameData */
+/** @typedef {{rounds: Round[]}} UpdateEndGameData */
 /** @typedef {{players: Player[], currentTurn: string, cardInHand: boolean, cardInHandValue: Card | null, lastDiscarded: Card | null}} UpdateRejoinStateData */

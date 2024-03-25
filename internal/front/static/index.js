@@ -440,9 +440,9 @@ window.onload = function () {
         setPlayers(players);
     }
 
-    /** @param {{playerID: string, score: number}[][]} scores */
-    function showEndGame(scores) {
-        console.log(scores)
+    /** @param {Round[]} rounds */
+    function showEndGame(rounds) {
+        console.log(rounds);
         hide(gameContainer);
 
         const tbl = document.createElement("table");
@@ -450,31 +450,60 @@ window.onload = function () {
         const headRow = document.createElement("tr");
         const tblBody = document.createElement("tbody");
 
+        const players = Object.keys(rounds[0].scores);
 
-        for (const [_ix, round] of Object.entries(scores)) {
-            const ix = Number.parseInt(_ix);
+        // create headers
+        const headCell = document.createElement("th");
+        headCell.appendChild(document.createTextNode("Round"));
+        headRow.appendChild(headCell);
+        for (const playerID of players) {
+            const cell = document.createElement("th");
+            cell.appendChild(document.createTextNode(playerID));
+            headRow.appendChild(cell);
+        }
 
-            if (ix == 0) {
-                const headCell = document.createElement("th");
-                headCell.appendChild(document.createTextNode("Round"));
-                headRow.appendChild(headCell);
-                for (const score of round) {
-                    const cell = document.createElement("th");
-                    cell.appendChild(document.createTextNode(score["playerID"]));
-                    headRow.appendChild(cell);
-                }
-            }
-
-            const roundNum = ix + 1;
+        // populate table
+        for (let rIx = 0; rIx < rounds.length; rIx++) {
+            const round = rounds[rIx];
             const row = document.createElement("tr");
+
             const roundCell = document.createElement("td");
-            roundCell.appendChild(document.createTextNode("Round " + roundNum));
+            roundCell.appendChild(document.createTextNode("Round " + (rIx + 1)));
             row.appendChild(roundCell);
-            for (const score of round) {
+
+            for (const playerID of players) {
                 const cell = document.createElement("td");
-                cell.appendChild(document.createTextNode("" + score["score"]));
+                cell.className = "score-cell";
+
+                const text = document.createTextNode("" + round.scores[playerID]);
+                if (playerID == round.cutter) {
+                    cell.className += " cutter";
+                    // TODO: Add cut withCount and declared info somewhere
+                }
+
+                const handContainer = document.createElement("div");
+                handContainer.className = "hand-container"
+                hide(handContainer);
+
+                let containerText;
+                if (round.hands[playerID].length > 0) {
+                    containerText = document.createTextNode("Hand: " + round.hands[playerID].map(cardValue).join(" "));
+                } else {
+                    console.error("missing hand data for player: ", playerID, rounds)
+                    containerText = document.createTextNode("missing hand data");
+                }
+
+                handContainer.appendChild(containerText);
+
+                cell.onmouseover = () => show(handContainer, "flex");
+                cell.onmouseout = () => hide(handContainer);
+
+                cell.appendChild(text);
+                cell.appendChild(handContainer);
                 row.appendChild(cell);
             }
+
+
             tblBody.appendChild(row);
         }
 
@@ -574,7 +603,7 @@ window.onload = function () {
 
     /** @param {UpdateEndGameData} data */
     async function handleEndGame(data) {
-        showEndGame(data.scores);
+        showEndGame(data.rounds);
     }
 
     /** @param {UpdateRejoinStateData} data */

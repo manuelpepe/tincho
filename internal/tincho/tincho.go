@@ -11,9 +11,14 @@ var ErrPlayerNotPendingFirstPeek = errors.New("player not pending first peek")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
 
-type PlayerScore struct {
-	PlayerID PlayerID `json:"playerID"`
-	Score    int      `json:"score"`
+type Round struct {
+	Cutter PlayerID `json:"cutter"`
+
+	WithCount bool `json:"withCount"`
+	Declared  int  `json:"declared"`
+
+	Scores map[PlayerID]int  `json:"scores"`
+	Hands  map[PlayerID]Hand `json:"hands"`
 }
 
 type Tincho struct {
@@ -24,7 +29,7 @@ type Tincho struct {
 	discardPile  Deck
 	cpyDeck      Deck
 	totalRounds  int
-	scoreHistory [][]PlayerScore
+	roundHistory []Round
 
 	// the last card drawn that has not been stored into a player's hand
 	pendingStorage Card
@@ -38,7 +43,7 @@ func NewTinchoWithDeck(deck Deck) *Tincho {
 		discardPile:  make(Deck, 0),
 		cpyDeck:      slices.Clone(deck),
 		totalRounds:  0,
-		scoreHistory: make([][]PlayerScore, 0),
+		roundHistory: make([]Round, 0),
 	}
 }
 
@@ -130,12 +135,19 @@ func (t *Tincho) deal() error {
 	return nil
 }
 
-func (t *Tincho) recordScores() {
-	scores := make([]PlayerScore, 0)
-	for _, p := range t.players {
-		scores = append(scores, PlayerScore{PlayerID: p.ID, Score: p.Points})
+func (t *Tincho) recordScores(cutter PlayerID, withCount bool, declared int) {
+	round := Round{
+		Cutter:    cutter,
+		WithCount: withCount,
+		Declared:  declared,
+		Scores:    make(map[PlayerID]int),
+		Hands:     make(map[PlayerID]Hand),
 	}
-	t.scoreHistory = append(t.scoreHistory, scores)
+	for _, p := range t.players {
+		round.Scores[p.ID] = p.Points
+		round.Hands[p.ID] = p.Hand
+	}
+	t.roundHistory = append(t.roundHistory, round)
 }
 
 // GetFirstPeek allows to peek two cards from a players hand if it hasn't peeked yet.
@@ -299,18 +311,18 @@ func (t *Tincho) discardCard(player *Player, card int) (Card, error) {
 type GameFinished bool
 
 // Cut finishes the current round and updates the points for all players.
-func (t *Tincho) Cut(withCount bool, declared int) ([][]PlayerScore, GameFinished, error) {
+func (t *Tincho) Cut(withCount bool, declared int) ([]Round, GameFinished, error) {
 	player := t.players[t.currentTurn]
 	pointsForCutter, err := t.cut(player, withCount, declared)
 	if err != nil {
 		return nil, false, fmt.Errorf("Cut: %w", err)
 	}
 	t.updatePlayerPoints(player, pointsForCutter)
-	t.recordScores()
+	t.recordScores(player.ID, withCount, declared)
 	if t.IsWinConditionMet() {
 		t.playing = false
 	}
-	return t.scoreHistory, GameFinished(!t.playing), nil
+	return t.roundHistory, GameFinished(!t.playing), nil
 }
 
 func (t *Tincho) cut(player *Player, withCount bool, declared int) (int, error) {

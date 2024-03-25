@@ -226,9 +226,9 @@ func (r *Room) broadcastNextRound() error {
 	return nil
 }
 
-func (r *Room) broadcastEndGame(scores [][]PlayerScore) error {
+func (r *Room) broadcastEndGame(scores []Round) error {
 	data, err := json.Marshal(UpdateEndGameData{
-		Scores: scores,
+		Rounds: scores,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)

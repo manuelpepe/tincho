@@ -86,7 +86,7 @@ type UpdateErrorData struct {
 }
 
 type UpdateEndGameData struct {
-	Scores [][]PlayerScore `json:"scores"`
+	Rounds []Round `json:"rounds"`
 }
 
 type UpdateTypeRejoinData struct {

@@ -2,9 +2,7 @@
 
 ### Features
 
-- [ ] [BACK+FRONT] With round history also store: cut info, all hands
-    - [ ] [BACK] Record data
-    - [ ] [FRONT] Display data
+- [ ] [FRONT] Display withCount and declared info on cut screen
 - [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
     - [ ] [BACK] Check room listing, add room capacity
@@ -89,6 +87,7 @@
 - [x] Configurable animation speed
 - [x] Display more info on cut
 - [x] Skip button for cut screen and first peek
+- [x] With round history also store: cut info, all hands
 
 ### Fixes
 
