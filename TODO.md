@@ -2,6 +2,10 @@
 
 ### Features
 
+- [ ] Add indicator of current turn
+- [ ] Rejoin game button
+- [ ] Improved error messages
+- [ ] Save games in disk for analysis
 - [ ] [FRONT] Display withCount and declared info on cut screen
 - [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
@@ -33,6 +37,11 @@
 
 ### Fixes
 
+- [ ] [IMP!!] On fail double discard, when draw was from discard pile:
+    - [ ] [FRONT] Previous to last discarded card should be shown as last discarded, as player keeps it and doesn't discard a new one 
+    - [ ] [BACK] A new card should be drawed to discard pile if discard pile is empty.
+- [ ] On mobile, sometimes the click handler doesn't work after swapping cards
+- [ ] On mobile, an eye appears instead of card value when peeking own card
 - [ ] [FRONT] When swapping cards, an intermediate container should be used to pass them around (improves animation)
 - [ ] [BACK] Prevent discarding drawed card if it was drawed from the discard pile
 
