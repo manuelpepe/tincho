@@ -20,7 +20,7 @@ type marshalledPlayer struct {
 // but this should probably be split.
 type Player struct {
 	ID               PlayerID
-	SessionToken     string
+	SessionToken     string // this probably belongs somewhere else, like the room or service layers
 	Points           int
 	PendingFirstPeek bool
 	Hand             Hand

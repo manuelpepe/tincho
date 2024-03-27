@@ -15,4 +15,4 @@
 /** @typedef {{withCount: boolean, declared: number, player: string, players: Player[], hands: Card[][]}} UpdateCutData */
 /** @typedef {{message: string}} UpdateErrorData */
 /** @typedef {{rounds: Round[]}} UpdateEndGameData */
-/** @typedef {{players: Player[], currentTurn: string, cardInHand: boolean, cardInHandValue: Card | null, lastDiscarded: Card | null}} UpdateRejoinStateData */
+/** @typedef {{players: Player[], currentTurn: string, cardInHand: boolean, cardInHandValue: Card|null, lastDiscarded: Card | null}} UpdateRejoinStateData */

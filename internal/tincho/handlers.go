@@ -3,6 +3,7 @@ package tincho
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -94,29 +95,35 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	playerID := PlayerID(r.URL.Query().Get("player"))
 	password := r.URL.Query().Get("password")
 	if playerID == "" || roomID == "" {
+		remove_cookie(r, w)
 		h.logger.Warn("Missing attributes")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("missing attributes"))
 		return
 	}
+
 	room, exists := h.service.GetRoom(roomID)
 	if !exists {
+		remove_cookie(r, w)
 		h.logger.Warn("Error getting room index")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error getting room index"))
+		return
+	} else if room.Context.Err() != nil {
+		remove_cookie(r, w)
+		h.logger.Warn("Room has been closed")
 		return
 	}
-	sessionToken := ""
-	if token, err := r.Cookie("session_token"); err == nil {
-		if token != nil {
-			sessionToken = token.Value
-		}
+
+	tokenPlayerID, _, sessionToken, err := decode_cookie(r, w)
+	if err == nil {
+		playerID = tokenPlayerID
+	} else if errors.Is(err, ErrInvalidCookie) {
+		h.logger.Warn("Invalid token")
+		return
 	}
+
 	curPlayer, exists := room.GetPlayer(playerID)
 	if !exists {
 		h.connect(w, r, playerID, room, password)
 	} else if curPlayer.SessionToken == sessionToken {
-		h.reconnect(w, r, &curPlayer, room, password)
+		h.reconnect(w, r, &curPlayer, room)
 	} else {
 		h.logger.Warn(fmt.Sprintf("Player %s already exists in room %s", playerID, roomID))
 		w.WriteHeader(http.StatusConflict)
@@ -126,11 +133,8 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID PlayerID, room *Room, password string) {
 	player := NewPlayer(playerID)
-	sesCookie := &http.Cookie{
-		Name:    "session_token",
-		Value:   player.SessionToken,
-		Expires: time.Now().Add(24 * time.Hour),
-	}
+	sesCookie := encode_cookie(player.ID, room.ID, player.SessionToken)
+
 	ws, err := upgradeConnection(w, r, sesCookie)
 	if err != nil {
 		h.logger.Warn(fmt.Sprintf("Error upgrading connection: %s", err))
@@ -150,7 +154,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 	h.logger.Info(fmt.Sprintf("Player %s joined room %s", playerID, room.ID))
 }
 
-func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Player, room *Room, password string) {
+func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Player, room *Room) {
 	ws, err := upgradeConnection(w, r, nil)
 	if err != nil {
 		h.logger.Warn(fmt.Sprintf("Error upgrading connection: %s", err), "err", err)
@@ -160,7 +164,7 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Pla
 	}
 	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
 	stopWS := handleWS(ws, player, room, wslogger)
-	if err := h.service.JoinRoom(room.ID, player, password); err != nil {
+	if err := h.service.JoinRoomWithoutPassword(room.ID, player); err != nil {
 		stopWS()
 		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -168,6 +172,54 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Pla
 		return
 	}
 	h.logger.Info("Player %s reconnected to room %s", player.ID, room.ID)
+}
+
+const TOKEN_COOKIE_NAME = "session_token"
+const TOKEN_SEPARATOR = "::"
+
+var ErrInvalidCookie = fmt.Errorf("invalid token")
+
+func decode_cookie(r *http.Request, w http.ResponseWriter) (PlayerID, string, string, error) {
+	cookie, err := r.Cookie(TOKEN_COOKIE_NAME)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	if cookie == nil {
+		return "", "", "", http.ErrNoCookie
+	}
+
+	parts := strings.Split(cookie.Value, TOKEN_SEPARATOR)
+	if len(parts) != 3 {
+		if err := remove_cookie(r, w); err != nil {
+			return "", "", "", fmt.Errorf("error upgrading connection on decode: %w", err)
+		}
+		return "", "", "", ErrInvalidCookie
+	}
+	return PlayerID(parts[0]), parts[1], parts[2], nil
+}
+
+func encode_cookie(player PlayerID, room string, token string) *http.Cookie {
+	encoded := fmt.Sprintf("%s%s%s%s%s", player, TOKEN_SEPARATOR, room, TOKEN_SEPARATOR, token)
+	return &http.Cookie{
+		Name:    TOKEN_COOKIE_NAME,
+		Value:   encoded,
+		Expires: time.Now().Add(24 * time.Hour),
+	}
+}
+
+func remove_cookie(r *http.Request, w http.ResponseWriter) error {
+	c := &http.Cookie{
+		Name:    TOKEN_COOKIE_NAME,
+		Value:   "",
+		Expires: time.Now().Add(-24 * time.Hour),
+	}
+	ws, err := upgradeConnection(w, r, c)
+	defer ws.Close()
+	if err != nil {
+		return fmt.Errorf("error upgrading connection to remove token: %w", err)
+	}
+	return nil
 }
 
 func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cookie) (*websocket.Conn, error) {

@@ -76,12 +76,16 @@ func (g *Service) GetRoomPassword(roomID string) string {
 }
 
 func (g *Service) JoinRoom(roomID string, player *Player, password string) error {
+	if pass, exists := g.passwords[roomID]; exists && pass != password {
+		return fmt.Errorf("invalid password")
+	}
+	return g.JoinRoomWithoutPassword(roomID, player)
+}
+
+func (g *Service) JoinRoomWithoutPassword(roomID string, player *Player) error {
 	room, exists := g.GetRoom(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
-	}
-	if pass, exists := g.passwords[roomID]; exists && pass != password {
-		return fmt.Errorf("invalid password")
 	}
 	if err := room.AddPlayer(player); err != nil {
 		return err

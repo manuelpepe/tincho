@@ -3,7 +3,7 @@
 ### Features
 
 - [ ] Add indicator of current turn
-- [ ] Rejoin game button
+- [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
 - [ ] [FRONT] Display withCount and declared info on cut screen
@@ -97,6 +97,7 @@
 - [x] Display more info on cut
 - [x] Skip button for cut screen and first peek
 - [x] With round history also store: cut info, all hands
+- [x] Automatic rejoin
 
 ### Fixes
 

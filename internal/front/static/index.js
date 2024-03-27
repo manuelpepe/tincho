@@ -126,13 +126,15 @@ window.onload = function () {
     }
 
     /**
+     * card can be null when showing another player's draw
      * @param {string} player 
-     * @param {Card} card 
+     * @param {Card | null} card 
      */
     function setCardInDraw(player, card) {
         const playerDraw = PLAYERS[player].draw;
         const node = createCardTemplate();
-        node.appendChild(document.createTextNode("[" + cardValue(card) + "]"));
+        let valueText = document.createTextNode(card ? "[" + cardValue(card) + "]" : "[ ]");
+        node.appendChild(valueText);
         playerDraw.appendChild(node);
     }
 
@@ -673,6 +675,18 @@ window.onload = function () {
         }
     }
 
+    function rejoinLastRoomIfAny() {
+        let sess_cookie = document.cookie.split(';').find(c => c.trim().startsWith('session_token='));
+        if (!sess_cookie) {
+            return;
+        }
+        let [playerID, roomID, _] = sess_cookie.split('=')[1].split('::');
+        if (!playerID || !roomID) {
+            return;
+        }
+        connectToRoom(playerID, roomID, "");
+    }
+
     /** @param {string | null} message */
     function setError(message) {
         if (message) {
@@ -699,7 +713,14 @@ window.onload = function () {
         }
         conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid + "&player=" + username + "&password=" + password);
         conn.onerror = () => setError("Error connecting to room");
-        conn.onclose = () => console.log("connection closed");
+        conn.onclose = () => {
+            console.log("connection closed");
+            show(menuContainer, "flex");
+            hide(buttonStart);
+            hide(buttonAddBot);
+            hide(selectBotDiff);
+            setTitle("Tincholi");
+        }
         conn.onmessage = processWSMessage;
         conn.onopen = () => {
             setError(null);
@@ -898,4 +919,5 @@ window.onload = function () {
     }
 
     startProcessingActions();
+    rejoinLastRoomIfAny();
 };
