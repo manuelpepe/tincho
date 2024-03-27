@@ -2,12 +2,14 @@
 
 ### Features
 
+- [ ] Rules in UI
+- [ ] Changelog in UI
 - [ ] Add indicator of current turn
 - [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
 - [ ] [FRONT] Display withCount and declared info on cut screen
-- [ ] [BACK] Implement turn time limit (probably should draw and discard drawed card)
+- [ ] [BACK] Turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
     - [ ] [BACK] Check room listing, add room capacity
     - [ ] [FRONT] "Search games" option in menu, list component
