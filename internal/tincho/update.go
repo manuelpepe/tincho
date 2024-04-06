@@ -71,6 +71,7 @@ type UpdateTypeFailedDoubleDiscardData struct {
 	Player         PlayerID `json:"player"`
 	CardsPositions []int    `json:"cardsPositions"`
 	Cards          []Card   `json:"cards"`
+	TopOfDiscard   Card     `json:"topOfDiscard"`
 }
 
 type UpdateCutData struct {

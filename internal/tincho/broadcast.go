@@ -173,11 +173,12 @@ func (r *Room) broadcastDiscard(playerID PlayerID, positions []int, discarded []
 	return nil
 }
 
-func (r *Room) broadcastFailedDoubleDiscard(playerID PlayerID, positions []int, cards []Card) error {
+func (r *Room) broadcastFailedDoubleDiscard(playerID PlayerID, positions []int, cards []Card, topOfDiscard Card) error {
 	updateData, err := json.Marshal(UpdateTypeFailedDoubleDiscardData{
 		Player:         playerID,
 		CardsPositions: positions,
 		Cards:          cards,
+		TopOfDiscard:   topOfDiscard,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)

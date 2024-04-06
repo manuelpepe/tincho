@@ -8,6 +8,7 @@
 - [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
+- [ ] [BACK] Add a `piles shuffled` update
 - [ ] [FRONT] Display withCount and declared info on cut screen
 - [ ] [BACK] Turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
@@ -39,9 +40,6 @@
 
 ### Fixes
 
-- [ ] [IMP!!] On fail double discard, when draw was from discard pile:
-    - [ ] [FRONT] Previous to last discarded card should be shown as last discarded, as player keeps it and doesn't discard a new one 
-    - [ ] [BACK] A new card should be drawed to discard pile if discard pile is empty.
 - [ ] On mobile, sometimes the click handler doesn't work after swapping cards
 - [ ] On mobile, an eye appears instead of card value when peeking own card
 - [ ] [FRONT] When swapping cards, an intermediate container should be used to pass them around (improves animation)
@@ -110,3 +108,4 @@
 - [x] Refactor `queueAnimation` to `queueAction` and queue actions as they come in through the socket. queuing only animations results in ui bugs.
 - [x] [FRONT] After cutting, timeout runs for every player, hiding their cards in order instead of all at once, and creating long wait times
 - [x] End game screen is all wrong
+- [x] On fail double discard, when draw was from discard pile:

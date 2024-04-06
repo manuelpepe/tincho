@@ -113,27 +113,43 @@ func (r *Room) doDiscard(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
-	disc, err := r.state.Discard(data.CardPosition, data.CardPosition2)
-	if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
-		return err
-	}
-	if errors.Is(err, ErrDiscardingNonEqualCards) {
-		positions := []int{data.CardPosition, *data.CardPosition2}
-		if err := r.broadcastFailedDoubleDiscard(action.PlayerID, positions, disc); err != nil {
-			return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
+
+	var positions []int
+	var values []Card
+
+	if data.CardPosition2 == nil {
+		value, err := r.state.Discard(data.CardPosition)
+		if err != nil {
+			return err
 		}
+		positions = []int{data.CardPosition}
+		values = []Card{value}
 	} else {
-		positions := []int{data.CardPosition}
-		if data.CardPosition2 != nil {
-			positions = append(positions, *data.CardPosition2)
+		disc, topOfDiscardPile, err := r.state.DiscardTwo(data.CardPosition, *data.CardPosition2)
+		if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
+			return err
 		}
-		if err := r.broadcastDiscard(action.PlayerID, positions, disc); err != nil {
-			return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
+
+		if errors.Is(err, ErrDiscardingNonEqualCards) {
+			positions := []int{data.CardPosition, *data.CardPosition2}
+			if err := r.broadcastFailedDoubleDiscard(action.PlayerID, positions, disc, topOfDiscardPile); err != nil {
+				return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
+			}
+			return nil
 		}
+
+		positions = []int{data.CardPosition, *data.CardPosition2}
+		values = disc
 	}
+
+	if err := r.broadcastDiscard(action.PlayerID, positions, values); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
+	}
+
 	if err := r.broadcastPassTurn(); err != nil {
 		return fmt.Errorf("PassTurn: %w", err)
 	}
+
 	return nil
 }
 
@@ -142,13 +158,16 @@ func (r *Room) doCut(action Action) error {
 	if err := json.Unmarshal(action.Data, &data); err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
+
 	scores, finished, err := r.state.Cut(data.WithCount, data.Declared)
 	if err != nil {
 		return err
 	}
+
 	if err := r.broadcastCut(action.PlayerID, data.WithCount, data.Declared); err != nil {
 		return fmt.Errorf("broadcastCut: %w", err)
 	}
+
 	if finished {
 		if err := r.broadcastEndGame(scores); err != nil {
 			return fmt.Errorf("broadcastEndGame: %w", err)

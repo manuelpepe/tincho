@@ -367,31 +367,38 @@ window.onload = function () {
      * @param {string} player
      * @param {number[]} cardPositions
      * @param {Card[]} cards
+     * @param {Card} topOfDiscard
      */
-    async function showFailedDoubleDiscard(player, cardPositions, cards) {
+    async function showFailedDoubleDiscard(player, cardPositions, cards, topOfDiscard) {
         const playerHand = PLAYERS[player].hand;
         const playerDraw = PLAYERS[player].draw;
         const tmpContainer = createCardTemplate();
         const drawnCard = /** @type {HTMLElement} */ (playerDraw.lastChild);
 
+        // everyone gets to see the card values
         for (let ix = 0; ix < cardPositions.length; ix++) {
             const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
             cardInHand.innerHTML = "[" + cardValue(cards[ix]) + "]";
         }
 
+        // move drawn card to hand last position
         playerHand.appendChild(tmpContainer);
         await moveNode(drawnCard, tmpContainer)
         tmpContainer.replaceWith(drawnCard);
         drawnCard.onclick = () => sendCurrentAction(player, playerHand.childNodes.length - 1);
-
         PLAYERS[player].data.cards_in_hand += 1;
-        await new Promise(r => setTimeout(r, 1000));
 
+        // wait and hide cards
+        await new Promise(r => setTimeout(r, 1000));
         drawnCard.innerHTML = "[ ]";
         for (let ix = 0; ix < cardPositions.length; ix++) {
             const cardInHand = /** @type {HTMLElement} */ (playerHand.childNodes[cardPositions[ix]]);
             cardInHand.innerHTML = "[ ]";
         }
+
+        // set new discarded card
+        // TODO: Should be done with `await drawCard(deckPile, playerDraw)` animation from draw pile if discard pile was not empty before draw.
+        setLastDiscarded(topOfDiscard);
     }
 
     /** 
@@ -574,7 +581,7 @@ window.onload = function () {
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */
     async function handleDoubleDiscard(data) {
-        await showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards);
+        await showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards, data.topOfDiscard);
     }
 
     /** @param {UpdatePeekCardData} data */

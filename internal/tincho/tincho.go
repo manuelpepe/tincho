@@ -212,6 +212,7 @@ func (r *Tincho) cyclePiles() error {
 	return r.discardTopCard()
 }
 
+// Sends the top card in the draw pile to the discard pile.
 func (r *Tincho) discardTopCard() error {
 	card, err := r.drawPile.Draw()
 	if err != nil {
@@ -232,80 +233,90 @@ func (t *Tincho) drawFromSource(source DrawSource) (Card, error) {
 	}
 }
 
-func (t *Tincho) Discard(position int, position2 *int) ([]Card, error) {
+// Discard a card after drawing.
+// If position is -1, the drawn card is discarded without storing it in the player's hand.
+// If position is a valid hand index, the drawn card is stored in the player's hand at the given position
+// and the card at that position discarded.
+// After discarding the turn passes to the next player.
+func (t *Tincho) Discard(position int) (DiscardedCard, error) {
 	if t.pendingStorage == (Card{}) {
-		return nil, errors.New("can't discard without drawing")
+		return Card{}, errors.New("can't discard without drawing")
 	}
-	var cards []Card
-	var err error
-	if position2 == nil {
-		cards, err = t.discardOneCard(position)
+
+	player := t.players[t.currentTurn]
+	if position < -1 || position >= len(player.Hand) {
+		return Card{}, fmt.Errorf("invalid card position: %d", position)
+	}
+
+	if position == -1 {
+		t.discardPile = append([]Card{t.pendingStorage}, t.discardPile...)
 	} else {
-		cards, err = t.discardTwoCards(position, *position2)
+		t.discardPile = append([]Card{player.Hand[position]}, t.discardPile...)
+		player.Hand[position] = t.pendingStorage
 	}
-	if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
-		return nil, fmt.Errorf("error discarding: %w", err)
+
+	t.pendingStorage = Card{}
+	t.passTurn()
+
+	return t.discardPile[0], nil
+}
+
+// Discard two cards after drawing.
+// The cards must be equals, otherwise the double discard fails with an ErrDiscardingNonEqualCards value.
+// If the discard fails, the top card of the discard pile is returned in the second return value as it must be
+// drawn, sometimes from a freshly shuffled draw pile.
+func (t *Tincho) DiscardTwo(position int, position2 int) ([]DiscardedCard, DiscardedCard, error) {
+	if t.pendingStorage == (Card{}) {
+		return nil, Card{}, errors.New("can't discard without drawing")
+	}
+	cards, topCardOnFail, err := t.discardTwoCards(position, position2)
+	if err != nil {
+		return cards, topCardOnFail, fmt.Errorf("error discarding: %w", err)
 	}
 	t.passTurn()
-	return cards, err
+	return cards, Card{}, nil
 }
 
 var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of different values")
 
-// Try to discard two cards from the player's hand. Both positions must be different and from the player's hand (drawn card can't be doble discarded).
+// Try to discard two cards from the player's hand.
+// Both positions must be different and from the player's hand (drawn card can't be doble discarded).
 // Both cards must be of the same value, jokers can't be paired with non joker cards.
-func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]Card, error) {
+func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]DiscardedCard, DiscardedCard, error) {
 	player := t.players[t.currentTurn]
 	if position1 == position2 {
-		return nil, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
+		return nil, Card{}, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
 	}
 	if position1 < 0 || position1 >= len(player.Hand) {
-		return nil, fmt.Errorf("invalid card position: %d", position1)
+		return nil, Card{}, fmt.Errorf("invalid card position: %d", position1)
 	}
 	if position2 < 0 || position2 >= len(player.Hand) {
-		return nil, fmt.Errorf("invalid card position: %d", position2)
+		return nil, Card{}, fmt.Errorf("invalid card position: %d", position2)
 	}
+
 	card1 := player.Hand[position1]
 	card2 := player.Hand[position2]
 
 	if card1.Value != card2.Value {
-		// Player keeps all 3 cards in hand
+		// draw a new card if discard pile is empty
+		if len(t.discardPile) == 0 {
+			if err := t.discardTopCard(); err != nil {
+				return nil, Card{}, fmt.Errorf("discardTopCard: %w", err)
+			}
+		}
+
+		// player keeps all 3 cards in hand
 		player.Hand = append(player.Hand, t.pendingStorage)
 		t.pendingStorage = Card{}
-		return []Card{card1, card2}, ErrDiscardingNonEqualCards
+		return []Card{card1, card2}, t.discardPile[0], ErrDiscardingNonEqualCards
 	}
 
-	t.discardPile = append([]Card{card1, card2}, t.discardPile...) // discard both cards
+	// player succesfully discards both cards
+	t.discardPile = append([]Card{card1, card2}, t.discardPile...)
 	player.Hand[position1] = t.pendingStorage
 	player.Hand.Remove(position2)
 	t.pendingStorage = Card{}
-	return []Card{card1, card2}, nil
-}
-
-// Discard a card after drawing. If position is -1, the card is discarded without storing it in the player's hand.
-// Otherwise, the card is stored in the player's hand at the given position.
-// After discarding the turn passes to the next player.
-func (t *Tincho) discardOneCard(position int) ([]Card, error) {
-	player := t.players[t.currentTurn]
-	card, err := t.discardCard(player, position)
-	if err != nil {
-		return nil, fmt.Errorf("discardCard: %w", err)
-	}
-	return []Card{card}, nil
-}
-
-func (t *Tincho) discardCard(player *Player, card int) (Card, error) {
-	if card < -1 || card >= len(player.Hand) {
-		return Card{}, fmt.Errorf("invalid card position: %d", card)
-	}
-	if card == -1 {
-		t.discardPile = append([]Card{t.pendingStorage}, t.discardPile...)
-	} else {
-		t.discardPile = append([]Card{player.Hand[card]}, t.discardPile...)
-		player.Hand[card] = t.pendingStorage
-	}
-	t.pendingStorage = Card{}
-	return t.discardPile[0], nil
+	return []Card{card1, card2}, Card{}, nil
 }
 
 type GameFinished bool
@@ -313,11 +324,7 @@ type GameFinished bool
 // Cut finishes the current round and updates the points for all players.
 func (t *Tincho) Cut(withCount bool, declared int) ([]Round, GameFinished, error) {
 	player := t.players[t.currentTurn]
-	pointsForCutter, err := t.cut(player, withCount, declared)
-	if err != nil {
-		return nil, false, fmt.Errorf("Cut: %w", err)
-	}
-	t.updatePlayerPoints(player, pointsForCutter)
+	t.updatePlayerPoints(player, withCount, declared)
 	t.recordScores(player.ID, withCount, declared)
 	if t.IsWinConditionMet() {
 		t.playing = false
@@ -325,28 +332,28 @@ func (t *Tincho) Cut(withCount bool, declared int) ([]Round, GameFinished, error
 	return t.roundHistory, GameFinished(!t.playing), nil
 }
 
-func (t *Tincho) cut(player *Player, withCount bool, declared int) (int, error) {
+func (t *Tincho) calculatePointsForCutter(cutter *Player, withCount bool, declared int) int {
 	// check player has the lowest hand
-	playerSum := player.Hand.Sum()
+	playerSum := cutter.Hand.Sum()
 	for _, p := range t.players {
-		if p.ID != player.ID && p.Hand.Sum() <= playerSum {
-			return playerSum + 20, nil // absolute fail
+		if p.ID != cutter.ID && p.Hand.Sum() <= playerSum {
+			return playerSum + 20 // absolute fail
 		}
 	}
 	if !withCount {
-		return 0, nil // wins
+		return 0 // wins
 	}
 	if declared == playerSum {
-		return -10, nil // wins + bonus
+		return -10 // wins + bonus
 	}
-	return playerSum + 10, nil // loss + bonus
+	return playerSum + 10 // loss + bonus
 }
 
-func (t *Tincho) updatePlayerPoints(winner *Player, pointsForWinner int) {
+func (t *Tincho) updatePlayerPoints(cutter *Player, withCount bool, declared int) {
 	for ix := range t.players {
 		var value int
-		if t.players[ix].ID == winner.ID {
-			value = pointsForWinner
+		if t.players[ix].ID == cutter.ID {
+			value = t.calculatePointsForCutter(cutter, withCount, declared)
 		} else {
 			value = t.players[ix].Hand.Sum()
 		}
@@ -364,6 +371,8 @@ func (t *Tincho) IsWinConditionMet() bool {
 }
 
 type PeekedCard = Card
+
+// A card to be in the discard pile
 type DiscardedCard = Card
 
 func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, error) {
