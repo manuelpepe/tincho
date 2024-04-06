@@ -31,7 +31,8 @@ type UpdatePlayersChangedData struct {
 }
 
 type UpdateStartNextRoundData struct {
-	Players []*Player `json:"players"`
+	Players    []*Player `json:"players"`
+	TopDiscard Card      `json:"topDiscard"`
 }
 
 type UpdatePlayerFirstPeekedData struct {

@@ -4,7 +4,7 @@
 /** @typedef {{cutter: string, withCount: boolean, declared: number, scores: Object.<string, number>, hands: Object.<string, Card[]>}} Round */
 
 /** @typedef {{players: Player[]}} UpdatePlayersChangedData */
-/** @typedef {{players: Player[]}} UpdateStartNextRoundData */
+/** @typedef {{players: Player[], topDiscard: Card}} UpdateStartNextRoundData */
 /** @typedef {{player: string, cards: Card[]}} UpdatePlayerFirstPeekedData */
 /** @typedef {{player: string}} UpdateTurnData */
 /** @typedef {{player: string, source: string, card: Card, effect: string}} UpdateDrawData */

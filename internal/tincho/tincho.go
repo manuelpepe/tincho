@@ -85,25 +85,26 @@ func (t *Tincho) AddPlayer(p *Player) error {
 }
 
 // StartGame starts the game by setting all players to pending first peek and dealing 4 cards to each player.
-func (t *Tincho) StartGame() error {
+func (t *Tincho) StartGame() (Card, error) {
 	if t.playing {
-		return ErrGameAlreadyStarted
+		return Card{}, ErrGameAlreadyStarted
 	}
 	t.playing = true
 	return t.prepareForNextRound(false)
 }
 
-func (t *Tincho) StartNextRound() error {
+func (t *Tincho) StartNextRound() (Card, error) {
 	if !t.playing {
-		return fmt.Errorf("game not started")
+		return Card{}, fmt.Errorf("game not started")
 	}
-	if err := t.prepareForNextRound(true); err != nil {
-		return fmt.Errorf("prepareForNextRound: %w", err)
+	topDiscard, err := t.prepareForNextRound(true)
+	if err != nil {
+		return Card{}, fmt.Errorf("prepareForNextRound: %w", err)
 	}
-	return nil
+	return topDiscard, nil
 }
 
-func (t *Tincho) prepareForNextRound(shuffleDeck bool) error {
+func (t *Tincho) prepareForNextRound(shuffleDeck bool) (Card, error) {
 	t.totalRounds += 1
 	t.currentTurn = (t.totalRounds - 1) % len(t.players)
 	for i := range t.players {
@@ -117,9 +118,12 @@ func (t *Tincho) prepareForNextRound(shuffleDeck bool) error {
 		t.drawPile.Shuffle()
 	}
 	if err := t.deal(); err != nil {
-		return fmt.Errorf("deal: %w", err)
+		return Card{}, fmt.Errorf("deal: %w", err)
 	}
-	return nil
+	if err := t.discardTopCard(); err != nil {
+		return Card{}, fmt.Errorf("discardTopCard: %w", err)
+	}
+	return t.discardPile[0], nil
 }
 
 func (t *Tincho) deal() error {
@@ -218,7 +222,7 @@ func (r *Tincho) discardTopCard() error {
 	if err != nil {
 		return err
 	}
-	r.discardPile = append(r.discardPile, card)
+	r.discardPile = append([]Card{card}, r.discardPile...)
 	return nil
 }
 

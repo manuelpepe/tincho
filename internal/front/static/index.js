@@ -540,6 +540,7 @@ window.onload = function () {
         FIRST_TURN = true;
         setStartGameScreen();
         setPlayers(data.players);
+        setLastDiscarded(data.topDiscard);
     }
 
     /** @param {UpdatePlayerFirstPeekedData} data */
@@ -607,7 +608,8 @@ window.onload = function () {
     async function handleNextRound(data) {
         FIRST_TURN = true;
         setStartRoundScreen();
-        setPlayers(data.players)
+        setPlayers(data.players);
+        setLastDiscarded(data.topDiscard);
     }
 
     /** @param {UpdateEndGameData} data */

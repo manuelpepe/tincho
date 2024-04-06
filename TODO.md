@@ -98,6 +98,7 @@
 - [x] Skip button for cut screen and first peek
 - [x] With round history also store: cut info, all hands
 - [x] Automatic rejoin
+- [x] Draw card at the start of round.
 
 ### Fixes
 

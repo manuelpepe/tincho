@@ -68,10 +68,11 @@ func (r *Room) doStartGame(action Action) error {
 	if r.state.GetPlayers()[0].ID != action.PlayerID {
 		return ErrNotRoomLeader
 	}
-	if err := r.state.StartGame(); err != nil {
+	topDiscard, err := r.state.StartGame()
+	if err != nil {
 		return fmt.Errorf("tsm.StartGame: %w", err)
 	}
-	if err := r.broadcastStartGame(); err != nil {
+	if err := r.broadcastStartGame(topDiscard); err != nil {
 		return fmt.Errorf("broadcastStartGame: %w", err)
 	}
 	return nil
@@ -176,10 +177,11 @@ func (r *Room) doCut(action Action) error {
 		time.Sleep(3 * time.Second)
 		r.Close()
 	} else {
-		if err := r.state.StartNextRound(); err != nil {
+		topDiscard, err := r.state.StartNextRound()
+		if err != nil {
 			return fmt.Errorf("StartNextRound: %w", err)
 		}
-		if err := r.broadcastNextRound(); err != nil {
+		if err := r.broadcastNextRound(topDiscard); err != nil {
 			return fmt.Errorf("broadcastNextRound: %w", err)
 		}
 	}

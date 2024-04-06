@@ -84,9 +84,10 @@ func (r *Room) broadcastPassTurn() error {
 	return nil
 }
 
-func (r *Room) broadcastStartGame() error {
+func (r *Room) broadcastStartGame(topDiscard Card) error {
 	data, err := json.Marshal(UpdateStartNextRoundData{
-		Players: r.state.GetPlayers(),
+		Players:    r.state.GetPlayers(),
+		TopDiscard: topDiscard,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -213,9 +214,10 @@ func (r *Room) broadcastCut(playerID PlayerID, withCount bool, declared int) err
 	return nil
 }
 
-func (r *Room) broadcastNextRound() error {
+func (r *Room) broadcastNextRound(topDiscard Card) error {
 	data, err := json.Marshal(UpdateStartNextRoundData{
-		Players: r.state.GetPlayers(),
+		Players:    r.state.GetPlayers(),
+		TopDiscard: topDiscard,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
