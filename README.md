@@ -2,21 +2,43 @@
 
 A multiplayer card game for the whole family.
 
-## Description
+## Rules
 
-Each player is dealt 4 cards face down. In turns, each player draws a card from the deck and decides between replacing a card from their hand with it or discarding the drawn card. Some cards have special effects (peek your own card, an oponents card or swap any two cards). In their turn, a player may decide to cut instead of drawing a card. Additionally, the player can choose to *blindly* call out their hand total. At this point, all cards are turned face up and each player adds the sum of their cards to their score. The cutting player is behold to some extra rules that decide if they deduct points from their score, or get more points of top of their hand (check cutting rules carefully). The first player to get a score over 100 loses, ending the game.
+The game is played in rounds, adding or subtracting points based on the sum of values of cards in their hands. The first player to cross 100 points ends the game.
 
-When discarding, players have an option discard two cards. If they are of the same value, both are discarded and the player keeps only the drawn card, *decreasing* the number of cards in their hand by a total of 1 card. However, if the cards are of different values, the player must keep both cards plus the drawn card, *increasing* the number of cards in their hand by a total of 1 card.
+Each player is dealt 4 face down cards. At the start of the game each player looks at the
+values of two of their own cards and keeps them face down on the table. The fun of the game is trying to remember all cards you can and getting the lowest hand total before cutting. If you remember your hand you can call out your total when cutting to subtract extra points.
+
+In turns, each player:
+
+- Chooses to draw a card from either the Draw or Discard piles without showing it to other players.
+- Decides to either:
+    - Discarding the drawn card.
+    - Discarding a card from their hand and keeping the drawed card in that position.
+    - Trying to discard two cards from their hand at the same time, keeping only the drawed card (check how double discard works below)
+    - Using the card's special effect (only 7s, 8s and 9s, check cards special effects below) and then discarding it.
+    - Using the drawed card to cut, either calling out their count or not.
+- If the player didn't cut, the turn passes to the next player.
+
+When a player cut's, all hands are shown and points are calculated. Check below how cutting rules work in more details.
+
+### Cards special effects
+
+- 12 of Diamonds: This card is worth 0 points. Try not to discard it!
+- All 7s: Peek the value of one card in your hand.
+- All 8s: Peek the value of one card in an opponents hand.
+- All 9s: Choose any two cards in the game and swap their places. This can be used to swap cards between any two players.
+
+### Double Discard
+
+When discarding, players have an option to discard two cards. If they are of the same value, both are discarded and the player keeps only the drawn card, *decreasing* the number of cards in their hand by a total of 1 card. However, if the cards are of different values, the player must keep both cards plus the drawn card, *increasing* the number of cards in their hand by a total of 1 card.
 
 ### Cutting rules
 
-The cutting player must have the lowest hand in the table, otherwise they instanly lose and must add their hand total + 20 points to their score (add 20 + hand to score this round).
-
-If the cutting player has the lowest hand and decided to not call their total, their score this round is 0.
-
-If the cutting player has the lowest hand and called their total right, their score is -10.
-
-If the cutting player has the lowest hand and called their total wrong, their score is hand total + 10.
+- The cutting player must have the lowest hand in the table, otherwise they instanly lose and must add their hand total + 20 points to their score
+- If the cutting player has the lowest hand and decided to not call their total, their score this round is 0
+- If the cutting player has the lowest hand and called their total right, their score is -10
+- If the cutting player has the lowest hand and called their total wrong, their score is hand total + 10
 
 All other players only add their hand totals to their score.
 
