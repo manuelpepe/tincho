@@ -28,6 +28,18 @@ type Player struct {
 	Updates          chan Update
 }
 
+func NewPlayer(id PlayerID) *Player {
+	return &Player{
+		ID:           id,
+		SessionToken: generateRandomString(20),
+		Hand:         make(Hand, 0),
+		Actions:      make(chan Action),
+		Updates:      make(chan Update, 10),
+		Points:       0,
+	}
+}
+
+// MarshalJSON implements json.Marshaller
 func (p *Player) MarshalJSON() ([]byte, error) {
 	return json.Marshal(marshalledPlayer{
 		ID:               p.ID,
@@ -37,6 +49,11 @@ func (p *Player) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// MarshalJSON implements json.Unmarshaller
+// The marshalled player doesn't contain the values for the cards in hand, so
+// an empty hand is created for the player instead.
+// The core app wouldn't normally unmarshall a player struct, so this is mostly
+// implemented for bots and testing.
 func (p *Player) UnmarshalJSON(data []byte) error {
 	var mp marshalledPlayer
 	if err := json.Unmarshal(data, &mp); err != nil {
@@ -47,17 +64,6 @@ func (p *Player) UnmarshalJSON(data []byte) error {
 	p.Points = mp.Points
 	p.Hand = make(Hand, mp.CardsInHand)
 	return nil
-}
-
-func NewPlayer(id PlayerID) *Player {
-	return &Player{
-		ID:           id,
-		SessionToken: generateRandomString(20),
-		Hand:         make(Hand, 0),
-		Actions:      make(chan Action),
-		Updates:      make(chan Update, 10),
-		Points:       0,
-	}
 }
 
 func (p *Player) QueueAction(action Action) {
