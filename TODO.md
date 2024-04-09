@@ -4,7 +4,6 @@
 
 - [ ] Rules in UI
 - [ ] Changelog in UI
-- [ ] Add indicator of current turn
 - [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
@@ -100,6 +99,7 @@
 - [x] With round history also store: cut info, all hands
 - [x] Automatic rejoin
 - [x] Draw card at the start of round.
+- [x] Add indicator of current turn
 
 ### Fixes
 

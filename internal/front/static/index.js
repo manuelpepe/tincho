@@ -30,9 +30,6 @@ window.onload = function () {
     /** @type {number | null} */
     var DISCARD_TWO_BUFFER = null;
 
-    /** @type {boolean} */
-    var FIRST_TURN = true;
-
     const joinMenuRoomID = /** @type {HTMLInputElement} */ (document.getElementById("join-room-id"));
     const joinMenuUsername = /** @type {HTMLInputElement} */ (document.getElementById("join-username"));
     const joinMenuPassword = /** @type {HTMLInputElement} */ (document.getElementById("join-password"));
@@ -248,6 +245,10 @@ window.onload = function () {
             node.appendChild(text);
             container.appendChild(node);
         }
+    }
+
+    function markTurn(player) {
+        PLAYERS[player].checkmark.innerHTML = " ⬅";
     }
 
     /** @param {string} player */
@@ -526,8 +527,8 @@ window.onload = function () {
     /** @param {string} action */
     function setAction(action) {
         // TODO: check if action is valid
-        console.log("Setting action to: ", action)
-        CURRENT_ACTION = action
+        console.log("Setting action to: ", action);
+        CURRENT_ACTION = action;
     }
 
     /** @param {UpdatePlayersChangedData} data */
@@ -537,7 +538,6 @@ window.onload = function () {
 
     /** @param {UpdateStartNextRoundData} data */
     async function handleGameStart(data) {
-        FIRST_TURN = true;
         setStartGameScreen();
         setPlayers(data.players);
         setLastDiscarded(data.topDiscard);
@@ -546,20 +546,18 @@ window.onload = function () {
     /** @param {UpdatePlayerFirstPeekedData} data */
     async function handlePlayerPeeked(data) {
         if (data.player == THIS_PLAYER) {
-            setPlayerPeekedScreen()
+            setPlayerPeekedScreen();
             showCards(data.player, data.cards, [0, 1], 0)
             await waitUserInput();
             clearPlayerHand(data.player);
         }
-        markReady(data.player)
+        markReady(data.player);
     }
 
     /** @param {UpdateTurnData} data */
     async function handleTurn(data) {
-        if (FIRST_TURN) {
-            clearCheckmarks();
-            FIRST_TURN = false;
-        }
+        clearCheckmarks();
+        markTurn(data.player);
         setTurnScreen(data.player == THIS_PLAYER);
     }
 
@@ -606,7 +604,6 @@ window.onload = function () {
 
     /** @param {UpdateStartNextRoundData} data */
     async function handleNextRound(data) {
-        FIRST_TURN = true;
         setStartRoundScreen();
         setPlayers(data.players);
         setLastDiscarded(data.topDiscard);
