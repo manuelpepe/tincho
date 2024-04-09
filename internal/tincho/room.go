@@ -47,6 +47,7 @@ func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context
 		playersChan: make(chan AddPlayerRequest),
 		maxPlayers:  maxPlayers,
 		state:       game.NewTinchoWithDeck(deck),
+		connections: make(map[game.PlayerID]*Connection),
 		closed:      false,
 	}
 }
