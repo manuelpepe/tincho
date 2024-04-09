@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"math/rand"
 	"time"
+
+	"github.com/manuelpepe/tincho/internal/game"
 )
 
 var ErrRoomNotFound = errors.New("room not found")
@@ -35,7 +37,7 @@ func NewService(ctx context.Context, cfg ServiceConfig) Service {
 	}
 }
 
-func (g *Service) NewRoom(logger *slog.Logger, deck Deck, maxPlayers int, password string) (string, error) {
+func (g *Service) NewRoom(logger *slog.Logger, deck game.Deck, maxPlayers int, password string) (string, error) {
 	if maxPlayers <= 0 {
 		return "", fmt.Errorf("max players should be greater than 0, got %d", maxPlayers)
 	}
@@ -75,14 +77,14 @@ func (g *Service) GetRoomPassword(roomID string) string {
 	return g.passwords[roomID]
 }
 
-func (g *Service) JoinRoom(roomID string, player *Player, password string) error {
+func (g *Service) JoinRoom(roomID string, player *Connection, password string) error {
 	if pass, exists := g.passwords[roomID]; exists && pass != password {
 		return fmt.Errorf("invalid password")
 	}
 	return g.JoinRoomWithoutPassword(roomID, player)
 }
 
-func (g *Service) JoinRoomWithoutPassword(roomID string, player *Player) error {
+func (g *Service) JoinRoomWithoutPassword(roomID string, player *Connection) error {
 	room, exists := g.GetRoom(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)

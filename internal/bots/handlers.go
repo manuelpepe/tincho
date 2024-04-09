@@ -37,7 +37,7 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error getting room index"))
 		return
 	}
-	player := tincho.NewPlayer(RandomBotName())
+	player := tincho.NewConnection(RandomBotName())
 	newLogger := h.logger.With("player", player.ID)
 	bot, err := NewBot(newLogger, room.Context, player, difficulty)
 	if err != nil {

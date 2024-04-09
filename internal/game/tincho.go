@@ -1,9 +1,16 @@
-package tincho
+package game
 
 import (
 	"errors"
 	"fmt"
 	"slices"
+)
+
+type DrawSource string
+
+const (
+	DrawSourcePile    DrawSource = "pile"
+	DrawSourceDiscard DrawSource = "discard"
 )
 
 var ErrPendingDiscard = errors.New("someone needs to discard first")
@@ -45,6 +52,26 @@ func NewTinchoWithDeck(deck Deck) *Tincho {
 		totalRounds:  0,
 		roundHistory: make([]Round, 0),
 	}
+}
+
+func (t *Tincho) LastDiscarded() Card {
+	if len(t.discardPile) == 0 {
+		return Card{}
+	}
+	return t.discardPile[0]
+
+}
+
+func (t *Tincho) CountDiscardPile() int {
+	return len(t.discardPile)
+}
+
+func (t *Tincho) CountDrawPile() int {
+	return len(t.drawPile)
+}
+
+func (t *Tincho) GetPendingStorage() Card {
+	return t.pendingStorage
 }
 
 // Playing returns whether the game has started or not. The game starts after all players complete their first peek.

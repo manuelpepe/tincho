@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+
+	"github.com/manuelpepe/tincho/internal/game"
 )
 
 type AddPlayerRequest struct {
-	Player *Player
+	Player *Connection
 	Res    chan error
 }
 
@@ -19,8 +21,9 @@ type Room struct {
 	closeRoom context.CancelFunc
 	logger    *slog.Logger
 
-	ID    string
-	state *Tincho
+	ID          string
+	state       *game.Tincho
+	connections map[game.PlayerID]*Connection
 
 	// actions recieved from all players
 	actionsChan chan Action
@@ -34,7 +37,7 @@ type Room struct {
 	closed  bool
 }
 
-func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck Deck, maxPlayers int) Room {
+func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck game.Deck, maxPlayers int) Room {
 	return Room{
 		Context:     ctx,
 		closeRoom:   ctxCancel,
@@ -43,7 +46,7 @@ func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context
 		actionsChan: make(chan Action),
 		playersChan: make(chan AddPlayerRequest),
 		maxPlayers:  maxPlayers,
-		state:       NewTinchoWithDeck(deck),
+		state:       game.NewTinchoWithDeck(deck),
 		closed:      false,
 	}
 }
@@ -57,15 +60,19 @@ func (r *Room) Close() {
 	r.closed = true
 }
 
-func (r *Room) GetPlayer(id PlayerID) (Player, bool) {
-	player, exists := r.state.GetPlayer(id)
+func (r *Room) GetPlayer(id game.PlayerID) (*Connection, bool) {
+	_, exists := r.state.GetPlayer(id)
 	if !exists {
-		return Player{}, false
+		return nil, false
 	}
-	return *player, true
+	conn, ok := r.connections[id]
+	if !ok {
+		return nil, false
+	}
+	return conn, true
 }
 
-func (r *Room) AddPlayer(p *Player) error {
+func (r *Room) AddPlayer(p *Connection) error {
 	req := AddPlayerRequest{
 		Player: p,
 		Res:    make(chan error),
@@ -74,13 +81,14 @@ func (r *Room) AddPlayer(p *Player) error {
 	return <-req.Res
 }
 
-func (r *Room) addPlayer(player *Player) error {
+func (r *Room) addPlayer(player *Connection) error {
 	if len(r.state.GetPlayers()) >= r.maxPlayers {
 		return fmt.Errorf("room is full")
 	}
-	if err := r.state.AddPlayer(player); err != nil {
+	if err := r.state.AddPlayer(player.Player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
+	r.connections[player.ID] = player
 	go r.watchPlayer(player)
 	data, err := json.Marshal(UpdatePlayersChangedData{
 		Players: r.state.GetPlayers(),
@@ -96,7 +104,7 @@ func (r *Room) addPlayer(player *Player) error {
 	return nil
 }
 
-func (r *Room) IsPlayerInRoom(playerID PlayerID) bool {
+func (r *Room) IsPlayerInRoom(playerID game.PlayerID) bool {
 	_, exists := r.state.GetPlayer(playerID)
 	return exists
 }
@@ -161,7 +169,7 @@ func (r *Room) doAction(action Action) {
 		}
 		return
 	}
-	if !r.state.playing || action.PlayerID != r.state.PlayerToPlay().ID {
+	if !r.state.Playing() || action.PlayerID != r.state.PlayerToPlay().ID {
 		r.logger.Warn(
 			fmt.Sprintf("Player %s tried to perform action out of turn", action.PlayerID),
 			"player_id", action.PlayerID,
@@ -215,7 +223,7 @@ func (r *Room) doAction(action Action) {
 }
 
 // watchPlayer functions as a goroutine that watches for new actions from a given player.
-func (r *Room) watchPlayer(player *Player) {
+func (r *Room) watchPlayer(player *Connection) {
 	r.logger.Info(fmt.Sprintf("Started watch loop for player '%s' on room '%s'", player.ID, r.ID))
 	for {
 		select {

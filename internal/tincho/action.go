@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/manuelpepe/tincho/internal/game"
 )
 
 type ActionType string
@@ -23,32 +25,27 @@ const (
 type Action struct {
 	Type     ActionType      `json:"type"`
 	Data     json.RawMessage `json:"data"`
-	PlayerID PlayerID
+	PlayerID game.PlayerID
 }
+
+type Game_DrawSource string
 
 type ActionDrawData struct {
-	Source DrawSource `json:"source"`
+	Source game.DrawSource `json:"source"`
 }
-
-type DrawSource string
-
-const (
-	DrawSourcePile    DrawSource = "pile"
-	DrawSourceDiscard DrawSource = "discard"
-)
 
 type ActionPeekOwnCardData struct {
 	CardPosition int `json:"cardPosition"`
 }
 
 type ActionPeekCartaAjenaData struct {
-	CardPosition int      `json:"cardPosition"`
-	Player       PlayerID `json:"player"`
+	CardPosition int           `json:"cardPosition"`
+	Player       game.PlayerID `json:"player"`
 }
 
 type ActionSwapCardsData struct {
-	CardPositions []int      `json:"cardPositions"`
-	Players       []PlayerID `json:"players"`
+	CardPositions []int           `json:"cardPositions"`
+	Players       []game.PlayerID `json:"players"`
 }
 
 type ActionDiscardData struct {
@@ -116,7 +113,7 @@ func (r *Room) doDiscard(action Action) error {
 	}
 
 	var positions []int
-	var values []Card
+	var values []game.Card
 
 	if data.CardPosition2 == nil {
 		value, err := r.state.Discard(data.CardPosition)
@@ -124,14 +121,14 @@ func (r *Room) doDiscard(action Action) error {
 			return err
 		}
 		positions = []int{data.CardPosition}
-		values = []Card{value}
+		values = []game.Card{value}
 	} else {
 		disc, topOfDiscardPile, err := r.state.DiscardTwo(data.CardPosition, *data.CardPosition2)
-		if err != nil && !errors.Is(err, ErrDiscardingNonEqualCards) {
+		if err != nil && !errors.Is(err, game.ErrDiscardingNonEqualCards) {
 			return err
 		}
 
-		if errors.Is(err, ErrDiscardingNonEqualCards) {
+		if errors.Is(err, game.ErrDiscardingNonEqualCards) {
 			positions := []int{data.CardPosition, *data.CardPosition2}
 			if err := r.broadcastFailedDoubleDiscard(action.PlayerID, positions, disc, topOfDiscardPile); err != nil {
 				return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
@@ -203,7 +200,7 @@ func (r *Room) doEffectPeekOwnCard(action Action) error {
 	updateData, err := json.Marshal(UpdateDiscardData{
 		Player:         action.PlayerID,
 		CardsPositions: []int{-1},
-		Cards:          []Card{discarded},
+		Cards:          []game.Card{discarded},
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -230,7 +227,7 @@ func (r *Room) doEffectPeekCartaAjena(action Action) error {
 	if err := r.broadcastPeek(action.PlayerID, data.Player, data.CardPosition, card); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
-	if err := r.broadcastDiscard(action.PlayerID, []int{-1}, []Card{discarded}); err != nil {
+	if err := r.broadcastDiscard(action.PlayerID, []int{-1}, []game.Card{discarded}); err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
 	if err := r.broadcastPassTurn(); err != nil {

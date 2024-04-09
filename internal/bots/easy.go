@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/rand"
 
+	"github.com/manuelpepe/tincho/internal/game"
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
@@ -16,12 +17,12 @@ type EasyStrategy struct {
 	firstTurn bool
 }
 
-func (s *EasyStrategy) GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+func (s *EasyStrategy) GameStart(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	s.firstTurn = true
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *EasyStrategy) Turn(player tincho.Player, data tincho.UpdateTurnData) (tincho.Action, error) {
+func (s *EasyStrategy) Turn(player tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -37,11 +38,11 @@ func (s *EasyStrategy) Turn(player tincho.Player, data tincho.UpdateTurnData) (t
 		}
 		return tincho.Action{Type: tincho.ActionCut, Data: data}, nil
 	} else {
-		var choices []tincho.DrawSource
+		var choices []game.DrawSource
 		if s.firstTurn {
-			choices = []tincho.DrawSource{tincho.DrawSourcePile}
+			choices = []game.DrawSource{game.DrawSourcePile}
 		} else {
-			choices = []tincho.DrawSource{tincho.DrawSourcePile, tincho.DrawSourceDiscard}
+			choices = []game.DrawSource{game.DrawSourcePile, game.DrawSourceDiscard}
 		}
 		data, err := json.Marshal(
 			tincho.ActionDrawData{Source: RandChoice(choices)},
@@ -54,7 +55,7 @@ func (s *EasyStrategy) Turn(player tincho.Player, data tincho.UpdateTurnData) (t
 	}
 }
 
-func (s *EasyStrategy) Draw(player tincho.Player, data tincho.UpdateDrawData) (tincho.Action, error) {
+func (s *EasyStrategy) Draw(player tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -67,11 +68,11 @@ func (s *EasyStrategy) Draw(player tincho.Player, data tincho.UpdateDrawData) (t
 	return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 }
 
-func (s *EasyStrategy) Error(player tincho.Player, data tincho.UpdateErrorData) (tincho.Action, error) {
+func (s *EasyStrategy) Error(player tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error) {
 	return tincho.Action{}, fmt.Errorf("recieved error update: %s", data.Message)
 }
 
-func (s *EasyStrategy) StartNextRound(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+func (s *EasyStrategy) StartNextRound(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	s.firstTurn = true
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }

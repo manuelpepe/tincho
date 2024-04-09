@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/manuelpepe/tincho/internal/game"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func NewSocket(server *httptest.Server, user string, room string) *websocket.Con
 }
 
 func NewRoomBasic(g *Service) (string, error) {
-	deck := NewDeck()
+	deck := game.NewDeck()
 	deck.Shuffle()
 	return g.NewRoom(slog.Default(), deck, 4, "")
 }
@@ -78,18 +79,18 @@ func TestDoubleDiscard(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
 	defer s.Close()
-	deck := Deck{
-		{Suit: SuitClubs, Value: 1},
-		{Suit: SuitDiamonds, Value: 1},
-		{Suit: SuitClubs, Value: 2},
-		{Suit: SuitClubs, Value: 3},
-		{Suit: SuitClubs, Value: 4},
-		{Suit: SuitClubs, Value: 5},
-		{Suit: SuitClubs, Value: 6},
-		{Suit: SuitClubs, Value: 7},
-		{Suit: SuitClubs, Value: 8},
-		{Suit: SuitClubs, Value: 9},
-		{Suit: SuitClubs, Value: 10},
+	deck := game.Deck{
+		{Suit: game.SuitClubs, Value: 1},
+		{Suit: game.SuitDiamonds, Value: 1},
+		{Suit: game.SuitClubs, Value: 2},
+		{Suit: game.SuitClubs, Value: 3},
+		{Suit: game.SuitClubs, Value: 4},
+		{Suit: game.SuitClubs, Value: 5},
+		{Suit: game.SuitClubs, Value: 6},
+		{Suit: game.SuitClubs, Value: 7},
+		{Suit: game.SuitClubs, Value: 8},
+		{Suit: game.SuitClubs, Value: 9},
+		{Suit: game.SuitClubs, Value: 10},
 	}
 	roomID, err := g.NewRoom(slog.Default(), deck, 4, "")
 	assert.NoError(t, err)
@@ -108,8 +109,8 @@ func TestDoubleDiscard(t *testing.T) {
 	// both players prompted to peek
 	u1 := assertRecieved(t, ws1, UpdateTypeGameStart)
 	u2 := assertRecieved(t, ws2, UpdateTypeGameStart)
-	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
-	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
+	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*game.Player{{ID: "p1", PendingFirstPeek: true, Hand: make(game.Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(game.Hand, 4)}}})
+	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*game.Player{{ID: "p1", PendingFirstPeek: true, Hand: make(game.Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(game.Hand, 4)}}})
 
 	// p1 peeks
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionFirstPeek}))
@@ -134,12 +135,12 @@ func TestDoubleDiscard(t *testing.T) {
 	// p1 draws
 	assert.NoError(t, ws1.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Player: "p1", Source: DrawSourcePile, Effect: CardEffectPeekCartaAjena, Card: deck[8]})
-	assertDataMatches(t, u2, UpdateDrawData{Player: "p1", Source: DrawSourcePile})
+	assertDataMatches(t, u1, UpdateDrawData{Player: "p1", Source: game.DrawSourcePile, Effect: game.CardEffectPeekCartaAjena, Card: deck[8]})
+	assertDataMatches(t, u2, UpdateDrawData{Player: "p1", Source: game.DrawSourcePile})
 
 	// p1 discards two equal cards
 	assert.NoError(t, ws1.WriteJSON(Action{
@@ -148,8 +149,8 @@ func TestDoubleDiscard(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
 	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
-	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardsPositions: []int{1, 0}, Cards: []Card{deck[1], deck[0]}})
-	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardsPositions: []int{1, 0}, Cards: []Card{deck[1], deck[0]}})
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardsPositions: []int{1, 0}, Cards: []game.Card{deck[1], deck[0]}})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardsPositions: []int{1, 0}, Cards: []game.Card{deck[1], deck[0]}})
 
 	// turn changes
 	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
@@ -160,12 +161,12 @@ func TestDoubleDiscard(t *testing.T) {
 	// p2 draws
 	assert.NoError(t, ws2.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Player: "p2", Source: DrawSourcePile})
-	assertDataMatches(t, u2, UpdateDrawData{Player: "p2", Source: DrawSourcePile, Effect: CardEffectSwapCards, Card: deck[9]})
+	assertDataMatches(t, u1, UpdateDrawData{Player: "p2", Source: game.DrawSourcePile})
+	assertDataMatches(t, u2, UpdateDrawData{Player: "p2", Source: game.DrawSourcePile, Effect: game.CardEffectSwapCards, Card: deck[9]})
 
 	// p2 discards two non-equal cards and fails
 	assert.NoError(t, ws2.WriteJSON(Action{
@@ -174,15 +175,15 @@ func TestDoubleDiscard(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeFailedDoubleDiscard)
 	u2 = assertRecieved(t, ws2, UpdateTypeFailedDoubleDiscard)
-	assertDataMatches(t, u1, UpdateTypeFailedDoubleDiscardData{Player: "p2", CardsPositions: []int{1, 0}, Cards: []Card{deck[5], deck[4]}})
-	assertDataMatches(t, u2, UpdateTypeFailedDoubleDiscardData{Player: "p2", CardsPositions: []int{1, 0}, Cards: []Card{deck[5], deck[4]}})
+	assertDataMatches(t, u1, UpdateTypeFailedDoubleDiscardData{Player: "p2", CardsPositions: []int{1, 0}, Cards: []game.Card{deck[5], deck[4]}})
+	assertDataMatches(t, u2, UpdateTypeFailedDoubleDiscardData{Player: "p2", CardsPositions: []int{1, 0}, Cards: []game.Card{deck[5], deck[4]}})
 }
 
 func TestBasicGame(t *testing.T) {
 	g, s, cancel := NewServer()
 	defer cancel()
 	defer s.Close()
-	deck := NewDeck()
+	deck := game.NewDeck()
 	roomID, err := g.NewRoom(slog.Default(), deck, 4, "")
 	assert.NoError(t, err)
 	ws1 := NewSocket(s, "p1", roomID)
@@ -200,8 +201,8 @@ func TestBasicGame(t *testing.T) {
 	// both players prompted to peek
 	u1 := assertRecieved(t, ws1, UpdateTypeGameStart)
 	u2 := assertRecieved(t, ws2, UpdateTypeGameStart)
-	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
-	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*Player{{ID: "p1", PendingFirstPeek: true, Hand: make(Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(Hand, 4)}}})
+	assertDataMatches(t, u1, UpdateStartNextRoundData{Players: []*game.Player{{ID: "p1", PendingFirstPeek: true, Hand: make(game.Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(game.Hand, 4)}}})
+	assertDataMatches(t, u2, UpdateStartNextRoundData{Players: []*game.Player{{ID: "p1", PendingFirstPeek: true, Hand: make(game.Hand, 4)}, {ID: "p2", PendingFirstPeek: true, Hand: make(game.Hand, 4)}}})
 
 	// p1 peeks
 	assert.NoError(t, ws1.WriteJSON(Action{Type: ActionFirstPeek}))
@@ -226,20 +227,20 @@ func TestBasicGame(t *testing.T) {
 	// p1 draws
 	assert.NoError(t, ws1.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Player: "p1", Source: DrawSourcePile, Effect: CardEffectSwapCards, Card: deck[8]})
-	assertDataMatches(t, u2, UpdateDrawData{Player: "p1", Source: DrawSourcePile})
+	assertDataMatches(t, u1, UpdateDrawData{Player: "p1", Source: game.DrawSourcePile, Effect: game.CardEffectSwapCards, Card: deck[8]})
+	assertDataMatches(t, u2, UpdateDrawData{Player: "p1", Source: game.DrawSourcePile})
 
 	// p1 tries to draw again and fails
 	assert.NoError(t, ws1.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeError)
-	assertDataMatches(t, u1, UpdateErrorData{Message: ErrPendingDiscard.Error()})
+	assertDataMatches(t, u1, UpdateErrorData{Message: game.ErrPendingDiscard.Error()})
 
 	// p1 discards second card
 	assert.NoError(t, ws1.WriteJSON(Action{
@@ -248,8 +249,8 @@ func TestBasicGame(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
 	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
-	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []Card{deck[1]}})
-	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []Card{deck[1]}})
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []game.Card{deck[1]}})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []game.Card{deck[1]}})
 
 	// turn changes
 	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
@@ -268,7 +269,7 @@ func TestBasicGame(t *testing.T) {
 	// p1 tries to draw again and fails
 	assert.NoError(t, ws1.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeError)
 	assertDataMatches(t, u1, UpdateErrorData{Message: ErrNotYourTurn.Error()})
@@ -276,12 +277,12 @@ func TestBasicGame(t *testing.T) {
 	// p2 draws
 	assert.NoError(t, ws2.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Player: "p2", Source: DrawSourcePile})
-	assertDataMatches(t, u2, UpdateDrawData{Player: "p2", Source: DrawSourcePile, Effect: CardEffectNone, Card: deck[9]})
+	assertDataMatches(t, u1, UpdateDrawData{Player: "p2", Source: game.DrawSourcePile})
+	assertDataMatches(t, u2, UpdateDrawData{Player: "p2", Source: game.DrawSourcePile, Effect: game.CardEffectNone, Card: deck[9]})
 
 	// p2 discards drawn card card
 	assert.NoError(t, ws2.WriteJSON(Action{
@@ -290,8 +291,8 @@ func TestBasicGame(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
 	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
-	assertDataMatches(t, u1, UpdateDiscardData{Player: "p2", CardsPositions: []int{-1}, Cards: []Card{deck[9]}})
-	assertDataMatches(t, u2, UpdateDiscardData{Player: "p2", CardsPositions: []int{-1}, Cards: []Card{deck[9]}})
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p2", CardsPositions: []int{-1}, Cards: []game.Card{deck[9]}})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p2", CardsPositions: []int{-1}, Cards: []game.Card{deck[9]}})
 
 	// turn changes
 	u1 = assertRecieved(t, ws1, UpdateTypeTurn)
@@ -302,12 +303,12 @@ func TestBasicGame(t *testing.T) {
 	// p1 draws
 	assert.NoError(t, ws1.WriteJSON(Action{
 		Type: ActionDraw,
-		Data: safeMarshal(t, ActionDrawData{Source: DrawSourcePile}),
+		Data: safeMarshal(t, ActionDrawData{Source: game.DrawSourcePile}),
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDraw)
 	u2 = assertRecieved(t, ws2, UpdateTypeDraw)
-	assertDataMatches(t, u1, UpdateDrawData{Player: "p1", Source: DrawSourcePile, Effect: CardEffectNone, Card: deck[10]})
-	assertDataMatches(t, u2, UpdateDrawData{Player: "p1", Source: DrawSourcePile})
+	assertDataMatches(t, u1, UpdateDrawData{Player: "p1", Source: game.DrawSourcePile, Effect: game.CardEffectNone, Card: deck[10]})
+	assertDataMatches(t, u2, UpdateDrawData{Player: "p1", Source: game.DrawSourcePile})
 
 	// p1 discards second card
 	assert.NoError(t, ws1.WriteJSON(Action{
@@ -316,8 +317,8 @@ func TestBasicGame(t *testing.T) {
 	}))
 	u1 = assertRecieved(t, ws1, UpdateTypeDiscard)
 	u2 = assertRecieved(t, ws2, UpdateTypeDiscard)
-	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []Card{deck[8]}})
-	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []Card{deck[8]}})
+	assertDataMatches(t, u1, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []game.Card{deck[8]}})
+	assertDataMatches(t, u2, UpdateDiscardData{Player: "p1", CardsPositions: []int{1}, Cards: []game.Card{deck[8]}})
 
 }
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/manuelpepe/tincho/internal/game"
 )
 
 var upgrader = websocket.Upgrader{
@@ -37,13 +38,13 @@ type DeckOptions struct {
 	Chaos    bool `json:"chaos"`
 }
 
-func buildDeck(options DeckOptions) Deck {
-	deck := NewDeck()
+func buildDeck(options DeckOptions) game.Deck {
+	deck := game.NewDeck()
 	if options.Extended {
-		deck = AddExtendedVariation(deck)
+		deck = game.AddExtendedVariation(deck)
 	}
 	if options.Chaos {
-		deck = AddChaosVariation(deck)
+		deck = game.AddChaosVariation(deck)
 	}
 	deck.Shuffle()
 	return deck
@@ -92,7 +93,7 @@ func (h *Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := strings.ToUpper(r.URL.Query().Get("room"))
-	playerID := PlayerID(r.URL.Query().Get("player"))
+	playerID := game.PlayerID(r.URL.Query().Get("player"))
 	password := r.URL.Query().Get("password")
 	if playerID == "" || roomID == "" {
 		remove_cookie(r, w)
@@ -123,7 +124,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		h.connect(w, r, playerID, room, password)
 	} else if curPlayer.SessionToken == sessionToken {
-		h.reconnect(w, r, &curPlayer, room)
+		h.reconnect(w, r, curPlayer, room)
 	} else {
 		h.logger.Warn(fmt.Sprintf("Player %s already exists in room %s", playerID, roomID))
 		w.WriteHeader(http.StatusConflict)
@@ -131,9 +132,9 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID PlayerID, room *Room, password string) {
-	player := NewPlayer(playerID)
-	sesCookie := encode_cookie(player.ID, room.ID, player.SessionToken)
+func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID game.PlayerID, room *Room, password string) {
+	connection := NewConnection(playerID)
+	sesCookie := encode_cookie(connection.ID, room.ID, connection.SessionToken)
 
 	ws, err := upgradeConnection(w, r, sesCookie)
 	if err != nil {
@@ -142,9 +143,9 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
-	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
-	stopWS := handleWS(ws, player, room, wslogger)
-	if err := h.service.JoinRoom(room.ID, player, password); err != nil {
+	wslogger := h.logger.With("room_id", room.ID, "player_id", connection.ID)
+	stopWS := handleWS(ws, connection, room, wslogger)
+	if err := h.service.JoinRoom(room.ID, connection, password); err != nil {
 		stopWS()
 		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -154,7 +155,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID Play
 	h.logger.Info(fmt.Sprintf("Player %s joined room %s", playerID, room.ID))
 }
 
-func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Player, room *Room) {
+func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, conn *Connection, room *Room) {
 	ws, err := upgradeConnection(w, r, nil)
 	if err != nil {
 		h.logger.Warn(fmt.Sprintf("Error upgrading connection: %s", err), "err", err)
@@ -162,16 +163,16 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, player *Pla
 		w.Write([]byte("error upgrading connection"))
 		return
 	}
-	wslogger := h.logger.With("room_id", room.ID, "player_id", player.ID)
-	stopWS := handleWS(ws, player, room, wslogger)
-	if err := h.service.JoinRoomWithoutPassword(room.ID, player); err != nil {
+	wslogger := h.logger.With("room_id", room.ID, "player_id", conn.Player.ID)
+	stopWS := handleWS(ws, conn, room, wslogger)
+	if err := h.service.JoinRoomWithoutPassword(room.ID, conn); err != nil {
 		stopWS()
 		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))
 		return
 	}
-	h.logger.Info("Player %s reconnected to room %s", player.ID, room.ID)
+	h.logger.Info("Player %s reconnected to room %s", conn.Player.ID, room.ID)
 }
 
 const TOKEN_COOKIE_NAME = "session_token"
@@ -179,7 +180,7 @@ const TOKEN_SEPARATOR = "::"
 
 var ErrInvalidCookie = fmt.Errorf("invalid token")
 
-func decode_cookie(r *http.Request, w http.ResponseWriter) (PlayerID, string, string, error) {
+func decode_cookie(r *http.Request, w http.ResponseWriter) (game.PlayerID, string, string, error) {
 	cookie, err := r.Cookie(TOKEN_COOKIE_NAME)
 	if err != nil {
 		return "", "", "", err
@@ -196,10 +197,10 @@ func decode_cookie(r *http.Request, w http.ResponseWriter) (PlayerID, string, st
 		}
 		return "", "", "", ErrInvalidCookie
 	}
-	return PlayerID(parts[0]), parts[1], parts[2], nil
+	return game.PlayerID(parts[0]), parts[1], parts[2], nil
 }
 
-func encode_cookie(player PlayerID, room string, token string) *http.Cookie {
+func encode_cookie(player game.PlayerID, room string, token string) *http.Cookie {
 	encoded := fmt.Sprintf("%s%s%s%s%s", player, TOKEN_SEPARATOR, room, TOKEN_SEPARATOR, token)
 	return &http.Cookie{
 		Name:    TOKEN_COOKIE_NAME,
@@ -234,18 +235,20 @@ func upgradeConnection(w http.ResponseWriter, r *http.Request, cookie *http.Cook
 	return ws, nil
 }
 
-func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logger) func() {
+func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Logger) func() {
 	ctx, cancelWSContext := context.WithCancel(room.Context)
 	stopWS := func() {
 		cancelWSContext()
 		ws.Close()
 	}
+	player := conn.Player
+
 	go func() {
 		logger.Info(fmt.Sprintf("Started socket write loop for player %s", player.ID))
 		tick := time.NewTicker(10 * time.Second)
 		for {
 			select {
-			case update := <-player.Updates:
+			case update := <-conn.Updates:
 				logger.Info(
 					fmt.Sprintf("Sending update to player %s", player.ID),
 					"update", update,
@@ -267,6 +270,7 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logge
 			}
 		}
 	}()
+
 	go func() {
 		logger.Info(fmt.Sprintf("Started socket read loop for player %s", player.ID))
 		tick := time.NewTicker(1 * time.Second)
@@ -284,12 +288,13 @@ func handleWS(ws *websocket.Conn, player *Player, room *Room, logger *slog.Logge
 					logger.Error("error unmarshalling action", "err", err)
 					return // TODO: Prevent disconnect
 				}
-				player.QueueAction(action)
+				conn.QueueAction(action)
 			case <-ctx.Done():
 				logger.Info(fmt.Sprintf("Stopping socket read for player %s", player.ID))
 				return
 			}
 		}
 	}()
+
 	return stopWS
 }

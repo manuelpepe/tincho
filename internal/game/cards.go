@@ -1,4 +1,4 @@
-package tincho
+package game
 
 import (
 	"errors"

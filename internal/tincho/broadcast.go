@@ -4,32 +4,49 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/manuelpepe/tincho/internal/game"
 )
 
 func (r *Room) BroadcastUpdate(update Update) {
 	for _, player := range r.state.GetPlayers() {
-		player.SendUpdateOrDrop(update)
+		conn, ok := r.GetPlayer(player.ID)
+		if !ok {
+			// TODO: probably should stop everything as this shouldn-t happen
+			continue
+		}
+		conn.SendUpdateOrDrop(update)
 	}
 }
 
-func (r *Room) BroadcastUpdateExcept(update Update, player PlayerID) {
+func (r *Room) BroadcastUpdateExcept(update Update, player game.PlayerID) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID != player {
-			p.SendUpdateOrDrop(update)
+			conn, ok := r.GetPlayer(p.ID)
+			if !ok {
+				// TODO: probably should stop everything as this shouldn-t happen
+				continue
+			}
+			conn.SendUpdateOrDrop(update)
 		}
 	}
 }
 
-func (r *Room) TargetedUpdate(player PlayerID, update Update) {
+func (r *Room) TargetedUpdate(player game.PlayerID, update Update) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID == player {
-			p.SendUpdateOrDrop(update)
+			conn, ok := r.GetPlayer(p.ID)
+			if !ok {
+				// TODO: probably should stop everything as this shouldn-t happen
+				continue
+			}
+			conn.SendUpdateOrDrop(update)
 			return
 		}
 	}
 }
 
-func (r *Room) TargetedError(player PlayerID, err error) {
+func (r *Room) TargetedError(player game.PlayerID, err error) {
 	data, err := json.Marshal(UpdateErrorData{
 		Message: err.Error(),
 	})
@@ -43,20 +60,22 @@ func (r *Room) TargetedError(player PlayerID, err error) {
 	})
 }
 
-func (r *Room) sendRejoinState(player *Player) error {
+func (r *Room) sendRejoinState(player *Connection) error {
 	curTurn := r.state.PlayerToPlay().ID
-	var cardInHandVal *Card
-	if (player.ID == curTurn && r.state.pendingStorage != Card{}) {
-		cardInHandVal = &r.state.pendingStorage
+	pendStorage := r.state.GetPendingStorage()
+	var cardInHandVal *game.Card
+	if (player.ID == curTurn && pendStorage != game.Card{}) {
+		cardInHandVal = &pendStorage
 	}
-	var lastDiscarded *Card
-	if len(r.state.discardPile) > 0 {
-		lastDiscarded = &r.state.discardPile[0]
+	var lastDiscarded *game.Card
+	if r.state.CountDiscardPile() > 0 {
+		v := r.state.LastDiscarded()
+		lastDiscarded = &v
 	}
 	data, err := json.Marshal(UpdateTypeRejoinData{
 		Players:       r.state.GetPlayers(),
 		CurrentTurn:   curTurn,
-		CardInHand:    r.state.pendingStorage != Card{},
+		CardInHand:    r.state.GetPendingStorage() != game.Card{},
 		CardInHandVal: cardInHandVal,
 		LastDiscarded: lastDiscarded,
 	})
@@ -84,7 +103,7 @@ func (r *Room) broadcastPassTurn() error {
 	return nil
 }
 
-func (r *Room) broadcastStartGame(topDiscard Card) error {
+func (r *Room) broadcastStartGame(topDiscard game.Card) error {
 	data, err := json.Marshal(UpdateStartNextRoundData{
 		Players:    r.state.GetPlayers(),
 		TopDiscard: topDiscard,
@@ -99,7 +118,7 @@ func (r *Room) broadcastStartGame(topDiscard Card) error {
 	return nil
 }
 
-func (r *Room) broadcastPlayerFirstPeeked(playerID PlayerID, cards []Card) error {
+func (r *Room) broadcastPlayerFirstPeeked(playerID game.PlayerID, cards []game.Card) error {
 	// broadcast UpdateTypePlayerPeeked without cards
 	data, err := json.Marshal(UpdatePlayerFirstPeekedData{
 		Player: playerID,
@@ -127,7 +146,7 @@ func (r *Room) broadcastPlayerFirstPeeked(playerID PlayerID, cards []Card) error
 	return nil
 }
 
-func (r *Room) broadcastDraw(playerID PlayerID, source DrawSource, card Card) error {
+func (r *Room) broadcastDraw(playerID game.PlayerID, source game.DrawSource, card game.Card) error {
 	// target UpdateTypeDraw with card
 	mesageWithInfo, err := json.Marshal(UpdateDrawData{
 		Player: playerID,
@@ -158,7 +177,7 @@ func (r *Room) broadcastDraw(playerID PlayerID, source DrawSource, card Card) er
 	return nil
 }
 
-func (r *Room) broadcastDiscard(playerID PlayerID, positions []int, discarded []Card) error {
+func (r *Room) broadcastDiscard(playerID game.PlayerID, positions []int, discarded []game.Card) error {
 	updateData, err := json.Marshal(UpdateDiscardData{
 		Player:         playerID,
 		CardsPositions: positions,
@@ -174,7 +193,7 @@ func (r *Room) broadcastDiscard(playerID PlayerID, positions []int, discarded []
 	return nil
 }
 
-func (r *Room) broadcastFailedDoubleDiscard(playerID PlayerID, positions []int, cards []Card, topOfDiscard Card) error {
+func (r *Room) broadcastFailedDoubleDiscard(playerID game.PlayerID, positions []int, cards []game.Card, topOfDiscard game.Card) error {
 	updateData, err := json.Marshal(UpdateTypeFailedDoubleDiscardData{
 		Player:         playerID,
 		CardsPositions: positions,
@@ -191,9 +210,9 @@ func (r *Room) broadcastFailedDoubleDiscard(playerID PlayerID, positions []int, 
 	return nil
 }
 
-func (r *Room) broadcastCut(playerID PlayerID, withCount bool, declared int) error {
+func (r *Room) broadcastCut(playerID game.PlayerID, withCount bool, declared int) error {
 	players := r.state.GetPlayers()
-	hands := make([][]Card, len(players))
+	hands := make([][]game.Card, len(players))
 	for ix := range players {
 		hands[ix] = players[ix].Hand
 	}
@@ -214,7 +233,7 @@ func (r *Room) broadcastCut(playerID PlayerID, withCount bool, declared int) err
 	return nil
 }
 
-func (r *Room) broadcastNextRound(topDiscard Card) error {
+func (r *Room) broadcastNextRound(topDiscard game.Card) error {
 	data, err := json.Marshal(UpdateStartNextRoundData{
 		Players:    r.state.GetPlayers(),
 		TopDiscard: topDiscard,
@@ -229,7 +248,7 @@ func (r *Room) broadcastNextRound(topDiscard Card) error {
 	return nil
 }
 
-func (r *Room) broadcastEndGame(scores []Round) error {
+func (r *Room) broadcastEndGame(scores []game.Round) error {
 	data, err := json.Marshal(UpdateEndGameData{
 		Rounds: scores,
 	})
@@ -243,7 +262,7 @@ func (r *Room) broadcastEndGame(scores []Round) error {
 	return nil
 }
 
-func (r *Room) broadcastSwapCards(playerID PlayerID, positions []int, players []PlayerID, discarded Card) error {
+func (r *Room) broadcastSwapCards(playerID game.PlayerID, positions []int, players []game.PlayerID, discarded game.Card) error {
 	updateData, err := json.Marshal(
 		UpdateSwapCardsData{
 			CardsPositions: positions,
@@ -260,7 +279,7 @@ func (r *Room) broadcastSwapCards(playerID PlayerID, positions []int, players []
 	updateData, err = json.Marshal(UpdateDiscardData{
 		Player:         playerID,
 		CardsPositions: []int{-1},
-		Cards:          []Card{discarded},
+		Cards:          []game.Card{discarded},
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -275,7 +294,7 @@ func (r *Room) broadcastSwapCards(playerID PlayerID, positions []int, players []
 	return nil
 }
 
-func (r *Room) broadcastPeek(targetPlayer PlayerID, peekedPlayer PlayerID, cardIndex int, card Card) error {
+func (r *Room) broadcastPeek(targetPlayer game.PlayerID, peekedPlayer game.PlayerID, cardIndex int, card game.Card) error {
 	updateData, err := json.Marshal(UpdatePeekCardData{
 		CardPosition: cardIndex,
 		Card:         card,

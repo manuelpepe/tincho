@@ -11,29 +11,29 @@ import (
 )
 
 type Strategy interface {
-	PlayersChanged(player tincho.Player, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
-	GameStart(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
-	PlayerFirstPeeked(player tincho.Player, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
-	Turn(player tincho.Player, data tincho.UpdateTurnData) (tincho.Action, error)
-	Draw(player tincho.Player, data tincho.UpdateDrawData) (tincho.Action, error)
-	PeekCard(player tincho.Player, data tincho.UpdatePeekCardData) (tincho.Action, error)
-	SwapCards(player tincho.Player, data tincho.UpdateSwapCardsData) (tincho.Action, error)
-	Discard(player tincho.Player, data tincho.UpdateDiscardData) (tincho.Action, error)
-	FailedDoubleDiscard(player tincho.Player) (tincho.Action, error)
-	Cut(player tincho.Player, data tincho.UpdateCutData) (tincho.Action, error)
-	Error(player tincho.Player, data tincho.UpdateErrorData) (tincho.Action, error)
-	StartNextRound(player tincho.Player, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
-	EndGame(player tincho.Player, data tincho.UpdateEndGameData) (tincho.Action, error)
+	PlayersChanged(player tincho.Connection, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
+	GameStart(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
+	PlayerFirstPeeked(player tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
+	Turn(player tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error)
+	Draw(player tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error)
+	PeekCard(player tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error)
+	SwapCards(player tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error)
+	Discard(player tincho.Connection, data tincho.UpdateDiscardData) (tincho.Action, error)
+	FailedDoubleDiscard(player tincho.Connection) (tincho.Action, error)
+	Cut(player tincho.Connection, data tincho.UpdateCutData) (tincho.Action, error)
+	Error(player tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error)
+	StartNextRound(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
+	EndGame(player tincho.Connection, data tincho.UpdateEndGameData) (tincho.Action, error)
 }
 
 type Bot struct {
 	ctx      context.Context
-	player   *tincho.Player
+	player   *tincho.Connection
 	strategy Strategy
 	logger   *slog.Logger
 }
 
-func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Player, difficulty string) (Bot, error) {
+func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Connection, difficulty string) (Bot, error) {
 	var strategy Strategy
 	switch difficulty {
 	case "easy":
@@ -74,7 +74,7 @@ func (b *Bot) Start() error {
 	}
 }
 
-func (b *Bot) RespondToUpdate(player tincho.Player, update tincho.Update) (tincho.Action, error) {
+func (b *Bot) RespondToUpdate(player tincho.Connection, update tincho.Update) (tincho.Action, error) {
 	switch update.Type {
 	case tincho.UpdateTypeGameStart:
 		var data tincho.UpdateStartNextRoundData
