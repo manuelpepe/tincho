@@ -133,6 +133,9 @@ func (r *Room) doDiscard(action Action) error {
 			if err := r.broadcastFailedDoubleDiscard(action.PlayerID, positions, disc, topOfDiscardPile); err != nil {
 				return fmt.Errorf("broadcastFailedDoubleDiscard: %w", err)
 			}
+			if err := r.broadcastPassTurn(); err != nil {
+				return fmt.Errorf("PassTurn: %w", err)
+			}
 			return nil
 		}
 

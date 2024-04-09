@@ -302,10 +302,12 @@ func (t *Tincho) DiscardTwo(position int, position2 int) ([]DiscardedCard, Disca
 	}
 	cards, topCardOnFail, err := t.discardTwoCards(position, position2)
 	if err != nil {
-		return cards, topCardOnFail, fmt.Errorf("error discarding: %w", err)
+		if errors.Is(err, ErrDiscardingNonEqualCards) {
+			t.passTurn()
+		}
+		return cards, topCardOnFail, false, fmt.Errorf("error discarding: %w", err)
 	}
 	t.passTurn()
-	return cards, Card{}, nil
 }
 
 var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of different values")
