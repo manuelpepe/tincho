@@ -7,7 +7,7 @@
 - [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
-- [ ] [BACK] Add a `piles shuffled` update
+- [ ] [FRONT] Add a `piles shuffled` animation
 - [ ] [FRONT] Display withCount and declared info on cut screen
 - [ ] [BACK] Turn time limit (probably should draw and discard drawed card)
 - [ ] [BACK+FRONT] Roomlist in UI with join buttons and private status
@@ -100,6 +100,7 @@
 - [x] Automatic rejoin
 - [x] Draw card at the start of round.
 - [x] Add indicator of current turn
+- [x] Add a `piles shuffled` update
 
 ### Fixes
 

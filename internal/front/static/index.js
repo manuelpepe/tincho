@@ -576,11 +576,13 @@ window.onload = function () {
                 PLAYERS[data.player].data.cards_in_hand -= 1;
             }
         }
+        // TODO: Handle cycledPiles
     }
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */
     async function handleDoubleDiscard(data) {
         await showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards, data.topOfDiscard);
+        // TODO: Handle cycledPiles
     }
 
     /** @param {UpdatePeekCardData} data */

@@ -177,11 +177,12 @@ func (r *Room) broadcastDraw(playerID game.PlayerID, source game.DrawSource, car
 	return nil
 }
 
-func (r *Room) broadcastDiscard(playerID game.PlayerID, positions []int, discarded []game.Card) error {
+func (r *Room) broadcastDiscard(playerID game.PlayerID, positions []int, discarded []game.Card, cycledPiles game.CycledPiles) error {
 	updateData, err := json.Marshal(UpdateDiscardData{
 		Player:         playerID,
 		CardsPositions: positions,
 		Cards:          discarded,
+		CycledPiles:    cycledPiles,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -193,12 +194,13 @@ func (r *Room) broadcastDiscard(playerID game.PlayerID, positions []int, discard
 	return nil
 }
 
-func (r *Room) broadcastFailedDoubleDiscard(playerID game.PlayerID, positions []int, cards []game.Card, topOfDiscard game.Card) error {
+func (r *Room) broadcastFailedDoubleDiscard(playerID game.PlayerID, positions []int, cards []game.Card, topOfDiscard game.Card, cycledPiles game.CycledPiles) error {
 	updateData, err := json.Marshal(UpdateTypeFailedDoubleDiscardData{
 		Player:         playerID,
 		CardsPositions: positions,
 		Cards:          cards,
 		TopOfDiscard:   topOfDiscard,
+		CycledPiles:    cycledPiles,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)
@@ -262,7 +264,13 @@ func (r *Room) broadcastEndGame(scores []game.Round) error {
 	return nil
 }
 
-func (r *Room) broadcastSwapCards(playerID game.PlayerID, positions []int, players []game.PlayerID, discarded game.Card) error {
+func (r *Room) broadcastSwapCards(
+	playerID game.PlayerID,
+	positions []int,
+	players []game.PlayerID,
+	discarded game.Card,
+	cycledPiles game.CycledPiles,
+) error {
 	updateData, err := json.Marshal(
 		UpdateSwapCardsData{
 			CardsPositions: positions,
@@ -276,28 +284,29 @@ func (r *Room) broadcastSwapCards(playerID game.PlayerID, positions []int, playe
 		Type: UpdateTypeSwapCards,
 		Data: json.RawMessage(updateData),
 	})
-	updateData, err = json.Marshal(UpdateDiscardData{
-		Player:         playerID,
-		CardsPositions: []int{-1},
-		Cards:          []game.Card{discarded},
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+
+	if err := r.broadcastDiscard(playerID, []int{-1}, []game.Card{discarded}, cycledPiles); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
-	r.BroadcastUpdate(Update{
-		Type: UpdateTypeDiscard,
-		Data: json.RawMessage(updateData),
-	})
+
 	if err := r.broadcastPassTurn(); err != nil {
 		return fmt.Errorf("PassTurn: %w", err)
 	}
 	return nil
 }
 
-func (r *Room) broadcastPeek(targetPlayer game.PlayerID, peekedPlayer game.PlayerID, cardIndex int, card game.Card) error {
+func (r *Room) broadcastPeek(
+	targetPlayer game.PlayerID,
+	peekedPlayer game.PlayerID,
+	cardIndex int,
+	peeked game.Card,
+	discarded game.Card,
+	cycledPiles game.CycledPiles,
+) error {
+	// update with value for player peeking
 	updateData, err := json.Marshal(UpdatePeekCardData{
 		CardPosition: cardIndex,
-		Card:         card,
+		Card:         peeked,
 		Player:       peekedPlayer,
 	})
 	if err != nil {
@@ -307,6 +316,8 @@ func (r *Room) broadcastPeek(targetPlayer game.PlayerID, peekedPlayer game.Playe
 		Type: UpdateTypePeekCard,
 		Data: json.RawMessage(updateData),
 	})
+
+	// update without value for other players
 	updateData, err = json.Marshal(UpdatePeekCardData{
 		CardPosition: cardIndex,
 		Player:       peekedPlayer,
@@ -318,5 +329,14 @@ func (r *Room) broadcastPeek(targetPlayer game.PlayerID, peekedPlayer game.Playe
 		Type: UpdateTypePeekCard,
 		Data: json.RawMessage(updateData),
 	}, targetPlayer)
+
+	if err := r.broadcastDiscard(targetPlayer, []int{-1}, []game.Card{discarded}, cycledPiles); err != nil {
+		return fmt.Errorf("broadcastDiscard: %w", err)
+	}
+
+	if err := r.broadcastPassTurn(); err != nil {
+		return fmt.Errorf("PassTurn: %w", err)
+	}
+
 	return nil
 }

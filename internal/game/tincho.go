@@ -223,11 +223,6 @@ func (t *Tincho) Draw(source DrawSource) (Card, error) {
 	if t.pendingStorage != (Card{}) {
 		return Card{}, ErrPendingDiscard
 	}
-	if len(t.drawPile) == 0 {
-		if err := t.cyclePiles(); err != nil {
-			return Card{}, fmt.Errorf("CyclePiles: %w", err)
-		}
-	}
 	card, err := t.drawFromSource(source)
 	if err != nil {
 		return Card{}, fmt.Errorf("drawFromSource: %w", err)
@@ -236,11 +231,14 @@ func (t *Tincho) Draw(source DrawSource) (Card, error) {
 	return card, nil
 }
 
-func (r *Tincho) cyclePiles() error {
-	r.drawPile = r.discardPile
-	r.drawPile.Shuffle()
-	r.discardPile = make(Deck, 0)
-	return r.discardTopCard()
+func (t *Tincho) cyclePilesIfEmptyDraw() CycledPiles {
+	cycledPiles := len(t.drawPile) == 0
+	if cycledPiles {
+		t.drawPile = t.discardPile
+		t.drawPile.Shuffle()
+		t.discardPile = make(Deck, 0)
+	}
+	return CycledPiles(cycledPiles)
 }
 
 // Sends the top card in the draw pile to the discard pile.
@@ -264,20 +262,24 @@ func (t *Tincho) drawFromSource(source DrawSource) (Card, error) {
 	}
 }
 
+type CycledPiles bool
+
 // Discard a card after drawing.
 // If position is -1, the drawn card is discarded without storing it in the player's hand.
 // If position is a valid hand index, the drawn card is stored in the player's hand at the given position
 // and the card at that position discarded.
 // After discarding the turn passes to the next player.
-func (t *Tincho) Discard(position int) (DiscardedCard, error) {
+func (t *Tincho) Discard(position int) (DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage == (Card{}) {
-		return Card{}, errors.New("can't discard without drawing")
+		return Card{}, false, errors.New("can't discard without drawing")
 	}
 
 	player := t.players[t.currentTurn]
 	if position < -1 || position >= len(player.Hand) {
-		return Card{}, fmt.Errorf("invalid card position: %d", position)
+		return Card{}, false, fmt.Errorf("invalid card position: %d", position)
 	}
+
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 
 	if position == -1 {
 		t.discardPile = append([]Card{t.pendingStorage}, t.discardPile...)
@@ -289,25 +291,28 @@ func (t *Tincho) Discard(position int) (DiscardedCard, error) {
 	t.pendingStorage = Card{}
 	t.passTurn()
 
-	return t.discardPile[0], nil
+	return t.discardPile[0], cycledPiles, nil
 }
 
 // Discard two cards after drawing.
 // The cards must be equals, otherwise the double discard fails with an ErrDiscardingNonEqualCards value.
 // If the discard fails, the top card of the discard pile is returned in the second return value as it must be
 // drawn, sometimes from a freshly shuffled draw pile.
-func (t *Tincho) DiscardTwo(position int, position2 int) ([]DiscardedCard, DiscardedCard, error) {
+func (t *Tincho) DiscardTwo(position int, position2 int) ([]DiscardedCard, DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage == (Card{}) {
-		return nil, Card{}, errors.New("can't discard without drawing")
+		return nil, Card{}, false, errors.New("can't discard without drawing")
 	}
-	cards, topCardOnFail, err := t.discardTwoCards(position, position2)
+
+	cards, topCardOnFail, cycledPiles, err := t.discardTwoCards(position, position2)
 	if err != nil {
 		if errors.Is(err, ErrDiscardingNonEqualCards) {
 			t.passTurn()
 		}
-		return cards, topCardOnFail, false, fmt.Errorf("error discarding: %w", err)
+		return cards, topCardOnFail, cycledPiles, fmt.Errorf("error discarding: %w", err)
 	}
+
 	t.passTurn()
+	return cards, Card{}, cycledPiles, nil
 }
 
 var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of different values")
@@ -315,33 +320,28 @@ var ErrDiscardingNonEqualCards = errors.New("tried to double discard cards of di
 // Try to discard two cards from the player's hand.
 // Both positions must be different and from the player's hand (drawn card can't be doble discarded).
 // Both cards must be of the same value, jokers can't be paired with non joker cards.
-func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]DiscardedCard, DiscardedCard, error) {
+func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]DiscardedCard, DiscardedCard, CycledPiles, error) {
 	player := t.players[t.currentTurn]
 	if position1 == position2 {
-		return nil, Card{}, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
+		return nil, Card{}, false, fmt.Errorf("invalid card positions: %d, %d", position1, position2)
 	}
 	if position1 < 0 || position1 >= len(player.Hand) {
-		return nil, Card{}, fmt.Errorf("invalid card position: %d", position1)
+		return nil, Card{}, false, fmt.Errorf("invalid card position: %d", position1)
 	}
 	if position2 < 0 || position2 >= len(player.Hand) {
-		return nil, Card{}, fmt.Errorf("invalid card position: %d", position2)
+		return nil, Card{}, false, fmt.Errorf("invalid card position: %d", position2)
 	}
+
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 
 	card1 := player.Hand[position1]
 	card2 := player.Hand[position2]
 
 	if card1.Value != card2.Value {
-		// draw a new card if discard pile is empty
-		if len(t.discardPile) == 0 {
-			if err := t.discardTopCard(); err != nil {
-				return nil, Card{}, fmt.Errorf("discardTopCard: %w", err)
-			}
-		}
-
 		// player keeps all 3 cards in hand
 		player.Hand = append(player.Hand, t.pendingStorage)
 		t.pendingStorage = Card{}
-		return []Card{card1, card2}, t.discardPile[0], ErrDiscardingNonEqualCards
+		return []Card{card1, card2}, t.discardPile[0], cycledPiles, ErrDiscardingNonEqualCards
 	}
 
 	// player succesfully discards both cards
@@ -349,7 +349,7 @@ func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]DiscardedCard,
 	player.Hand[position1] = t.pendingStorage
 	player.Hand.Remove(position2)
 	t.pendingStorage = Card{}
-	return []Card{card1, card2}, Card{}, nil
+	return []Card{card1, card2}, Card{}, cycledPiles, nil
 }
 
 type GameFinished bool
@@ -408,35 +408,42 @@ type PeekedCard = Card
 // A card to be in the discard pile
 type DiscardedCard = Card
 
-func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, error) {
+func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekOwnCard {
-		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+		return Card{}, Card{}, false, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
+
 	player := t.players[t.currentTurn]
 	card, err := t.peekCard(player, position)
 	if err != nil {
-		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)
+		return Card{}, Card{}, false, fmt.Errorf("PeekCard: %w", err)
 	}
+
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	discarded := t.discardPending()
 	t.passTurn()
-	return card, discarded, nil
+	return card, discarded, cycledPiles, nil
 }
 
-func (t *Tincho) UseEffectPeekCartaAjena(playerID PlayerID, position int) (PeekedCard, DiscardedCard, error) {
+func (t *Tincho) UseEffectPeekCartaAjena(playerID PlayerID, position int) (PeekedCard, DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekCartaAjena {
-		return Card{}, Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+		return Card{}, Card{}, false, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
+
 	player, ok := t.GetPlayer(playerID)
 	if !ok {
-		return Card{}, Card{}, fmt.Errorf("player not found: %s", playerID)
+		return Card{}, Card{}, false, fmt.Errorf("player not found: %s", playerID)
 	}
+
 	card, err := t.peekCard(player, position)
 	if err != nil {
-		return Card{}, Card{}, fmt.Errorf("PeekCard: %w", err)
+		return Card{}, Card{}, false, fmt.Errorf("PeekCard: %w", err)
 	}
+
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	discarded := t.discardPending()
 	t.passTurn()
-	return card, discarded, nil
+	return card, discarded, cycledPiles, nil
 }
 
 func (t *Tincho) peekCard(player *Player, cardIndex int) (PeekedCard, error) {
@@ -446,16 +453,19 @@ func (t *Tincho) peekCard(player *Player, cardIndex int) (PeekedCard, error) {
 	return player.Hand[cardIndex], nil
 }
 
-func (t *Tincho) UseEffectSwapCards(players []PlayerID, positions []int) (DiscardedCard, error) {
+func (t *Tincho) UseEffectSwapCards(players []PlayerID, positions []int) (DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage.GetEffect() != CardEffectSwapCards {
-		return Card{}, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+		return Card{}, false, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
+
 	if err := t.swapCards(players, positions); err != nil {
-		return Card{}, fmt.Errorf("SwapCards: %w", err)
+		return Card{}, false, fmt.Errorf("SwapCards: %w", err)
 	}
+
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	discarded := t.discardPending()
 	t.passTurn()
-	return discarded, nil
+	return discarded, cycledPiles, nil
 }
 
 func (t *Tincho) swapCards(players []PlayerID, cardPositions []int) error {

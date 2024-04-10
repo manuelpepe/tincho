@@ -67,16 +67,18 @@ type UpdateSwapCardsData struct {
 }
 
 type UpdateDiscardData struct {
-	Player         game.PlayerID `json:"player"`
-	CardsPositions []int         `json:"cardsPositions"`
-	Cards          []game.Card   `json:"cards"`
+	Player         game.PlayerID    `json:"player"`
+	CardsPositions []int            `json:"cardsPositions"`
+	Cards          []game.Card      `json:"cards"`
+	CycledPiles    game.CycledPiles `json:"cycledPiles"`
 }
 
 type UpdateTypeFailedDoubleDiscardData struct {
-	Player         game.PlayerID `json:"player"`
-	CardsPositions []int         `json:"cardsPositions"`
-	Cards          []game.Card   `json:"cards"`
-	TopOfDiscard   game.Card     `json:"topOfDiscard"`
+	Player         game.PlayerID    `json:"player"`
+	CardsPositions []int            `json:"cardsPositions"`
+	Cards          []game.Card      `json:"cards"`
+	TopOfDiscard   game.Card        `json:"topOfDiscard"`
+	CycledPiles    game.CycledPiles `json:"cycledPiles"`
 }
 
 type UpdateCutData struct {

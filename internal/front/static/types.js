@@ -10,8 +10,8 @@
 /** @typedef {{player: string, source: string, card: Card, effect: string}} UpdateDrawData */
 /** @typedef {{cardPosition: number, card: Card, player: string}} UpdatePeekCardData */
 /** @typedef {{cardsPositions: number[], players: string[]}} UpdateSwapCardsData */
-/** @typedef {{player: string, cardsPositions: number[], cards: Card[]}} UpdateDiscardData */
-/** @typedef {{player: string, cardsPositions: number[], cards: Card[], topOfDiscard: Card}} UpdateTypeFailedDoubleDiscardData */
+/** @typedef {{player: string, cardsPositions: number[], cards: Card[], cycledPiles: boolean}} UpdateDiscardData */
+/** @typedef {{player: string, cardsPositions: number[], cards: Card[], topOfDiscard: Card, cycledPiles: boolean}} UpdateTypeFailedDoubleDiscardData */
 /** @typedef {{withCount: boolean, declared: number, player: string, players: Player[], hands: Card[][]}} UpdateCutData */
 /** @typedef {{message: string}} UpdateErrorData */
 /** @typedef {{rounds: Round[]}} UpdateEndGameData */
