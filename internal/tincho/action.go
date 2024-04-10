@@ -65,6 +65,9 @@ func (r *Room) doStartGame(action Action) error {
 	if r.state.GetPlayers()[0].ID != action.PlayerID {
 		return ErrNotRoomLeader
 	}
+	if err := r.broadcastGameConfig(r.state.BaseDeckSize()); err != nil {
+		return fmt.Errorf("broadcastGameConfig: %w", err)
+	}
 	topDiscard, err := r.state.StartGame()
 	if err != nil {
 		return fmt.Errorf("tsm.StartGame: %w", err)

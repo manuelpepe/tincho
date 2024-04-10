@@ -9,6 +9,7 @@ import (
 type UpdateType string
 
 const (
+	UpdateTypeGameConfig          UpdateType = "game_config"
 	UpdateTypePlayersChanged      UpdateType = "players_changed"
 	UpdateTypeGameStart           UpdateType = "game_start"
 	UpdateTypePlayerFirstPeeked   UpdateType = "player_peeked"
@@ -32,6 +33,14 @@ type Update struct {
 
 type UpdatePlayersChangedData struct {
 	Players []*game.Player `json:"players"`
+}
+
+type UpdateGameConfig struct {
+	CardsInDeck int `json:"cardsInDeck"`
+	// Maybe:
+	//  - has password
+	//	- deck options
+	// 	- room owner
 }
 
 type UpdateStartNextRoundData struct {

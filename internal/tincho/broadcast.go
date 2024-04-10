@@ -60,6 +60,20 @@ func (r *Room) TargetedError(player game.PlayerID, err error) {
 	})
 }
 
+func (r *Room) broadcastGameConfig(cardInDeck int) error {
+	data, err := json.Marshal(UpdateGameConfig{
+		CardsInDeck: cardInDeck,
+	})
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	r.BroadcastUpdate(Update{
+		Type: UpdateTypeGameConfig,
+		Data: json.RawMessage(data),
+	})
+	return nil
+}
+
 func (r *Room) sendRejoinState(player *Connection) error {
 	curTurn := r.state.PlayerToPlay().ID
 	pendStorage := r.state.GetPendingStorage()
