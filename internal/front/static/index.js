@@ -6,7 +6,7 @@ import { queueActions, queueActionInstantly, startProcessingActions } from "./ac
 import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
 import { PEEK_TIMEOUT, SWAP_DURATION } from './configs.js';
 import { getWaiter } from "./utils.js";
-import { setCardsInDeck, resetDrawPileCount, subtractFromDrawPileCount } from './cards.js';
+import { setCardsInDeck, setCardsInDrawPile, resetDrawPileCount, subtractFromDrawPileCount } from './cards.js';
 
 window.onload = function () {
     var suitKind = "standard"
@@ -655,6 +655,9 @@ window.onload = function () {
         } else {
             setTurnScreen(data.currentTurn == THIS_PLAYER);
         }
+        setCardsInDeck(data.cardsInDeck);
+        setCardsInDrawPile(data.cardsInDrawPile);
+
     }
 
     /** @param {MessageEvent<any>} event} */

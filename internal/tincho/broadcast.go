@@ -74,7 +74,7 @@ func (r *Room) broadcastGameConfig(cardInDeck int) error {
 	return nil
 }
 
-func (r *Room) sendRejoinState(player *Connection) error {
+func (r *Room) sendRejoinState(player *Connection, cardsInDeck int, cardsInDrawPile int) error {
 	curTurn := r.state.PlayerToPlay().ID
 	pendStorage := r.state.GetPendingStorage()
 	var cardInHandVal *game.Card
@@ -87,11 +87,13 @@ func (r *Room) sendRejoinState(player *Connection) error {
 		lastDiscarded = &v
 	}
 	data, err := json.Marshal(UpdateTypeRejoinData{
-		Players:       r.state.GetPlayers(),
-		CurrentTurn:   curTurn,
-		CardInHand:    r.state.GetPendingStorage() != game.Card{},
-		CardInHandVal: cardInHandVal,
-		LastDiscarded: lastDiscarded,
+		Players:         r.state.GetPlayers(),
+		CurrentTurn:     curTurn,
+		CardInHand:      r.state.GetPendingStorage() != game.Card{},
+		CardInHandVal:   cardInHandVal,
+		LastDiscarded:   lastDiscarded,
+		CardsInDeck:     cardsInDeck,
+		CardsInDrawPile: cardsInDrawPile,
 	})
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)

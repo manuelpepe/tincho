@@ -28,6 +28,8 @@ func (p *Connection) QueueAction(action Action) {
 }
 
 func (p *Connection) SendUpdateOrDrop(update Update) {
+	// TODO: instead of default dropping maybe this could block until player reconnects
+	// 	and timeout on room close (important so goroutine it doesn't get stuck forever)
 	select {
 	case p.Updates <- update:
 	default:

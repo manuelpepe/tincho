@@ -54,16 +54,16 @@ func NewTinchoWithDeck(deck Deck) *Tincho {
 	}
 }
 
-func (t *Tincho) BaseDeckSize() int {
-	return len(t.cpyDeck)
-}
-
 func (t *Tincho) LastDiscarded() Card {
 	if len(t.discardPile) == 0 {
 		return Card{}
 	}
 	return t.discardPile[0]
 
+}
+
+func (t *Tincho) CountBaseDeck() int {
+	return len(t.cpyDeck)
 }
 
 func (t *Tincho) CountDiscardPile() int {

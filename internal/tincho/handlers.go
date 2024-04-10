@@ -148,7 +148,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID game
 	if err := h.service.JoinRoom(room.ID, connection, password); err != nil {
 		stopWS()
 		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError) // FIXME: headers already sent
 		w.Write([]byte("error joining room"))
 		return
 	}
@@ -168,7 +168,7 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, conn *Conne
 	if err := h.service.JoinRoomWithoutPassword(room.ID, conn); err != nil {
 		stopWS()
 		h.logger.Warn(fmt.Sprintf("Error joining room: %s", err), "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError) // FIXME: headers already sent
 		w.Write([]byte("error joining room"))
 		return
 	}

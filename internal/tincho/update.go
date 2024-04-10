@@ -107,9 +107,11 @@ type UpdateEndGameData struct {
 }
 
 type UpdateTypeRejoinData struct {
-	Players       []*game.Player `json:"players"`
-	CurrentTurn   game.PlayerID  `json:"currentTurn"`
-	CardInHand    bool           `json:"cardInHand"`
-	CardInHandVal *game.Card     `json:"cardInHandValue"`
-	LastDiscarded *game.Card     `json:"lastDiscarded"`
+	Players         []*game.Player `json:"players"`
+	CurrentTurn     game.PlayerID  `json:"currentTurn"`
+	CardInHand      bool           `json:"cardInHand"`
+	CardInHandVal   *game.Card     `json:"cardInHandValue"`
+	LastDiscarded   *game.Card     `json:"lastDiscarded"`
+	CardsInDeck     int            `json:"cardsInDeck"`
+	CardsInDrawPile int            `json:"cardsInDrawPile"`
 }
