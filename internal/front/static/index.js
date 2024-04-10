@@ -4,8 +4,9 @@ import { hide, show, moveNode, createCardTemplate } from "./utils.js";
 import { SUITS, EFFECTS, EFFECT_SWAP, EFFECT_PEEK_OWN, EFFECT_PEEK_CARTA_AJENA, ACTION_DISCARD, ACTION_DISCARD_TWO } from "./constants.js";
 import { queueActions, queueActionInstantly, startProcessingActions } from "./actions.js";
 import { setPlayerPeekedScreen, setStartGameScreen, setTurnScreen, setDrawScreen, setDiscardScreen, setStartRoundScreen, setCutScreen } from "./screens.js";
-import { PEEK_TIMEOUT, NEXT_ROUND_TIMEOUT, SWAP_DURATION } from './configs.js';
+import { PEEK_TIMEOUT, SWAP_DURATION } from './configs.js';
 import { getWaiter } from "./utils.js";
+import { setCardsInDeck, resetDrawPileCount, subtractFromDrawPileCount } from './cards.js';
 
 window.onload = function () {
     var suitKind = "standard"
@@ -523,12 +524,26 @@ window.onload = function () {
         endgameContainer.appendChild(tbl);
     }
 
+    async function animateShuffle() {
+        const card = deckPile.getElementsByClassName("card")[0];
+
+        // TODO: Spin symbol
+        card.innerHTML = "[↺]";
+        await new Promise(r => setTimeout(r, 1000));
+        card.innerHTML = "[ ]";
+    }
+
 
     /** @param {string} action */
     function setAction(action) {
         // TODO: check if action is valid
         console.log("Setting action to: ", action);
         CURRENT_ACTION = action;
+    }
+
+    /** @param {UpdateGameConfig} data */
+    async function handleGameConfig(data) {
+        setCardsInDeck(data.cardsInDeck);
     }
 
     /** @param {UpdatePlayersChangedData} data */
@@ -541,6 +556,15 @@ window.onload = function () {
         setStartGameScreen();
         setPlayers(data.players);
         setLastDiscarded(data.topDiscard);
+        resetDrawPileCount(Object.entries(PLAYERS).length);
+    }
+
+    /** @param {UpdateStartNextRoundData} data */
+    async function handleNextRound(data) {
+        setStartRoundScreen();
+        setPlayers(data.players);
+        setLastDiscarded(data.topDiscard);
+        resetDrawPileCount(Object.entries(PLAYERS).length);
     }
 
     /** @param {UpdatePlayerFirstPeekedData} data */
@@ -564,6 +588,7 @@ window.onload = function () {
     /** @param {UpdateDrawData} data */
     async function handleDraw(data) {
         await showDraw(data.player, data.source, data.card, data.effect);
+        subtractFromDrawPileCount();
     }
 
     /** @param {UpdateDiscardData} data */
@@ -576,13 +601,19 @@ window.onload = function () {
                 PLAYERS[data.player].data.cards_in_hand -= 1;
             }
         }
-        // TODO: Handle cycledPiles
+        if (data.cycledPiles) {
+            resetDrawPileCount(Object.entries(PLAYERS).length);
+            await animateShuffle();
+        }
     }
 
     /** @param {UpdateTypeFailedDoubleDiscardData} data */
     async function handleDoubleDiscard(data) {
         await showFailedDoubleDiscard(data.player, data.cardsPositions, data.cards, data.topOfDiscard);
-        // TODO: Handle cycledPiles
+        if (data.cycledPiles) {
+            resetDrawPileCount(Object.entries(PLAYERS).length);
+            await animateShuffle();
+        }
     }
 
     /** @param {UpdatePeekCardData} data */
@@ -602,13 +633,6 @@ window.onload = function () {
     /** @param {UpdateCutData} data */
     async function handleCut(data) {
         await showCut(data.players, data.player, data.withCount, data.declared, data.hands);
-    }
-
-    /** @param {UpdateStartNextRoundData} data */
-    async function handleNextRound(data) {
-        setStartRoundScreen();
-        setPlayers(data.players);
-        setLastDiscarded(data.topDiscard);
     }
 
     /** @param {UpdateEndGameData} data */
@@ -639,6 +663,9 @@ window.onload = function () {
         const msgData = data.data;
         console.log("Received message:", data)
         switch (data.type) {
+            case "game_config":
+                queueActions(async () => await handleGameConfig(msgData))
+                break;
             case "players_changed":
                 queueActions(async () => await handlePlayersChanged(msgData));
                 break;

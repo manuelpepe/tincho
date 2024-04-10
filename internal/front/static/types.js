@@ -3,6 +3,7 @@
 /** @typedef {{player: string, cardPosition: number}} SwapBuffer */
 /** @typedef {{cutter: string, withCount: boolean, declared: number, scores: Object.<string, number>, hands: Object.<string, Card[]>}} Round */
 
+/** @typedef {{cardsInDeck: number}} UpdateGameConfig */
 /** @typedef {{players: Player[]}} UpdatePlayersChangedData */
 /** @typedef {{players: Player[], topDiscard: Card}} UpdateStartNextRoundData */
 /** @typedef {{player: string, cards: Card[]}} UpdatePlayerFirstPeekedData */
