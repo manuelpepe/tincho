@@ -18,7 +18,7 @@ func NewConnection(id game.PlayerID) *Connection {
 		Player:       game.NewPlayer(id),
 		SessionToken: generateRandomString(20),
 		Actions:      make(chan Action),
-		Updates:      make(chan Update, 10),
+		Updates:      make(chan Update, 20),
 	}
 }
 
