@@ -81,6 +81,10 @@ window.onload = function () {
 
     const errorContainer = document.getElementById("error-container");
 
+
+    const rulesContainer = document.getElementById("rules");
+    const buttonShowRules = document.getElementById("btn-show-rules");
+
     let waiter = getWaiter();
 
     async function waitUserInput() {
@@ -778,6 +782,14 @@ window.onload = function () {
             THIS_ROOM = roomid;
         }
         return false;
+    }
+
+    buttonShowRules.onclick = () => {
+        show(rulesContainer);
+    }
+
+    rulesContainer.onclick = () => {
+        hide(rulesContainer);
     }
 
     buttonShowCreateMenu.onclick = () => {

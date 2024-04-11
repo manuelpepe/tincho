@@ -11,6 +11,7 @@
         :root {
             background-color: #181a1b;
             color: #d8d4cf;
+            font-size: 1.25rem;
         }
 
         ::selection {
@@ -149,6 +150,17 @@
             text-align: center;
         }
 
+        #rules {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+        }
+
+        .rules-container {
+            background-color: #181a1b;
+            border: 1px solid #0000b3;
+            padding: 1em 2em;
+        }
 
         @keyframes rotate {
             from {
@@ -179,6 +191,75 @@
     </template>
 
     <div class="main">
+        <div id="nav">
+            <button id="speed-toggle" style="display:none;">x1.0</button>
+            <button id="btn-show-rules">Rules</button>
+        </div>
+
+        <div id="rules" style="display:none">
+            <div class="rules-container">
+                <h2>Rules (click to dismiss)</h2>
+                <p>The game is played in rounds, adding or subtracting points based on the sum of values of cards in
+                    their
+                    hands. The first player to cross 100 points ends the game.</p>
+                <p>Each player is dealt 4 face down cards. At the start of the game each player looks at the
+                    values of two of their own cards and keeps them face down on the table. The fun of the game is
+                    trying to
+                    remember all cards you can and getting the lowest hand total before cutting. If you remember your
+                    hand
+                    you can call out your total when cutting to subtract extra points.</p>
+                <p>In turns, each player:</p>
+                <ul>
+                    <li>Chooses to draw a card from either the Draw or Discard piles without showing it to other
+                        players.
+                    </li>
+                    <li>Decides to either:<ul>
+                            <li>Discarding the drawn card.</li>
+                            <li>Discarding a card from their hand and keeping the drawed card in that position.</li>
+                            <li>Trying to discard two cards from their hand at the same time, keeping only the drawed
+                                card
+                                (check how double discard works below)</li>
+                            <li>Using the card's special effect (only 7s, 8s and 9s, check cards special effects below)
+                                and
+                                then discarding it.</li>
+                            <li>Using the drawed card to cut, either calling out their count or not.</li>
+                        </ul>
+                    </li>
+                    <li>If the player didn't cut, the turn passes to the next player.</li>
+                </ul>
+                <p>When a player cut's, all hands are shown and points are calculated. Check below how cutting rules
+                    work in
+                    more details.</p>
+                <h3>Cards special effects</h3>
+                <ul>
+                    <li>12 of Diamonds: This card is worth 0 points. Try not to discard it!</li>
+                    <li>All 7s: Peek the value of one card in your hand.</li>
+                    <li>All 8s: Peek the value of one card in an opponents hand.</li>
+                    <li>All 9s: Choose any two cards in the game and swap their places. This can be used to swap cards
+                        between any two players.</li>
+                </ul>
+                <h3>Double Discard</h3>
+                <p>When discarding, players have an option to discard two cards. If they are of the same value, both are
+                    discarded and the player keeps only the drawn card, <em>decreasing</em> the number of cards in their
+                    hand by a total of 1 card. However, if the cards are of different values, the player must keep both
+                    cards plus the drawn card, <em>increasing</em> the number of cards in their hand by a total of 1
+                    card.
+                </p>
+                <h3>Cutting rules</h3>
+                <ul>
+                    <li>The cutting player must have the lowest hand in the table, otherwise they instanly lose and must
+                        add
+                        their hand total + 20 points to their score</li>
+                    <li>If the cutting player has the lowest hand and decided to not call their total, their score this
+                        round is 0</li>
+                    <li>If the cutting player has the lowest hand and called their total right, their score is -10</li>
+                    <li>If the cutting player has the lowest hand and called their total wrong, their score is hand
+                        total +
+                        10</li>
+                </ul>
+                <p>All other players only add their hand totals to their score.</p>
+            </div>
+        </div>
 
         <div id="error-container"></div>
 
@@ -219,7 +300,6 @@
         </div>
 
         <div id="game">
-            <button id="speed-toggle" style="display:none;">x1.0</button>
 
             <div id="player-list" class="player-list"></div>
 
