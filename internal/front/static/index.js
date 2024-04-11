@@ -528,7 +528,13 @@ window.onload = function () {
         const card = deckPile.getElementsByClassName("card")[0];
 
         // TODO: Spin symbol
-        card.innerHTML = "[↺]";
+        card.innerHTML = "";
+        let span = document.createElement("span");
+        span.appendChild(document.createTextNode("↻"));
+        span.className = "spinner";
+        card.appendChild(document.createTextNode("["));
+        card.appendChild(span);
+        card.appendChild(document.createTextNode("]"));
         await new Promise(r => setTimeout(r, 1000));
         card.innerHTML = "[ ]";
     }
