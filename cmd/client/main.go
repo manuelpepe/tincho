@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/manuelpepe/tincho/internal/game"
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
@@ -129,7 +130,7 @@ func parse(cmd string) []byte {
 		data = nil
 	case "draw":
 		action = tincho.Action{Type: tincho.ActionDraw}
-		data = tincho.ActionDrawData{Source: tincho.DrawSourcePile}
+		data = tincho.ActionDrawData{Source: game.DrawSourcePile}
 	case "disc 0":
 		action = tincho.Action{Type: tincho.ActionDiscard}
 		data = tincho.ActionDiscardData{CardPosition: 0}
