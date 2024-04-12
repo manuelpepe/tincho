@@ -2,7 +2,6 @@
 
 ### Features
 
-- [ ] Rules in UI
 - [ ] Changelog in UI
 - [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
@@ -101,6 +100,7 @@
 - [x] Add indicator of current turn
 - [x] Add a `piles shuffled` update
 - [x] Add a `piles shuffled` animation
+- [x] Rules in UI
 
 ### Fixes
 
