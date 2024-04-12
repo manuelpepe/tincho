@@ -12,6 +12,8 @@ const (
 	DrawSourceDiscard DrawSource = "discard"
 )
 
+const STARTING_HAND_SIZE = 4
+
 var ErrPendingDiscard = errors.New("someone needs to discard first")
 var ErrPlayerNotPendingFirstPeek = errors.New("player not pending first peek")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")

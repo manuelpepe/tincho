@@ -11,6 +11,8 @@ import (
 	"github.com/manuelpepe/tincho/internal/game"
 )
 
+const ROOM_ID_LENGTH = 4
+
 var ErrRoomNotFound = errors.New("room not found")
 var ErrRoomsLimitReached = errors.New("rooms limit reached")
 
@@ -122,9 +124,9 @@ func unordered_remove[T any](a []T, i int) []T {
 }
 
 func (g *Service) getUnusedID() string {
-	roomID := generateRandomString(4)
+	roomID := generateRandomString(ROOM_ID_LENGTH)
 	for exists := true; exists; _, exists = g.getRoomIndex(roomID) {
-		roomID = generateRandomString(4)
+		roomID = generateRandomString(ROOM_ID_LENGTH)
 	}
 	return roomID
 }

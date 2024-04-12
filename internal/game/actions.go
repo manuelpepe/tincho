@@ -6,7 +6,7 @@ import (
 	"slices"
 )
 
-// StartGame starts the game by setting all players to pending first peek and dealing 4 cards to each player.
+// StartGame starts the game by setting all players to pending first peek and dealing STARTING_HAND_SIZE (4) cards to each player.
 func (t *Tincho) StartGame() (Card, error) {
 	if t.playing {
 		return Card{}, ErrGameAlreadyStarted
@@ -50,7 +50,7 @@ func (t *Tincho) prepareForNextRound(shuffleDeck bool) (Card, error) {
 
 func (t *Tincho) deal() error {
 	for pid := range t.players {
-		for i := 0; i < 4; i++ {
+		for i := 0; i < STARTING_HAND_SIZE; i++ {
 			card, err := t.drawPile.Draw()
 			if err != nil {
 				return err
