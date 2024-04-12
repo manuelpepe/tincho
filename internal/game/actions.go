@@ -61,6 +61,16 @@ func (t *Tincho) deal() error {
 	return nil
 }
 
+// Sends the top card in the draw pile to the discard pile.
+func (r *Tincho) discardTopCard() error {
+	card, err := r.drawPile.Draw()
+	if err != nil {
+		return err
+	}
+	r.discardPile = append([]Card{card}, r.discardPile...)
+	return nil
+}
+
 // GetFirstPeek allows to peek two cards from a players hand if it hasn't peeked yet.
 func (t *Tincho) GetFirstPeek(playerID PlayerID) ([]Card, error) {
 	player, exists := t.GetPlayer(playerID)
@@ -111,26 +121,6 @@ func (t *Tincho) Draw(source DrawSource) (Card, error) {
 	return card, nil
 }
 
-func (t *Tincho) cyclePilesIfEmptyDraw() CycledPiles {
-	cycledPiles := len(t.drawPile) == 0
-	if cycledPiles {
-		t.drawPile = t.discardPile
-		t.drawPile.Shuffle()
-		t.discardPile = make(Deck, 0)
-	}
-	return CycledPiles(cycledPiles)
-}
-
-// Sends the top card in the draw pile to the discard pile.
-func (r *Tincho) discardTopCard() error {
-	card, err := r.drawPile.Draw()
-	if err != nil {
-		return err
-	}
-	r.discardPile = append([]Card{card}, r.discardPile...)
-	return nil
-}
-
 func (t *Tincho) drawFromSource(source DrawSource) (Card, error) {
 	switch source {
 	case DrawSourcePile:
@@ -140,6 +130,20 @@ func (t *Tincho) drawFromSource(source DrawSource) (Card, error) {
 	default:
 		return Card{}, fmt.Errorf("invalid source: %s", source)
 	}
+}
+
+func (t *Tincho) cyclePilesIfEmptyDraw() CycledPiles {
+	cycledPiles := len(t.drawPile) == 0
+	if cycledPiles {
+		last_discarded, err := t.discardPile.Draw()
+		t.drawPile = t.discardPile
+		t.drawPile.Shuffle()
+		t.discardPile = make(Deck, 0)
+		if err == nil {
+			t.discardPile = append([]Card{last_discarded}, t.discardPile...)
+		}
+	}
+	return CycledPiles(cycledPiles)
 }
 
 // Wether the discard pile has been shuffled into the draw pile
@@ -160,8 +164,6 @@ func (t *Tincho) Discard(position int) (DiscardedCard, CycledPiles, error) {
 		return Card{}, false, fmt.Errorf("invalid card position: %d", position)
 	}
 
-	cycledPiles := t.cyclePilesIfEmptyDraw()
-
 	if position == -1 {
 		t.discardPile = append([]Card{t.pendingStorage}, t.discardPile...)
 	} else {
@@ -170,6 +172,7 @@ func (t *Tincho) Discard(position int) (DiscardedCard, CycledPiles, error) {
 	}
 
 	t.pendingStorage = Card{}
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	t.passTurn()
 
 	return t.discardPile[0], cycledPiles, nil
@@ -307,8 +310,8 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 		return Card{}, Card{}, false, fmt.Errorf("PeekCard: %w", err)
 	}
 
-	cycledPiles := t.cyclePilesIfEmptyDraw()
 	discarded := t.discardPending()
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	t.passTurn()
 	return card, discarded, cycledPiles, nil
 }
@@ -328,8 +331,8 @@ func (t *Tincho) UseEffectPeekCartaAjena(playerID PlayerID, position int) (Peeke
 		return Card{}, Card{}, false, fmt.Errorf("PeekCard: %w", err)
 	}
 
-	cycledPiles := t.cyclePilesIfEmptyDraw()
 	discarded := t.discardPending()
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	t.passTurn()
 	return card, discarded, cycledPiles, nil
 }
@@ -350,8 +353,8 @@ func (t *Tincho) UseEffectSwapCards(players []PlayerID, positions []int) (Discar
 		return Card{}, false, fmt.Errorf("SwapCards: %w", err)
 	}
 
-	cycledPiles := t.cyclePilesIfEmptyDraw()
 	discarded := t.discardPending()
+	cycledPiles := t.cyclePilesIfEmptyDraw()
 	t.passTurn()
 	return discarded, cycledPiles, nil
 }

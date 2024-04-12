@@ -172,7 +172,7 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, conn *Conne
 		w.Write([]byte("error joining room"))
 		return
 	}
-	h.logger.Info("Player %s reconnected to room %s", conn.Player.ID, room.ID)
+	h.logger.Info(fmt.Sprintf("Player %s reconnected to room %s", conn.Player.ID, room.ID))
 }
 
 const TOKEN_COOKIE_NAME = "session_token"
@@ -254,13 +254,13 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 					"update", update,
 				)
 				if err := ws.WriteJSON(update); err != nil {
-					logger.Error("error sending update to player %s: %s", player.ID, err)
+					logger.Error(fmt.Sprintf("error sending update to player %s: %s", player.ID, err))
 					stopWS()
 					return
 				}
 			case <-tick.C:
 				if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
-					logger.Error("error sending ping to player %s: %s", player.ID, err)
+					logger.Error(fmt.Sprintf("error sending ping to player %s: %s", player.ID, err))
 					stopWS()
 					return
 				}
