@@ -71,7 +71,7 @@ func (b *Bot) Strategy() Strategy {
 }
 
 func (b *Bot) Start() error {
-	b.logger.Info(fmt.Sprintf("Bot  %s started", b.player.ID))
+	b.logger.Info(fmt.Sprintf("Bot %s started", b.player.ID))
 	for {
 		select {
 		case update := <-b.player.Updates:
@@ -83,7 +83,7 @@ func (b *Bot) Start() error {
 				b.player.QueueAction(action)
 			}
 		case <-b.ctx.Done():
-			b.logger.Info(fmt.Sprintf("Bot  %s finished", b.player.ID))
+			b.logger.Info(fmt.Sprintf("Bot %s finished", b.player.ID))
 			return nil
 		}
 	}

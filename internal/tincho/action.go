@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/manuelpepe/tincho/internal/game"
 )
@@ -182,8 +181,6 @@ func (r *Room) doCut(action Action) error {
 		if err := r.broadcastEndGame(scores); err != nil {
 			return fmt.Errorf("broadcastEndGame: %w", err)
 		}
-		// FIXME: wait a few seconds before closing to ensure everyone recieves updates
-		time.Sleep(5 * time.Second)
 		r.Close()
 	} else {
 		topDiscard, err := r.state.StartNextRound()
