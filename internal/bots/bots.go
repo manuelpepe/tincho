@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
@@ -54,10 +53,26 @@ func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Connection,
 
 }
 
+func NewBotFromStrategy(logger *slog.Logger, ctx context.Context, player *tincho.Connection, strategy Strategy) Bot {
+	return Bot{
+		ctx:      ctx,
+		player:   player,
+		strategy: strategy,
+		logger:   logger,
+	}
+}
+
+func (b *Bot) Player() *tincho.Connection {
+	return b.player
+}
+
+func (b *Bot) Strategy() Strategy {
+	return b.strategy
+}
+
 func (b *Bot) Start() error {
 	b.logger.Info(fmt.Sprintf("Bot  %s started", b.player.ID))
 	for {
-		time.Sleep(1 * time.Second)
 		select {
 		case update := <-b.player.Updates:
 			action, err := b.RespondToUpdate(*b.player, update)

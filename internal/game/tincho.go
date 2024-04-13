@@ -18,6 +18,7 @@ var ErrPendingDiscard = errors.New("someone needs to discard first")
 var ErrPlayerNotPendingFirstPeek = errors.New("player not pending first peek")
 var ErrPlayerAlreadyInRoom = errors.New("player already in room")
 var ErrGameAlreadyStarted = errors.New("game already started")
+var ErrNoWinner = errors.New("no winner")
 
 type Round struct {
 	Cutter PlayerID `json:"cutter"`
@@ -36,6 +37,7 @@ type Tincho struct {
 	drawPile     Deck
 	discardPile  Deck
 	cpyDeck      Deck
+	totalTurns   int
 	totalRounds  int
 	roundHistory []Round
 
@@ -50,9 +52,31 @@ func NewTinchoWithDeck(deck Deck) *Tincho {
 		drawPile:     deck,
 		discardPile:  make(Deck, 0),
 		cpyDeck:      slices.Clone(deck),
+		totalTurns:   0,
 		totalRounds:  0,
 		roundHistory: make([]Round, 0),
 	}
+}
+
+func (t *Tincho) Winner() (*Player, error) {
+	if !t.IsWinConditionMet() {
+		return nil, ErrNoWinner
+	}
+	winner := &Player{Points: 9999}
+	for _, p := range t.players {
+		if p.Points < winner.Points {
+			winner = p
+		}
+	}
+	return winner, nil
+}
+
+func (t *Tincho) TotalTurns() int {
+	return t.totalTurns
+}
+
+func (t *Tincho) TotalRounds() int {
+	return t.totalRounds
 }
 
 func (t *Tincho) LastDiscarded() Card {
@@ -90,6 +114,7 @@ func (t *Tincho) PlayerToPlay() *Player {
 
 func (t *Tincho) passTurn() {
 	t.currentTurn = (t.currentTurn + 1) % len(t.players)
+	t.totalTurns += 1
 }
 
 func (t *Tincho) GetPlayers() []*Player {

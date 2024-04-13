@@ -52,6 +52,18 @@ func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context
 	}
 }
 
+func (r *Room) Winner() (*game.Player, error) {
+	return r.state.Winner()
+}
+
+func (r *Room) TotalTurns() int {
+	return r.state.TotalTurns()
+}
+
+func (r *Room) TotalRounds() int {
+	return r.state.TotalRounds()
+}
+
 func (r *Room) HasClosed() bool {
 	return r.closed
 }

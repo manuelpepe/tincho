@@ -182,8 +182,8 @@ func (r *Room) doCut(action Action) error {
 		if err := r.broadcastEndGame(scores); err != nil {
 			return fmt.Errorf("broadcastEndGame: %w", err)
 		}
-		// wait a few seconds before closing to ensure everyone recieves updates
-		time.Sleep(10 * time.Second)
+		// FIXME: wait a few seconds before closing to ensure everyone recieves updates
+		time.Sleep(5 * time.Second)
 		r.Close()
 	} else {
 		topDiscard, err := r.state.StartNextRound()
