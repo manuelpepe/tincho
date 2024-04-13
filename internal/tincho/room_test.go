@@ -51,7 +51,7 @@ func TestRoomLimit(t *testing.T) {
 	assert.ErrorIs(t, err, ErrRoomsLimitReached)
 	for _, room := range g.rooms {
 		if room != nil {
-			room.Close()
+			room.closeRoom()
 		}
 	}
 	time.Sleep(1 * time.Second) // wait for rooms to close
@@ -72,7 +72,7 @@ func TestPlayersJoinRoom(t *testing.T) {
 	time.Sleep(1 * time.Second) // wait for connection
 	room, exists := g.GetRoom(roomID)
 	assert.True(t, exists)
-	assert.Equal(t, 2, len(room.state.GetPlayers()))
+	assert.Equal(t, 2, room.CurrentPlayers())
 }
 
 func TestDoubleDiscard(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/manuelpepe/tincho/internal/game"
 )
@@ -35,6 +36,8 @@ type Room struct {
 
 	started bool
 	closed  bool
+
+	sync.RWMutex
 }
 
 func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck game.Deck, maxPlayers int) Room {
@@ -64,16 +67,30 @@ func (r *Room) TotalRounds() int {
 	return r.state.TotalRounds()
 }
 
+func (r *Room) CurrentPlayers() int {
+	r.RWMutex.RLock()
+	defer r.RWMutex.RUnlock()
+	return len(r.state.GetPlayers())
+}
+
 func (r *Room) HasClosed() bool {
+	r.RWMutex.RLock()
+	defer r.RWMutex.RUnlock()
 	return r.closed
 }
 
 func (r *Room) Close() {
-	r.closeRoom()
-	r.closed = true
+	if !r.closed {
+		r.RWMutex.Lock()
+		defer r.RWMutex.Unlock()
+		r.closeRoom()
+		r.closed = true
+	}
 }
 
 func (r *Room) GetPlayer(id game.PlayerID) (*Connection, bool) {
+	r.RWMutex.RLock()
+	defer r.RWMutex.RUnlock()
 	_, exists := r.state.GetPlayer(id)
 	if !exists {
 		return nil, false
@@ -95,12 +112,15 @@ func (r *Room) AddPlayer(p *Connection) error {
 }
 
 func (r *Room) addPlayer(player *Connection) error {
+	r.RWMutex.Lock()
 	if len(r.state.GetPlayers()) >= r.maxPlayers {
 		return fmt.Errorf("room is full")
 	}
 	if err := r.state.AddPlayer(player.Player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
+	r.RWMutex.Unlock()
+
 	r.connections[player.ID] = player
 	go r.watchPlayer(player)
 	data, err := json.Marshal(UpdatePlayersChangedData{
