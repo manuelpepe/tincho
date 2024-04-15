@@ -10,83 +10,6 @@ import (
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
-type KnownHand game.Hand
-
-func (h *KnownHand) Forget(pos int) error {
-	return h.Replace(pos, game.Card{})
-}
-
-func (h *KnownHand) Replace(position int, card game.Card) error {
-	if h == nil {
-		panic("nil KnownHand")
-	}
-	if position < 0 || position >= len(*h) {
-		return fmt.Errorf("invalid position: %d", position)
-	}
-	(*h)[position] = card
-	return nil
-}
-
-func (h *KnownHand) KnownPoints() (int, bool) {
-	if h == nil {
-		panic("nil KnownHand")
-	}
-	knownHand := make(game.Hand, 0)
-	for _, c := range *h {
-		if c != (game.Card{}) {
-			knownHand = append(knownHand, c)
-		}
-	}
-	return knownHand.Sum(), len(knownHand) == len(*h)
-}
-
-func (h *KnownHand) GetUnkownCard() (int, bool) {
-	if h == nil {
-		panic("nil KnownHand")
-	}
-	for ix, c := range *h {
-		if c == (game.Card{}) {
-			return ix, true
-		}
-	}
-	return 0, false
-}
-
-func (h *KnownHand) GetHighestValueCard() (int, bool) {
-	if h == nil {
-		panic("nil KnownHand")
-	}
-	highestValue := -1
-	highestValuePosition := 0
-	for ix, c := range *h {
-		if c.IsJoker() {
-			continue
-		}
-		if c.IsTwelveOfDiamonds() {
-			continue
-		}
-		if c.Value > highestValue {
-			highestValue = c.Value
-			highestValuePosition = ix
-		}
-	}
-	if highestValue == -1 {
-		return 0, false
-	}
-	return highestValuePosition, true
-}
-
-func (h *KnownHand) GetHighestValueCardOrRandom() int {
-	if h == nil {
-		panic("nil KnownHand")
-	}
-	position, ok := h.GetHighestValueCard()
-	if ok {
-		return position
-	}
-	return rand.Intn(len(*h))
-}
-
 type MediumStrategy struct {
 	BaseStrategy // embedded to avoid implementing all the methods
 
@@ -98,7 +21,7 @@ func NewMediumStrategy() *MediumStrategy {
 	return &MediumStrategy{}
 }
 
-func (s *MediumStrategy) ResetHand(self tincho.Connection, players []*game.Player) {
+func (s *MediumStrategy) ResetHand(self *tincho.Connection, players []*game.Player) {
 	for _, p := range players {
 		if p.ID == self.ID {
 			s.hand = make(KnownHand, len(p.Hand))
@@ -107,13 +30,19 @@ func (s *MediumStrategy) ResetHand(self tincho.Connection, players []*game.Playe
 	}
 }
 
-func (s *MediumStrategy) GameStart(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+func (s *MediumStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	s.firstTurn = true
 	s.ResetHand(player, data.Players)
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *MediumStrategy) PlayerFirstPeeked(player tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error) {
+func (s *MediumStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+	s.firstTurn = true
+	s.ResetHand(player, data.Players)
+	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+}
+
+func (s *MediumStrategy) PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error) {
 	if data.Player == player.ID {
 		s.hand.Replace(0, data.Cards[0])
 		s.hand.Replace(1, data.Cards[1])
@@ -121,7 +50,7 @@ func (s *MediumStrategy) PlayerFirstPeeked(player tincho.Connection, data tincho
 	return tincho.Action{}, nil
 }
 
-func (s *MediumStrategy) Turn(player tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
+func (s *MediumStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -153,7 +82,7 @@ func (s *MediumStrategy) Turn(player tincho.Connection, data tincho.UpdateTurnDa
 	}
 }
 
-func (s *MediumStrategy) Draw(player tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error) {
+func (s *MediumStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -197,7 +126,7 @@ func (s *MediumStrategy) Draw(player tincho.Connection, data tincho.UpdateDrawDa
 	return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 }
 
-func (s *MediumStrategy) PeekCard(player tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error) {
+func (s *MediumStrategy) PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -205,7 +134,7 @@ func (s *MediumStrategy) PeekCard(player tincho.Connection, data tincho.UpdatePe
 	return tincho.Action{}, nil
 }
 
-func (s *MediumStrategy) SwapCards(player tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error) {
+func (s *MediumStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error) {
 	myIX := slices.Index(data.Players, player.ID)
 	if myIX == -1 {
 		return tincho.Action{}, nil
@@ -217,12 +146,6 @@ func (s *MediumStrategy) SwapCards(player tincho.Connection, data tincho.UpdateS
 	return tincho.Action{}, nil
 }
 
-func (s *MediumStrategy) Error(player tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error) {
+func (s *MediumStrategy) Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error) {
 	return tincho.Action{}, fmt.Errorf("recieved error update: %s", data.Message)
-}
-
-func (s *MediumStrategy) StartNextRound(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
-	s.firstTurn = true
-	s.ResetHand(player, data.Players)
-	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }

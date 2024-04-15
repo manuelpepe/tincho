@@ -61,3 +61,57 @@ func TestEasyVsMediumCompeteSummary(t *testing.T) {
 
 	fmt.Printf("Summary: %+v\n", summary)
 }
+
+func TestEasyVsHardCompeteSummary(t *testing.T) {
+	ctx := context.Background()
+
+	var logger *slog.Logger
+	const showLogs = false
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	easy := func() bots.Strategy {
+		return bots.NewEasyStrategy()
+	}
+
+	hard := func() bots.Strategy {
+		return bots.NewHardStrategy()
+	}
+
+	res, err := Compete(ctx, logger, easy, hard, 1000)
+	assert.NoError(t, err)
+
+	summary := Summarize(res)
+
+	fmt.Printf("Summary: %+v\n", summary)
+}
+
+func TestMediumVsHardCompeteSummary(t *testing.T) {
+	ctx := context.Background()
+
+	var logger *slog.Logger
+	const showLogs = false
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	medium := func() bots.Strategy {
+		return bots.NewMediumStrategy()
+	}
+
+	hard := func() bots.Strategy {
+		return bots.NewHardStrategy()
+	}
+
+	res, err := Compete(ctx, logger, medium, hard, 1000)
+	assert.NoError(t, err)
+
+	summary := Summarize(res)
+
+	fmt.Printf("Summary: %+v\n", summary)
+}

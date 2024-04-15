@@ -2,6 +2,8 @@
 
 ### Features
 
+- [ ] Prevent using effect if card was drawn from discard pile
+- [ ] Should probably replace GameStart event with StartNextRound 
 - [ ] Changelog in UI
 - [ ] Rejoin to before-start and first-peek screens.
 - [ ] Improved error messages
@@ -13,16 +15,7 @@
     - [ ] [FRONT] "Search games" option in menu, list component
 - [ ] [FRONT] Add styles to UI (this will never be finished)
 - [ ] [BACK] Bots:
-    1. [ ] Hard:
-        - Keeps track of cards in hand
-        - Discards unknown cards first
-        - Always discard the highest card (0% chance of mistake)
-        - Only double discards if it peeks a repeated card
-        - Does swap oppenents cards for chaos
-        - Does peek own cards
-        - Only cuts with =< 5 points (0% chance of mistake)
-        - Always declares hand
-    2. [ ] Expert:
+    1. [ ] Expert:
         - Keeps track of cards in hand
         - Discards unknown cards first
         - Always discard the highest card (0% chance of mistake)
@@ -78,6 +71,15 @@
             - Does peek own cards
             - 75% chance of cutting when <= 10 points (5% chance of mistake)
             - Never declares hand
+        3. [x] Hard:
+            - Keeps track of cards in hand
+            - Discards unknown cards first
+            - Always discard the highest card (0% chance of mistake)
+            - Only double discards if it peeks a repeated card
+            - Does swap oppenents cards for chaos
+            - Does peek own cards
+            - Only cuts with <= 6 points (0% chance of mistake)
+            - Always declares hand
 - [x] Make room parametrizable:
     - Options:
         - [x] Extended deck option (add some cards to allow for more players)

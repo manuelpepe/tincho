@@ -10,19 +10,19 @@ import (
 )
 
 type Strategy interface {
-	PlayersChanged(player tincho.Connection, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
-	GameStart(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
-	PlayerFirstPeeked(player tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
-	Turn(player tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error)
-	Draw(player tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error)
-	PeekCard(player tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error)
-	SwapCards(player tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error)
-	Discard(player tincho.Connection, data tincho.UpdateDiscardData) (tincho.Action, error)
-	FailedDoubleDiscard(player tincho.Connection) (tincho.Action, error)
-	Cut(player tincho.Connection, data tincho.UpdateCutData) (tincho.Action, error)
-	Error(player tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error)
-	StartNextRound(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
-	EndGame(player tincho.Connection, data tincho.UpdateEndGameData) (tincho.Action, error)
+	PlayersChanged(player *tincho.Connection, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
+	GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
+	StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
+	PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
+	Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error)
+	Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error)
+	PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error)
+	SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error)
+	Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.Action, error)
+	FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.Action, error)
+	Cut(player *tincho.Connection, data tincho.UpdateCutData) (tincho.Action, error)
+	Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error)
+	EndGame(player *tincho.Connection, data tincho.UpdateEndGameData) (tincho.Action, error)
 }
 
 type Bot struct {
@@ -39,7 +39,8 @@ func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Connection,
 		strategy = NewEasyStrategy()
 	case "medium":
 		strategy = NewMediumStrategy()
-	// case "hard":
+	case "hard":
+		strategy = NewHardStrategy()
 	// case "expert":
 	default:
 		return Bot{}, fmt.Errorf("invalid difficulty: %s", difficulty)
@@ -75,7 +76,7 @@ func (b *Bot) Start() error {
 	for {
 		select {
 		case update := <-b.player.Updates:
-			action, err := b.RespondToUpdate(*b.player, update)
+			action, err := b.RespondToUpdate(b.player, update)
 			if err != nil {
 				return fmt.Errorf("error responding to update: %w", err)
 			}
@@ -89,7 +90,7 @@ func (b *Bot) Start() error {
 	}
 }
 
-func (b *Bot) RespondToUpdate(player tincho.Connection, update tincho.Update) (tincho.Action, error) {
+func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.Update) (tincho.Action, error) {
 	switch update.Type {
 	case tincho.UpdateTypeGameStart:
 		var data tincho.UpdateStartNextRoundData
@@ -140,7 +141,11 @@ func (b *Bot) RespondToUpdate(player tincho.Connection, update tincho.Update) (t
 		}
 		return b.strategy.Discard(player, data)
 	case tincho.UpdateTypeFailedDoubleDiscard:
-		return b.strategy.FailedDoubleDiscard(player)
+		var data tincho.UpdateTypeFailedDoubleDiscardData
+		if err := json.Unmarshal(update.Data, &data); err != nil {
+			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+		return b.strategy.FailedDoubleDiscard(player, data)
 	case tincho.UpdateTypeCut:
 		var data tincho.UpdateCutData
 		if err := json.Unmarshal(update.Data, &data); err != nil {

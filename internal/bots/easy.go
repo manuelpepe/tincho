@@ -19,12 +19,17 @@ func NewEasyStrategy() *EasyStrategy {
 	return &EasyStrategy{}
 }
 
-func (s *EasyStrategy) GameStart(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+func (s *EasyStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
 	s.firstTurn = true
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *EasyStrategy) Turn(player tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
+func (s *EasyStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+	s.firstTurn = true
+	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+}
+
+func (s *EasyStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -57,7 +62,7 @@ func (s *EasyStrategy) Turn(player tincho.Connection, data tincho.UpdateTurnData
 	}
 }
 
-func (s *EasyStrategy) Draw(player tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error) {
+func (s *EasyStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
 	}
@@ -70,13 +75,8 @@ func (s *EasyStrategy) Draw(player tincho.Connection, data tincho.UpdateDrawData
 	return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
 }
 
-func (s *EasyStrategy) Error(player tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error) {
+func (s *EasyStrategy) Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error) {
 	return tincho.Action{}, fmt.Errorf("recieved error update: %s", data.Message)
-}
-
-func (s *EasyStrategy) StartNextRound(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
-	s.firstTurn = true
-	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 
 func RandChoice[T any](choices []T) T {
