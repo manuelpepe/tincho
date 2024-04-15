@@ -3,7 +3,6 @@ package bots
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"math/rand"
 
 	"github.com/manuelpepe/tincho/internal/game"
@@ -13,8 +12,11 @@ import (
 type EasyStrategy struct {
 	BaseStrategy // embedded to avoid implementing all the methods
 
-	logger    *slog.Logger
 	firstTurn bool
+}
+
+func NewEasyStrategy() *EasyStrategy {
+	return &EasyStrategy{}
 }
 
 func (s *EasyStrategy) GameStart(player tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {

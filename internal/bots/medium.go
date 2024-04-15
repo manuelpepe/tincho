@@ -94,6 +94,10 @@ type MediumStrategy struct {
 	firstTurn bool
 }
 
+func NewMediumStrategy() *MediumStrategy {
+	return &MediumStrategy{}
+}
+
 func (s *MediumStrategy) ResetHand(self tincho.Connection, players []*game.Player) {
 	for _, p := range players {
 		if p.ID == self.ID {

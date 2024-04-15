@@ -36,9 +36,9 @@ func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Connection,
 	var strategy Strategy
 	switch difficulty {
 	case "easy":
-		strategy = &EasyStrategy{}
+		strategy = NewEasyStrategy()
 	case "medium":
-		strategy = &MediumStrategy{}
+		strategy = NewMediumStrategy()
 	// case "hard":
 	// case "expert":
 	default:
