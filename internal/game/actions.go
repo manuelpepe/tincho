@@ -225,6 +225,9 @@ func (t *Tincho) discardTwoCards(position1 int, position2 int) ([]DiscardedCard,
 		// player keeps all 3 cards in hand
 		player.Hand = append(player.Hand, t.pendingStorage)
 		t.pendingStorage = Card{}
+		if len(t.discardPile) == 0 {
+			t.discardTopCard()
+		}
 		return []Card{card1, card2}, t.discardPile[0], cycledPiles, ErrDiscardingNonEqualCards
 	}
 
