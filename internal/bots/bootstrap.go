@@ -57,7 +57,7 @@ func (s *BaseStrategy) Cut(player *tincho.Connection, data tincho.UpdateCutData)
 }
 
 func (s *BaseStrategy) Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error) {
-	return tincho.Action{}, nil
+	return tincho.Action{}, fmt.Errorf("recieved error update: %s", data.Message)
 }
 
 func (s *BaseStrategy) EndGame(player *tincho.Connection, data tincho.UpdateEndGameData) (tincho.Action, error) {
