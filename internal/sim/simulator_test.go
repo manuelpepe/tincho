@@ -18,7 +18,7 @@ func TestEasyVsMedium(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -41,7 +41,7 @@ func TestEvE(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -50,11 +50,10 @@ func TestEvE(t *testing.T) {
 		return bots.NewEasyStrategy()
 	}
 
-	sum, err := Compete(ctx, logger, easy, easy, 2000)
+	sum, err := Compete(ctx, logger, 2000, easy, easy)
 	assert.NoError(t, err)
 
-	fmt.Printf("Summary: %+v\n", sum)
-
+	fmt.Printf(sum.AsText())
 }
 
 func TestEvM(t *testing.T) {
@@ -63,7 +62,7 @@ func TestEvM(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -76,10 +75,10 @@ func TestEvM(t *testing.T) {
 		return bots.NewMediumStrategy()
 	}
 
-	sum, err := Compete(ctx, logger, easy, medium, 2000)
+	sum, err := Compete(ctx, logger, 2000, easy, medium)
 	assert.NoError(t, err)
 
-	fmt.Printf("Summary: %+v\n", sum)
+	fmt.Printf(sum.AsText())
 }
 
 func TestEvH(t *testing.T) {
@@ -88,7 +87,7 @@ func TestEvH(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -101,10 +100,10 @@ func TestEvH(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	sum, err := Compete(ctx, logger, easy, hard, 2000)
+	sum, err := Compete(ctx, logger, 2000, easy, hard)
 	assert.NoError(t, err)
 
-	fmt.Printf("Summary: %+v\n", sum)
+	fmt.Printf(sum.AsText())
 }
 
 func TestMvM(t *testing.T) {
@@ -113,7 +112,7 @@ func TestMvM(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -122,10 +121,10 @@ func TestMvM(t *testing.T) {
 		return bots.NewMediumStrategy()
 	}
 
-	sum, err := Compete(ctx, logger, medium, medium, 2000)
+	sum, err := Compete(ctx, logger, 2000, medium, medium)
 	assert.NoError(t, err)
 
-	fmt.Printf("Summary: %+v\n", sum)
+	fmt.Printf(sum.AsText())
 }
 
 func TestMvH(t *testing.T) {
@@ -134,7 +133,7 @@ func TestMvH(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -147,10 +146,10 @@ func TestMvH(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	sum, err := Compete(ctx, logger, medium, hard, 2000)
+	sum, err := Compete(ctx, logger, 2000, medium, hard)
 	assert.NoError(t, err)
 
-	fmt.Printf("Summary: %+v\n", sum)
+	fmt.Printf(sum.AsText())
 }
 
 func TestHvH(t *testing.T) {
@@ -159,7 +158,7 @@ func TestHvH(t *testing.T) {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -168,8 +167,37 @@ func TestHvH(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	sum, err := Compete(ctx, logger, hard, hard, 10)
+	sum, err := Compete(ctx, logger, 200, hard, hard)
 	assert.NoError(t, err)
 
-	fmt.Printf("Summary: %+v\n", sum)
+	fmt.Printf(sum.AsText())
+}
+
+func TestEvMvH(t *testing.T) {
+	ctx := context.Background()
+
+	var logger *slog.Logger
+	const showLogs = false
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	easy := func() bots.Strategy {
+		return bots.NewEasyStrategy()
+	}
+
+	medium := func() bots.Strategy {
+		return bots.NewMediumStrategy()
+	}
+
+	hard := func() bots.Strategy {
+		return bots.NewHardStrategy()
+	}
+
+	sum, err := Compete(ctx, logger, 2000, easy, medium, hard)
+	assert.NoError(t, err)
+
+	fmt.Printf(sum.AsText())
 }

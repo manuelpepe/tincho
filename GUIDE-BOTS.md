@@ -65,20 +65,18 @@ func main() {
 	var logger *slog.Logger
 	const showLogs = false
 	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 
 	// 3.2. Run
-	res, err := sim.Compete(context.Background(), logger, newMyBot, newEasy, 100)
+	sum, err := sim.Compete(context.Background(), logger, 100, newMyBot, newEasy)
 	if err != nil {
 		panic(err)
 	}
 
-	// 3.3. Summarize and sum
-	sum := sim.Summarize(res)
-	fmt.Printf("%+v\n", sum)
+	fmt.Printf(sum.AsText())
 }
 ```
 

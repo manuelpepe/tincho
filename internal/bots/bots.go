@@ -91,6 +91,7 @@ func (b *Bot) Start() error {
 }
 
 func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.Update) (tincho.Action, error) {
+	b.logger.Debug(fmt.Sprintf("Bot %s received update: %s", player.ID, update.Type), "update", update)
 	switch update.Type {
 	case tincho.UpdateTypeGameStart:
 		var data tincho.UpdateStartNextRoundData

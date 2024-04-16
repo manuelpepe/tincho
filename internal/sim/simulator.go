@@ -34,15 +34,27 @@ type StratSummary struct {
 	Wins   int
 	Rounds MinMaxMean
 	Turns  MinMaxMean
+
+	TotalRounds int
+	TotalTurns  int
 }
 
 // Summary of multiple games for two strategies
 type Summary struct {
-	Strat1Summary StratSummary
-	Strat2Summary StratSummary
+	Strats []StratSummary
 
 	TotalRounds int
 	TotalTurns  int
+}
+
+func (s Summary) AsText() string {
+	res := ""
+	for i, strat := range s.Strats {
+		res += fmt.Sprintf("%d: %+v\n", i, strat)
+	}
+	res += fmt.Sprintf("TotalRounds: %d\n", s.TotalRounds)
+	res += fmt.Sprintf("TotalTurns: %d\n", s.TotalTurns)
+	return res
 }
 
 func generateRandomString(length int) string {
@@ -55,7 +67,7 @@ func generateRandomString(length int) string {
 	return string(result)
 }
 
-func Play(ctx context.Context, logger *slog.Logger, strat bots.Strategy, strat2 bots.Strategy) (Result, error) {
+func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Result, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	deck := game.NewDeck()
@@ -63,18 +75,24 @@ func Play(ctx context.Context, logger *slog.Logger, strat bots.Strategy, strat2 
 
 	roomID := generateRandomString(6)
 	logger = logger.With("room", roomID)
-	room := tincho.NewRoomWithDeck(logger, ctx, cancel, roomID, deck, 2)
-	bot := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection("strat-1"), strat)
-	bot2 := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection("strat-2"), strat2)
-
+	room := tincho.NewRoomWithDeck(logger, ctx, cancel, roomID, deck, len(strats))
 	go room.Start()
-	go bot.Start()
-	go bot2.Start()
 
-	room.AddPlayer(bot.Player())
-	room.AddPlayer(bot2.Player())
+	type b struct {
+		Ix  int
+		Bot *bots.Bot
+	}
 
-	bot.Player().QueueAction(tincho.Action{Type: tincho.ActionStart})
+	players := make(map[game.PlayerID]b)
+	for ix, strat := range strats {
+		name := game.PlayerID(fmt.Sprintf("strat-%d", ix))
+		bot := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection(name), strat)
+		room.AddPlayer(bot.Player())
+		go bot.Start()
+		players[name] = b{Ix: ix, Bot: &bot}
+	}
+
+	players["strat-0"].Bot.Player().QueueAction(tincho.Action{Type: tincho.ActionStart})
 
 	select {
 	case <-ctx.Done():
@@ -82,16 +100,8 @@ func Play(ctx context.Context, logger *slog.Logger, strat bots.Strategy, strat2 
 		if err != nil {
 			return Result{}, err
 		}
-
-		var winnerIx int
-		if winner.ID == bot.Player().ID {
-			winnerIx = 0
-		} else {
-			winnerIx = 1
-		}
-
 		return Result{
-			Winner:      winnerIx,
+			Winner:      players[winner.ID].Ix,
 			TotalRounds: room.TotalRounds(),
 			TotalTurns:  room.TotalTurns(),
 		}, nil
@@ -101,7 +111,7 @@ func Play(ctx context.Context, logger *slog.Logger, strat bots.Strategy, strat2 
 	}
 }
 
-func Compete(ctx context.Context, logger *slog.Logger, strat func() bots.Strategy, strat2 func() bots.Strategy, rounds int) (Summary, error) {
+func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...func() bots.Strategy) (Summary, error) {
 	ctx, cancelPendingGames := context.WithCancel(ctx)
 
 	outs := make(chan Result)
@@ -114,7 +124,11 @@ func Compete(ctx context.Context, logger *slog.Logger, strat func() bots.Strateg
 			default:
 			}
 
-			result, err := Play(ctx, logger, strat(), strat2())
+			bots := make([]bots.Strategy, 0, len(strats))
+			for _, strat := range strats {
+				bots = append(bots, strat())
+			}
+			result, err := Play(ctx, logger, bots...)
 			if err != nil {
 				select {
 				case <-ctx.Done():
@@ -141,35 +155,23 @@ func Compete(ctx context.Context, logger *slog.Logger, strat func() bots.Strateg
 		defer close(outs)
 		defer close(errs)
 
-		var strat1TotalRounds, strat2TotalRounds int
-		var strat1TotalTurns, strat2TotalTurns int
-
-		summary := Summary{
-			Strat1Summary: StratSummary{
+		summary := Summary{}
+		for i := 0; i < len(strats); i++ {
+			summary.Strats = append(summary.Strats, StratSummary{
 				Rounds: MinMaxMean{Min: 9999},
 				Turns:  MinMaxMean{Min: 9999},
-			},
-			Strat2Summary: StratSummary{
-				Rounds: MinMaxMean{Min: 9999},
-				Turns:  MinMaxMean{Min: 9999},
-			},
+			})
 		}
-		var winnerSummary *StratSummary
 
 		for i := 0; i < rounds; i++ {
 			select {
 			case result := <-outs:
-				if result.Winner == 0 {
-					winnerSummary = &summary.Strat1Summary
-					strat1TotalRounds += result.TotalRounds
-					strat1TotalTurns += result.TotalTurns
-				} else {
-					winnerSummary = &summary.Strat2Summary
-					strat2TotalRounds += result.TotalRounds
-					strat2TotalTurns += result.TotalTurns
-				}
+				winnerSummary := summary.Strats[result.Winner]
 
 				winnerSummary.Wins++
+				winnerSummary.TotalRounds += result.TotalRounds
+				winnerSummary.TotalTurns += result.TotalTurns
+
 				if result.TotalRounds < winnerSummary.Rounds.Min {
 					winnerSummary.Rounds.Min = result.TotalRounds
 				}
@@ -182,6 +184,8 @@ func Compete(ctx context.Context, logger *slog.Logger, strat func() bots.Strateg
 				if result.TotalTurns > winnerSummary.Turns.Max {
 					winnerSummary.Turns.Max = result.TotalTurns
 				}
+
+				summary.Strats[result.Winner] = winnerSummary
 			case err := <-errs:
 				finalErrChan <- err
 				cancelPendingGames()
@@ -189,17 +193,14 @@ func Compete(ctx context.Context, logger *slog.Logger, strat func() bots.Strateg
 			}
 		}
 
-		if summary.Strat1Summary.Wins > 0 {
-			summary.Strat1Summary.Rounds.Mean = strat1TotalRounds / summary.Strat1Summary.Wins
-			summary.Strat1Summary.Turns.Mean = strat1TotalTurns / summary.Strat1Summary.Wins
+		for _, strat := range summary.Strats {
+			if strat.Wins > 0 {
+				strat.Rounds.Mean = strat.TotalRounds / strat.Wins
+				strat.Turns.Mean = strat.TotalTurns / strat.Wins
+			}
+			summary.TotalRounds += strat.TotalRounds
+			summary.TotalTurns += strat.TotalTurns
 		}
-		if summary.Strat2Summary.Wins > 0 {
-			summary.Strat2Summary.Rounds.Mean = strat2TotalRounds / summary.Strat2Summary.Wins
-			summary.Strat2Summary.Turns.Mean = strat2TotalTurns / summary.Strat2Summary.Wins
-		}
-
-		summary.TotalRounds = strat1TotalRounds + strat2TotalRounds
-		summary.TotalTurns = strat1TotalTurns + strat2TotalTurns
 
 		finalResChan <- summary
 	}()
