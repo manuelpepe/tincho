@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"time"
 
 	"github.com/manuelpepe/tincho/internal/bots"
@@ -20,12 +21,25 @@ type Result struct {
 	TotalTurns  int
 }
 
+func generateRandomString(length int) string {
+	chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	rand.Seed(time.Now().UnixNano())
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
+}
+
 func Play(ctx context.Context, logger *slog.Logger, strat bots.Strategy, strat2 bots.Strategy) (Result, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	deck := game.NewDeck()
 	deck.Shuffle()
-	room := tincho.NewRoomWithDeck(logger, ctx, cancel, "sim-room", deck, 2)
+
+	roomID := generateRandomString(6)
+	logger = logger.With("room", roomID)
+	room := tincho.NewRoomWithDeck(logger, ctx, cancel, roomID, deck, 2)
 	bot := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection("strat-1"), strat)
 	bot2 := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection("strat-2"), strat2)
 
@@ -59,22 +73,71 @@ func Play(ctx context.Context, logger *slog.Logger, strat bots.Strategy, strat2 
 		}, nil
 	case <-time.After(60 * time.Second):
 		logger.Error("Simulation timed out after 60 seconds", "total_rounds", room.TotalRounds()) // RACE: on total rounds
-		return Result{}, ErrSimTimeout
+		return Result{}, fmt.Errorf("error on room %s: %w", roomID, ErrSimTimeout)
 	}
 }
 
 func Compete(ctx context.Context, logger *slog.Logger, strat func() bots.Strategy, strat2 func() bots.Strategy, rounds int) ([]Result, error) {
-	results := make([]Result, rounds)
+	ctx, cancelPendingGames := context.WithCancel(ctx)
 
+	outs := make(chan Result)
+	errs := make(chan error)
 	for i := 0; i < rounds; i++ {
-		result, err := Play(ctx, logger, strat(), strat2())
-		if err != nil {
-			return nil, fmt.Errorf("error on round %d: %w", i, err)
-		}
-		results[i] = result
+		go func() {
+			select {
+			case <-ctx.Done():
+				return // early exit if done
+			default:
+			}
+
+			result, err := Play(ctx, logger, strat(), strat2())
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				errs <- fmt.Errorf("error on round: %w", err)
+				return
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			outs <- result
+
+		}()
 	}
 
-	return results, nil
+	var finalResChan = make(chan []Result)
+	var finalErrChan = make(chan error)
+	go func() {
+		defer close(outs)
+		defer close(errs)
+
+		results := make([]Result, rounds)
+		for i := 0; i < rounds; i++ {
+			select {
+			case result := <-outs:
+				results[i] = result
+			case err := <-errs:
+				finalErrChan <- err
+				cancelPendingGames()
+				return
+			}
+		}
+
+		finalResChan <- results
+	}()
+
+	select {
+	case res := <-finalResChan:
+		return res, nil
+	case err := <-finalErrChan:
+		return nil, err
+	}
 }
 
 type MinMaxMean struct {
