@@ -23,28 +23,27 @@ type Result struct {
 }
 
 // Three common values
-type MinMaxMean struct {
+type MinMaxMeanSum struct {
 	Min  int
 	Max  int
 	Mean int
+	Sum  int
 }
 
 // Summary of multiple games for a single strategy
 type StratSummary struct {
 	Wins   int
-	Rounds MinMaxMean
-	Turns  MinMaxMean
-
-	TotalRounds int
-	TotalTurns  int
+	Rounds MinMaxMeanSum
+	Turns  MinMaxMeanSum
 }
 
 // Summary of multiple games for two strategies
 type Summary struct {
 	Strats []StratSummary
 
-	TotalRounds int
-	TotalTurns  int
+	TotalGames int
+	Rounds     MinMaxMeanSum
+	Turns      MinMaxMeanSum
 }
 
 func (s Summary) AsText() string {
@@ -52,19 +51,10 @@ func (s Summary) AsText() string {
 	for i, strat := range s.Strats {
 		res += fmt.Sprintf("%d: %+v\n", i, strat)
 	}
-	res += fmt.Sprintf("TotalRounds: %d\n", s.TotalRounds)
-	res += fmt.Sprintf("TotalTurns: %d\n", s.TotalTurns)
+	res += fmt.Sprintf("Total Games: %d\n", s.TotalGames)
+	res += fmt.Sprintf("Total Rounds: %+v\n", s.Rounds)
+	res += fmt.Sprintf("Total Turns: %+v\n", s.Turns)
 	return res
-}
-
-func generateRandomString(length int) string {
-	chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	rand.Seed(time.Now().UnixNano())
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = chars[rand.Intn(len(chars))]
-	}
-	return string(result)
 }
 
 func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Result, error) {
@@ -112,6 +102,10 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 }
 
 func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...func() bots.Strategy) (Summary, error) {
+	if rounds < 1 {
+		return Summary{}, fmt.Errorf("invalid number of rounds: %d", rounds)
+	}
+
 	ctx, cancelPendingGames := context.WithCancel(ctx)
 
 	outs := make(chan Result)
@@ -155,35 +149,41 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 		defer close(outs)
 		defer close(errs)
 
-		summary := Summary{}
+		summary := Summary{
+			Strats: make([]StratSummary, 0, len(strats)),
+			Rounds: MinMaxMeanSum{Min: 9999},
+			Turns:  MinMaxMeanSum{Min: 9999},
+		}
 		for i := 0; i < len(strats); i++ {
 			summary.Strats = append(summary.Strats, StratSummary{
-				Rounds: MinMaxMean{Min: 9999},
-				Turns:  MinMaxMean{Min: 9999},
+				Rounds: MinMaxMeanSum{Min: 9999},
+				Turns:  MinMaxMeanSum{Min: 9999},
 			})
 		}
 
 		for i := 0; i < rounds; i++ {
 			select {
 			case result := <-outs:
+				summary.TotalGames++
+
+				summary.Rounds.Sum += result.TotalRounds
+				summary.Rounds.Min = min(result.TotalRounds, summary.Rounds.Min)
+				summary.Rounds.Max = max(result.TotalRounds, summary.Rounds.Max)
+
+				summary.Turns.Sum += result.TotalTurns
+				summary.Turns.Min = min(result.TotalTurns, summary.Turns.Min)
+				summary.Turns.Max = max(result.TotalTurns, summary.Turns.Max)
+
 				winnerSummary := summary.Strats[result.Winner]
-
 				winnerSummary.Wins++
-				winnerSummary.TotalRounds += result.TotalRounds
-				winnerSummary.TotalTurns += result.TotalTurns
 
-				if result.TotalRounds < winnerSummary.Rounds.Min {
-					winnerSummary.Rounds.Min = result.TotalRounds
-				}
-				if result.TotalRounds > winnerSummary.Rounds.Max {
-					winnerSummary.Rounds.Max = result.TotalRounds
-				}
-				if result.TotalTurns < winnerSummary.Turns.Min {
-					winnerSummary.Turns.Min = result.TotalTurns
-				}
-				if result.TotalTurns > winnerSummary.Turns.Max {
-					winnerSummary.Turns.Max = result.TotalTurns
-				}
+				winnerSummary.Rounds.Sum += result.TotalRounds
+				winnerSummary.Rounds.Min = min(result.TotalRounds, winnerSummary.Rounds.Min)
+				winnerSummary.Rounds.Max = max(result.TotalRounds, winnerSummary.Rounds.Max)
+
+				winnerSummary.Turns.Sum += result.TotalTurns
+				winnerSummary.Turns.Min = min(result.TotalTurns, winnerSummary.Turns.Min)
+				winnerSummary.Turns.Max = max(result.TotalTurns, winnerSummary.Turns.Max)
 
 				summary.Strats[result.Winner] = winnerSummary
 			case err := <-errs:
@@ -193,14 +193,16 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 			}
 		}
 
-		for _, strat := range summary.Strats {
+		for ix, strat := range summary.Strats {
 			if strat.Wins > 0 {
-				strat.Rounds.Mean = strat.TotalRounds / strat.Wins
-				strat.Turns.Mean = strat.TotalTurns / strat.Wins
+				strat.Rounds.Mean = strat.Rounds.Sum / strat.Wins
+				strat.Turns.Mean = strat.Turns.Sum / strat.Wins
 			}
-			summary.TotalRounds += strat.TotalRounds
-			summary.TotalTurns += strat.TotalTurns
+			summary.Strats[ix] = strat
 		}
+
+		summary.Rounds.Mean = summary.Rounds.Sum / summary.TotalGames
+		summary.Turns.Mean = summary.Turns.Sum / summary.TotalGames
 
 		finalResChan <- summary
 	}()
@@ -211,4 +213,28 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 	case err := <-finalErrChan:
 		return Summary{}, err
 	}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func generateRandomString(length int) string {
+	chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	rand.Seed(time.Now().UnixNano())
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
 }
