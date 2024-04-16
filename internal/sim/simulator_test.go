@@ -50,12 +50,10 @@ func TestEvE(t *testing.T) {
 		return bots.NewEasyStrategy()
 	}
 
-	res, err := Compete(ctx, logger, easy, easy, 2000)
+	sum, err := Compete(ctx, logger, easy, easy, 2000)
 	assert.NoError(t, err)
 
-	summary := Summarize(res)
-
-	fmt.Printf("Summary: %+v\n", summary)
+	fmt.Printf("Summary: %+v\n", sum)
 
 }
 
@@ -78,12 +76,10 @@ func TestEvM(t *testing.T) {
 		return bots.NewMediumStrategy()
 	}
 
-	res, err := Compete(ctx, logger, easy, medium, 2000)
+	sum, err := Compete(ctx, logger, easy, medium, 2000)
 	assert.NoError(t, err)
 
-	summary := Summarize(res)
-
-	fmt.Printf("Summary: %+v\n", summary)
+	fmt.Printf("Summary: %+v\n", sum)
 }
 
 func TestEvH(t *testing.T) {
@@ -105,12 +101,10 @@ func TestEvH(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	res, err := Compete(ctx, logger, easy, hard, 2000)
+	sum, err := Compete(ctx, logger, easy, hard, 2000)
 	assert.NoError(t, err)
 
-	summary := Summarize(res)
-
-	fmt.Printf("Summary: %+v\n", summary)
+	fmt.Printf("Summary: %+v\n", sum)
 }
 
 func TestMvM(t *testing.T) {
@@ -128,12 +122,10 @@ func TestMvM(t *testing.T) {
 		return bots.NewMediumStrategy()
 	}
 
-	res, err := Compete(ctx, logger, medium, medium, 2000)
+	sum, err := Compete(ctx, logger, medium, medium, 2000)
 	assert.NoError(t, err)
 
-	summary := Summarize(res)
-
-	fmt.Printf("Summary: %+v\n", summary)
+	fmt.Printf("Summary: %+v\n", sum)
 }
 
 func TestMvH(t *testing.T) {
@@ -155,12 +147,10 @@ func TestMvH(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	res, err := Compete(ctx, logger, medium, hard, 2000)
+	sum, err := Compete(ctx, logger, medium, hard, 2000)
 	assert.NoError(t, err)
 
-	summary := Summarize(res)
-
-	fmt.Printf("Summary: %+v\n", summary)
+	fmt.Printf("Summary: %+v\n", sum)
 }
 
 func TestHvH(t *testing.T) {
@@ -178,10 +168,8 @@ func TestHvH(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	res, err := Compete(ctx, logger, hard, hard, 10)
+	sum, err := Compete(ctx, logger, hard, hard, 10)
 	assert.NoError(t, err)
 
-	summary := Summarize(res)
-
-	fmt.Printf("Summary: %+v\n", summary)
+	fmt.Printf("Summary: %+v\n", sum)
 }

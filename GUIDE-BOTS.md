@@ -81,3 +81,9 @@ func main() {
 	fmt.Printf("%+v\n", sum)
 }
 ```
+
+3. Run simulation:
+
+```bash
+$ go run ./main.go
+```
