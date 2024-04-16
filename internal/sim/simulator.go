@@ -161,6 +161,7 @@ type Summary struct {
 }
 
 func Summarize(results []Result) Summary {
+	// TODO: Calculate summary on the fly in Compete() to avoid memory issues of storing every result
 	var strat1TotalRounds, strat2TotalRounds int
 	var strat1TotalTurns, strat2TotalTurns int
 
