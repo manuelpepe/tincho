@@ -12,6 +12,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func easy() bots.Strategy {
+	return bots.NewEasyStrategy()
+}
+
+func medium() bots.Strategy {
+	return bots.NewMediumStrategy()
+}
+
+func hard() bots.Strategy {
+	return bots.NewHardStrategy()
+}
+
+func run(iters int, showLogs bool, strats ...func() bots.Strategy) error {
+	var logger *slog.Logger
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	ctx := context.Background()
+	sum, err := Compete(ctx, logger, iters, strats...)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(sum.AsText())
+	return nil
+}
+
 func TestEasyVsMedium(t *testing.T) {
 	ctx := context.Background()
 
@@ -36,168 +66,29 @@ func TestEasyVsMedium(t *testing.T) {
 }
 
 func TestEvE(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	easy := func() bots.Strategy {
-		return bots.NewEasyStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 2000, easy, easy)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(2000, false, easy, easy))
 }
 
 func TestEvM(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	easy := func() bots.Strategy {
-		return bots.NewEasyStrategy()
-	}
-
-	medium := func() bots.Strategy {
-		return bots.NewMediumStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 2000, easy, medium)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(2000, false, easy, medium))
 }
 
 func TestEvH(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	easy := func() bots.Strategy {
-		return bots.NewEasyStrategy()
-	}
-
-	hard := func() bots.Strategy {
-		return bots.NewHardStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 2000, easy, hard)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(2000, false, easy, hard))
 }
 
 func TestMvM(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	medium := func() bots.Strategy {
-		return bots.NewMediumStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 2000, medium, medium)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(2000, false, medium, medium))
 }
 
 func TestMvH(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	medium := func() bots.Strategy {
-		return bots.NewMediumStrategy()
-	}
-
-	hard := func() bots.Strategy {
-		return bots.NewHardStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 2000, medium, hard)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(2000, false, medium, hard))
 }
 
 func TestHvH(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	hard := func() bots.Strategy {
-		return bots.NewHardStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 200, hard, hard)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(10, false, hard, hard))
 }
 
 func TestEvMvH(t *testing.T) {
-	ctx := context.Background()
-
-	var logger *slog.Logger
-	const showLogs = false
-	if showLogs {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	easy := func() bots.Strategy {
-		return bots.NewEasyStrategy()
-	}
-
-	medium := func() bots.Strategy {
-		return bots.NewMediumStrategy()
-	}
-
-	hard := func() bots.Strategy {
-		return bots.NewHardStrategy()
-	}
-
-	sum, err := Compete(ctx, logger, 2000, easy, medium, hard)
-	assert.NoError(t, err)
-
-	fmt.Printf(sum.AsText())
+	assert.NoError(t, run(2000, false, easy, medium, hard))
 }
