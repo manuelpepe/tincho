@@ -30,7 +30,8 @@
 
 ### Fixes
 
-* [FRONT] On failed double discard with empty discard pile, animate a card going from draw to discard instead of magically appearing. Don't make the same animation if the discard pile isn't emtpy because the card showing would already be in the discard pile.
+* [ ] [PERF-SIM] Most of the time in simulations is spent in json.Unmarshall calls in the bot handler
+* [ ] [FRONT] On failed double discard with empty discard pile, animate a card going from draw to discard instead of magically appearing. Don't make the same animation if the discard pile isn't emtpy because the card showing would already be in the discard pile.
 - [ ] [CANT-REPRODUCE] On mobile, sometimes the click handler doesn't work after swapping cards.
 - [ ] [CANT-REPRODUCE] On mobile, an eye appears instead of card value when peeking own card.
 - [ ] [FRONT] When swapping cards, an intermediate container should be used to pass them around (improves animation)
