@@ -35,7 +35,31 @@ func TestEasyVsMedium(t *testing.T) {
 	fmt.Printf("Medium won %d times\n", winsForMedium)
 }
 
-func TestEasyVsMediumCompeteSummary(t *testing.T) {
+func TestEvE(t *testing.T) {
+	ctx := context.Background()
+
+	var logger *slog.Logger
+	const showLogs = false
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	easy := func() bots.Strategy {
+		return bots.NewEasyStrategy()
+	}
+
+	res, err := Compete(ctx, logger, easy, easy, 2000)
+	assert.NoError(t, err)
+
+	summary := Summarize(res)
+
+	fmt.Printf("Summary: %+v\n", summary)
+
+}
+
+func TestEvM(t *testing.T) {
 	ctx := context.Background()
 
 	var logger *slog.Logger
@@ -54,7 +78,7 @@ func TestEasyVsMediumCompeteSummary(t *testing.T) {
 		return bots.NewMediumStrategy()
 	}
 
-	res, err := Compete(ctx, logger, easy, medium, 1000)
+	res, err := Compete(ctx, logger, easy, medium, 2000)
 	assert.NoError(t, err)
 
 	summary := Summarize(res)
@@ -62,7 +86,7 @@ func TestEasyVsMediumCompeteSummary(t *testing.T) {
 	fmt.Printf("Summary: %+v\n", summary)
 }
 
-func TestEasyVsHardCompeteSummary(t *testing.T) {
+func TestEvH(t *testing.T) {
 	ctx := context.Background()
 
 	var logger *slog.Logger
@@ -81,7 +105,7 @@ func TestEasyVsHardCompeteSummary(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	res, err := Compete(ctx, logger, easy, hard, 1000)
+	res, err := Compete(ctx, logger, easy, hard, 2000)
 	assert.NoError(t, err)
 
 	summary := Summarize(res)
@@ -89,7 +113,30 @@ func TestEasyVsHardCompeteSummary(t *testing.T) {
 	fmt.Printf("Summary: %+v\n", summary)
 }
 
-func TestMediumVsHardCompeteSummary(t *testing.T) {
+func TestMvM(t *testing.T) {
+	ctx := context.Background()
+
+	var logger *slog.Logger
+	const showLogs = false
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	medium := func() bots.Strategy {
+		return bots.NewMediumStrategy()
+	}
+
+	res, err := Compete(ctx, logger, medium, medium, 2000)
+	assert.NoError(t, err)
+
+	summary := Summarize(res)
+
+	fmt.Printf("Summary: %+v\n", summary)
+}
+
+func TestMvH(t *testing.T) {
 	ctx := context.Background()
 
 	var logger *slog.Logger
@@ -108,7 +155,30 @@ func TestMediumVsHardCompeteSummary(t *testing.T) {
 		return bots.NewHardStrategy()
 	}
 
-	res, err := Compete(ctx, logger, medium, hard, 1000)
+	res, err := Compete(ctx, logger, medium, hard, 2000)
+	assert.NoError(t, err)
+
+	summary := Summarize(res)
+
+	fmt.Printf("Summary: %+v\n", summary)
+}
+
+func TestHvH(t *testing.T) {
+	ctx := context.Background()
+
+	var logger *slog.Logger
+	const showLogs = false
+	if showLogs {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
+	hard := func() bots.Strategy {
+		return bots.NewHardStrategy()
+	}
+
+	res, err := Compete(ctx, logger, hard, hard, 10)
 	assert.NoError(t, err)
 
 	summary := Summarize(res)
