@@ -5,7 +5,7 @@
 - [ ] Prevent using effect if card was drawn from discard pile
 - [ ] Should probably replace GameStart event with StartNextRound 
 - [ ] Changelog in UI
-- [ ] Rejoin to before-start and first-peek screens.
+- [ ] Rejoin to before-start, first-peek and cut screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
 - [ ] [FRONT] Display withCount and declared info on cut screen

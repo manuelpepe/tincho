@@ -10,7 +10,7 @@ import (
 
 func (r *Room) BroadcastUpdate(update Update) {
 	for _, player := range r.state.GetPlayers() {
-		conn, ok := r.GetPlayer(player.ID)
+		conn, ok := r.getPlayer(player.ID)
 		if !ok {
 			// TODO: probably should stop everything as this shouldn-t happen
 			continue
@@ -22,7 +22,7 @@ func (r *Room) BroadcastUpdate(update Update) {
 func (r *Room) BroadcastUpdateExcept(update Update, player game.PlayerID) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID != player {
-			conn, ok := r.GetPlayer(p.ID)
+			conn, ok := r.getPlayer(p.ID)
 			if !ok {
 				// TODO: probably should stop everything as this shouldn-t happen
 				continue
@@ -35,7 +35,7 @@ func (r *Room) BroadcastUpdateExcept(update Update, player game.PlayerID) {
 func (r *Room) TargetedUpdate(player game.PlayerID, update Update) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID == player {
-			conn, ok := r.GetPlayer(p.ID)
+			conn, ok := r.getPlayer(p.ID)
 			if !ok {
 				// TODO: probably should stop everything as this shouldn-t happen
 				continue

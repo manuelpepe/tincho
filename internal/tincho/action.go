@@ -181,7 +181,7 @@ func (r *Room) doCut(action Action) error {
 		if err := r.broadcastEndGame(scores); err != nil {
 			return fmt.Errorf("broadcastEndGame: %w", err)
 		}
-		r.Close()
+		r.close()
 	} else {
 		topDiscard, err := r.state.StartNextRound()
 		if err != nil {

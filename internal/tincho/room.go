@@ -56,14 +56,20 @@ func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context
 }
 
 func (r *Room) Winner() (*game.Player, error) {
+	r.RWMutex.RLock()
+	defer r.RWMutex.RUnlock()
 	return r.state.Winner()
 }
 
 func (r *Room) TotalTurns() int {
+	r.RWMutex.RLock()
+	defer r.RWMutex.RUnlock()
 	return r.state.TotalTurns()
 }
 
 func (r *Room) TotalRounds() int {
+	r.RWMutex.RLock()
+	defer r.RWMutex.RUnlock()
 	return r.state.TotalRounds()
 }
 
@@ -79,10 +85,8 @@ func (r *Room) HasClosed() bool {
 	return r.closed
 }
 
-func (r *Room) Close() {
+func (r *Room) close() {
 	if !r.closed {
-		r.RWMutex.Lock()
-		defer r.RWMutex.Unlock()
 		r.closeRoom()
 		r.closed = true
 	}
@@ -91,6 +95,10 @@ func (r *Room) Close() {
 func (r *Room) GetPlayer(id game.PlayerID) (*Connection, bool) {
 	r.RWMutex.RLock()
 	defer r.RWMutex.RUnlock()
+	return r.getPlayer(id)
+}
+
+func (r *Room) getPlayer(id game.PlayerID) (*Connection, bool) {
 	_, exists := r.state.GetPlayer(id)
 	if !exists {
 		return nil, false
@@ -171,7 +179,7 @@ func (r *Room) Start() {
 			r.doAction(action)
 		case <-r.Context.Done():
 			r.logger.Info("Stopping room")
-			r.Close()
+			r.close()
 			return
 		}
 	}
@@ -186,6 +194,10 @@ func (r *Room) doAction(action Action) {
 		r.TargetedError(action.PlayerID, ErrActionOnClosedRoom)
 		return
 	}
+
+	r.RWMutex.Lock()
+	defer r.RWMutex.Unlock()
+
 	switch action.Type {
 	case ActionStart:
 		if err := r.doStartGame(action); err != nil {
@@ -210,6 +222,7 @@ func (r *Room) doAction(action Action) {
 		r.TargetedError(action.PlayerID, ErrNotYourTurn)
 		return
 	}
+
 	switch action.Type {
 	case ActionDraw:
 		if err := r.doDraw(action); err != nil {
