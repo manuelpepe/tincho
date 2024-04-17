@@ -266,19 +266,17 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 				}
 			case <-ctx.Done():
 				logger.Info(fmt.Sprintf("Stopping socket write loop for player %s", player.ID))
-				for {
-					select {
-					case update := <-conn.Updates:
-						logger.Info(fmt.Sprintf("Sending last buffered messages for player %s", player.ID), "update", update)
-						if err := ws.WriteJSON(update); err != nil {
-							logger.Error(fmt.Sprintf("error sending update to player %s: %s", player.ID, err))
-							stopWS()
-							return
-						}
-					default:
-						room.state.TotalTurns()
+				for i := 0; i < len(conn.Updates); i++ {
+					update := <-conn.Updates
+					logger.Info(fmt.Sprintf("Sending last buffered messages for player %s", player.ID), "update", update)
+					if err := ws.WriteJSON(update); err != nil {
+						logger.Error(fmt.Sprintf("error sending update to player %s: %s", player.ID, err))
+						stopWS()
+						return
 					}
 				}
+				logger.Info(fmt.Sprintf("Stopped socket write loop for player %s", player.ID))
+				return
 			}
 		}
 	}()
