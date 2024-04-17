@@ -255,22 +255,18 @@ func (s *HardStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSw
 func (s *HardStrategy) Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.Action, error) {
 	s.lastDiscarded = data.Cards[len(data.Cards)-1]
 	if data.Player != player.ID {
-		return tincho.Action{}, nil
+		if len(data.CardsPositions) > 1 {
+			// successful double discard
+			s.cards[player.ID] -= 1
+		}
 	}
-
-	if len(data.CardsPositions) > 1 {
-		// successful double discard
-		s.cards[player.ID] -= 1
-	}
-
 	return tincho.Action{}, nil
 }
 
 func (s *HardStrategy) FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.Action, error) {
 	s.lastDiscarded = data.TopOfDiscard
 	if data.Player != player.ID {
-		return tincho.Action{}, nil
+		s.cards[player.ID] += 1
 	}
-	s.cards[player.ID] += 1
 	return tincho.Action{}, nil
 }

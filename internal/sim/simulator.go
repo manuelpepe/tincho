@@ -96,7 +96,7 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 			TotalTurns:  room.TotalTurns(),
 		}, nil
 	case <-time.After(60 * time.Second):
-		logger.Error("Simulation timed out after 60 seconds", "total_rounds", room.TotalRounds()) // RACE: on total rounds
+		logger.Error("Simulation timed out after 60 seconds", "total_rounds", room.TotalRounds(), "total_turns", room.TotalTurns()) // RACE: on total rounds and turns
 		return Result{}, fmt.Errorf("error on room %s: %w", roomID, ErrSimTimeout)
 	}
 }
