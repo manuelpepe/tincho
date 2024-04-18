@@ -118,6 +118,7 @@ func (t *Tincho) Draw(source DrawSource) (Card, error) {
 		return Card{}, fmt.Errorf("drawFromSource: %w", err)
 	}
 	t.pendingStorage = card
+	t.lastDrawSource = source
 	return card, nil
 }
 
@@ -307,6 +308,10 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 		return Card{}, Card{}, false, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
 	}
 
+	if t.lastDrawSource != DrawSourcePile {
+		return Card{}, Card{}, false, fmt.Errorf("can't use effect after drawing from discard pile")
+	}
+
 	player := t.players[t.currentTurn]
 	card, err := t.peekCard(player, position)
 	if err != nil {
@@ -322,6 +327,10 @@ func (t *Tincho) UseEffectPeekOwnCard(position int) (PeekedCard, DiscardedCard, 
 func (t *Tincho) UseEffectPeekCartaAjena(playerID PlayerID, position int) (PeekedCard, DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage.GetEffect() != CardEffectPeekCartaAjena {
 		return Card{}, Card{}, false, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+	}
+
+	if t.lastDrawSource != DrawSourcePile {
+		return Card{}, Card{}, false, fmt.Errorf("can't use effect after drawing from discard pile")
 	}
 
 	player, ok := t.GetPlayer(playerID)
@@ -350,6 +359,10 @@ func (t *Tincho) peekCard(player *Player, cardIndex int) (PeekedCard, error) {
 func (t *Tincho) UseEffectSwapCards(players []PlayerID, positions []int) (DiscardedCard, CycledPiles, error) {
 	if t.pendingStorage.GetEffect() != CardEffectSwapCards {
 		return Card{}, false, fmt.Errorf("invalid effect: %s", t.pendingStorage.GetEffect())
+	}
+
+	if t.lastDrawSource != DrawSourcePile {
+		return Card{}, false, fmt.Errorf("can't use effect after drawing from discard pile")
 	}
 
 	if err := t.swapCards(players, positions); err != nil {

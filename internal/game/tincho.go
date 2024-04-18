@@ -31,18 +31,21 @@ type Round struct {
 }
 
 type Tincho struct {
-	players      []*Player
-	playing      bool
-	currentTurn  int
-	drawPile     Deck
-	discardPile  Deck
-	cpyDeck      Deck
+	players     []*Player
+	playing     bool
+	currentTurn int
+
+	drawPile    Deck
+	discardPile Deck
+	cpyDeck     Deck
+
 	totalTurns   int
 	totalRounds  int
 	roundHistory []Round
 
 	// the last card drawn that has not been stored into a player's hand
 	pendingStorage Card
+	lastDrawSource DrawSource
 }
 
 func NewTinchoWithDeck(deck Deck) *Tincho {

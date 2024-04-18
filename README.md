@@ -47,3 +47,9 @@ All other players only add their hand totals to their score.
 ```
 go run cmd/server/main.go
 ```
+
+## Running bot simulations
+
+```
+go run cmd/server/sim.go
+```

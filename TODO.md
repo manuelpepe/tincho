@@ -2,7 +2,6 @@
 
 ### Features
 
-- [ ] Prevent using effect if card was drawn from discard pile
 - [ ] Should probably replace GameStart event with StartNextRound 
 - [ ] Changelog in UI
 - [ ] Rejoin to before-start, first-peek and cut screens.
@@ -104,6 +103,7 @@
 - [x] Add a `piles shuffled` update
 - [x] Add a `piles shuffled` animation
 - [x] Rules in UI
+- [x] Prevent using effect if card was drawn from discard pile
 
 ### Fixes
 

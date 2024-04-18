@@ -88,7 +88,7 @@ func (s *MediumStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawD
 	}
 	unkownCard, hasUnkownCard := s.hand.GetUnkownCard()
 	if hasUnkownCard {
-		if data.Card.GetEffect() == game.CardEffectPeekOwnCard {
+		if data.Source == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectPeekOwnCard {
 			res, err := json.Marshal(tincho.ActionPeekOwnCardData{CardPosition: unkownCard})
 			if err != nil {
 				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)

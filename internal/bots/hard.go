@@ -13,12 +13,11 @@ import (
 type HardStrategy struct {
 	BaseStrategy // embedded to avoid implementing all the methods
 
-	players        []game.PlayerID
-	cards          map[game.PlayerID]int
-	hand           KnownHand
-	firstTurn      bool
-	lastDiscarded  game.Card
-	lastDrawSource game.DrawSource
+	players       []game.PlayerID
+	cards         map[game.PlayerID]int
+	hand          KnownHand
+	firstTurn     bool
+	lastDiscarded game.Card
 }
 
 func NewHardStrategy() *HardStrategy {
@@ -139,7 +138,6 @@ func (s *HardStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnDat
 		if s.lastDiscarded != (game.Card{}) {
 			highestVal, found := s.hand.GetHighestValueCard()
 			if found && s.hand[highestVal].Value > s.lastDiscarded.Value || s.lastDiscarded.IsJoker() || s.lastDiscarded.IsTwelveOfDiamonds() {
-				s.lastDrawSource = game.DrawSourceDiscard
 				data, err := json.Marshal(tincho.ActionDrawData{Source: game.DrawSourceDiscard})
 				if err != nil {
 					return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
@@ -148,7 +146,6 @@ func (s *HardStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnDat
 			}
 
 		}
-		s.lastDrawSource = game.DrawSourcePile
 		data, err := json.Marshal(tincho.ActionDrawData{Source: game.DrawSourcePile})
 		if err != nil {
 			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
@@ -164,14 +161,14 @@ func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawDat
 	}
 	unkownCard, hasUnkownCard := s.hand.GetUnkownCard()
 	if hasUnkownCard {
-		if s.lastDrawSource == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectPeekOwnCard {
+		if data.Source == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectPeekOwnCard {
 			res, err := json.Marshal(tincho.ActionPeekOwnCardData{CardPosition: unkownCard})
 			if err != nil {
 				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
 			}
 			s.hand.Replace(unkownCard, data.Card)
 			return tincho.Action{Type: tincho.ActionPeekOwnCard, Data: json.RawMessage(res)}, nil
-		} else if s.lastDrawSource == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectSwapCards {
+		} else if data.Source == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectSwapCards {
 			p1, c1, p2, c2 := s.getSwap()
 			res, err := json.Marshal(tincho.ActionSwapCardsData{
 				CardPositions: []int{c1, c2},
@@ -207,8 +204,7 @@ func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawDat
 
 	// discard highest value card
 	discardIx, found := s.hand.GetHighestValueCard()
-	if !found {
-		// all J and 12D
+	if !found { // all J and 12D
 		discardIx = -1
 	} else if s.hand[discardIx].Value <= data.Card.Value && !data.Card.IsTwelveOfDiamonds() && !data.Card.IsJoker() {
 		discardIx = -1
