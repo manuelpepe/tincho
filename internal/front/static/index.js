@@ -416,12 +416,13 @@ window.onload = function () {
         const playerOneCard = /** @type {HTMLElement} */ (playerOneHand.childNodes[cardPositions[0]]);
         const playerTwoHand = PLAYERS[players[1]].hand;
         const playerTwoCard = /** @type {HTMLElement} */ (playerTwoHand.childNodes[cardPositions[1]]);
+
         const tmpContainerOne = createCardTemplate();
         const tmpContainerTwo = createCardTemplate();
 
-
         playerOneCard.replaceWith(tmpContainerOne);
         tmpContainerOne.appendChild(playerOneCard);
+
         playerTwoCard.replaceWith(tmpContainerTwo)
         tmpContainerTwo.appendChild(playerTwoCard);
 
@@ -430,8 +431,9 @@ window.onload = function () {
 
         tmpContainerOne.replaceWith(playerTwoCard);
         tmpContainerTwo.replaceWith(playerOneCard);
-        playerOneCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
-        playerTwoCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
+
+        playerOneCard.onclick = () => sendCurrentAction(players[1], cardPositions[1]);
+        playerTwoCard.onclick = () => sendCurrentAction(players[0], cardPositions[0]);
     }
 
     /** 
