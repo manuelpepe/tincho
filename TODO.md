@@ -3,7 +3,6 @@
 ### Features
 
 - [ ] Should probably replace GameStart event with StartNextRound 
-- [ ] Changelog in UI
 - [ ] Rejoin to before-start, first-peek and cut screens.
 - [ ] Improved error messages
 - [ ] Save games in disk for analysis
