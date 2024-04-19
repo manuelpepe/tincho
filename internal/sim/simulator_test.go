@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"go.uber.org/goleak"
+
 	"github.com/manuelpepe/tincho/internal/bots"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +40,7 @@ func run(iters int, showLogs bool, strats ...func() bots.Strategy) error {
 		return err
 	}
 
-	fmt.Printf(sum.AsText())
+	fmt.Print(sum.AsText())
 	return nil
 }
 
@@ -50,7 +52,7 @@ func TestEasyVsMedium(t *testing.T) {
 	if showLogs {
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 	}
 
 	winsForMedium := 0
@@ -66,29 +68,36 @@ func TestEasyVsMedium(t *testing.T) {
 }
 
 func TestEvE(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(2000, false, easy, easy))
 }
 
 func TestEvM(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(2000, false, easy, medium))
 }
 
 func TestEvH(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(2000, false, easy, hard))
 }
 
 func TestMvM(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(2000, false, medium, medium))
 }
 
 func TestMvH(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(2000, false, medium, hard))
 }
 
 func TestHvH(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(10, false, hard, hard))
 }
 
 func TestEvMvH(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	assert.NoError(t, run(2000, false, easy, medium, hard))
 }

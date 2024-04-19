@@ -111,42 +111,45 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 	outs := make(chan Result)
 	errs := make(chan error)
 
-	// TODO: Add some kind of batching to avoid creating 100000 routines at once
-	for i := 0; i < rounds; i++ {
+	// start worker goroutines
+	pending := make(chan struct{})
+	routines := min(rounds, 10000)
+	for i := 0; i < routines; i++ {
 		go func() {
-			select {
-			case <-ctx.Done():
-				return // early exit if done
-			default:
-			}
-
-			bots := make([]bots.Strategy, 0, len(strats))
-			for _, strat := range strats {
-				bots = append(bots, strat())
-			}
-
-			result, err := Play(ctx, logger, bots...)
-			if err != nil {
+			for {
 				select {
 				case <-ctx.Done():
 					return
-				default:
+				case <-pending:
+					bots := make([]bots.Strategy, 0, len(strats))
+					for _, strat := range strats {
+						bots = append(bots, strat())
+					}
+
+					result, err := Play(ctx, logger, bots...)
+					if err != nil {
+						select {
+						case <-ctx.Done():
+							return
+						default:
+						}
+						errs <- fmt.Errorf("error on round: %w", err)
+						return
+					}
+
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+
+					outs <- result
 				}
-				errs <- fmt.Errorf("error on round: %w", err)
-				return
 			}
-
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			outs <- result
-
 		}()
 	}
 
+	// start summarizing goroutine
 	var finalResChan = make(chan Summary)
 	var finalErrChan = make(chan error)
 	go func() {
@@ -192,7 +195,6 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 				summary.Strats[result.Winner] = winnerSummary
 			case err := <-errs:
 				finalErrChan <- err
-				cancelPendingGames()
 				return
 			}
 		}
@@ -211,10 +213,25 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 		finalResChan <- summary
 	}()
 
+	// start queueing goroutine
+	go func() {
+		for i := 0; i < rounds; i++ {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			pending <- struct{}{}
+		}
+	}()
+
+	// wait for either output
 	select {
 	case res := <-finalResChan:
+		cancelPendingGames()
 		return res, nil
 	case err := <-finalErrChan:
+		cancelPendingGames()
 		return Summary{}, err
 	}
 }

@@ -104,15 +104,13 @@ func main() {
 		run("MvH", iters, showLogs, medium, hard)
 	}
 
-	if all || hvh {
-		oldIters := iters
-		if all && iters > 10 {
-			fmt.Println("[I] Reducing iterations to 10 for HvH")
+	if hvh {
+		if all {
+			fmt.Println("[W] HvH simulation disable in -all mode.")
 			fmt.Println("    (HvH simulations can take a long time going back and forth in points)")
-			iters = 10
+		} else {
+			run("HvH", iters, showLogs, hard, hard)
 		}
-		run("HvH", oldIters, showLogs, hard, hard)
-		iters = oldIters
 	}
 
 	if all || evmvh {
