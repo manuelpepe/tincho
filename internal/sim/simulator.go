@@ -110,6 +110,8 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 
 	outs := make(chan Result)
 	errs := make(chan error)
+
+	// TODO: Add some kind of batching to avoid creating 100000 routines at once
 	for i := 0; i < rounds; i++ {
 		go func() {
 			select {
@@ -122,6 +124,7 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 			for _, strat := range strats {
 				bots = append(bots, strat())
 			}
+
 			result, err := Play(ctx, logger, bots...)
 			if err != nil {
 				select {
@@ -138,6 +141,7 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 				return
 			default:
 			}
+
 			outs <- result
 
 		}()

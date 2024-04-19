@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
+	"runtime/pprof"
 	"slices"
 	"time"
 
@@ -35,7 +34,7 @@ func run(name string, iters int, showLogs bool, strats ...func() bots.Strategy) 
 	if showLogs {
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	} else {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 	}
 
 	ctx := context.Background()
@@ -50,11 +49,12 @@ func run(name string, iters int, showLogs bool, strats ...func() bots.Strategy) 
 }
 
 func main() {
-	var showLogs, all, eve, evm, evh, mvm, mvh, hvh, evmvh, pp bool
+	var showLogs, all, eve, evm, evh, mvm, mvh, hvh, evmvh bool
+	var pp string
 	var iters int
 
 	flag.BoolVar(&showLogs, "logs", false, "Show logs")
-	flag.BoolVar(&pp, "pp", false, "Run pprof")
+	flag.StringVar(&pp, "pp", "", "Run pprof")
 	flag.IntVar(&iters, "iters", 10000, "Number of iterations")
 
 	flag.BoolVar(&all, "all", false, "Run all")
@@ -74,11 +74,14 @@ func main() {
 		return
 	}
 
-	if pp {
-		go func() {
-			fmt.Println("Starting pprof")
-			fmt.Println(http.ListenAndServe("localhost:6060", nil))
-		}()
+	if pp != "" {
+		f, err := os.Create(pp)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
 
 	if all || eve {

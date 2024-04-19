@@ -4,7 +4,10 @@ go 1.19
 
 require github.com/gorilla/websocket v1.5.0
 
-require github.com/gorilla/mux v1.8.0
+require (
+	github.com/goccy/go-json v0.10.2
+	github.com/gorilla/mux v1.8.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

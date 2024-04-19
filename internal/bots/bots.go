@@ -2,9 +2,10 @@ package bots
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
+
+	"github.com/goccy/go-json"
 
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
