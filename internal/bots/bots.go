@@ -90,14 +90,7 @@ func (b *Bot) Start() error {
 }
 
 func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.Typed) (tincho.Action, error) {
-	typed, ok := update.(tincho.Typed)
-	if !ok {
-		return tincho.Action{}, fmt.Errorf("update is not Typed")
-	}
-
-	b.logger.Debug(fmt.Sprintf("Bot %s received update: %s", player.ID, typed.GetType()), "update", update)
-
-	switch typed.GetType() {
+	switch update.GetType() {
 	case tincho.UpdateTypeGameStart:
 		up, ok := update.(tincho.Update[tincho.UpdateStartNextRoundData])
 		if !ok {
