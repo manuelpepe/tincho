@@ -3,7 +3,7 @@ package tincho
 import (
 	"log/slog"
 
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 type Connection struct {

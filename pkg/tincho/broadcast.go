@@ -3,7 +3,7 @@ package tincho
 import (
 	"fmt"
 
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 func (r *Room) BroadcastUpdate(update Typed) {

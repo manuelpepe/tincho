@@ -10,7 +10,7 @@ import (
 
 	"go.uber.org/goleak"
 
-	"github.com/manuelpepe/tincho/internal/bots"
+	"github.com/manuelpepe/tincho/pkg/bots"
 	"github.com/stretchr/testify/assert"
 )
 

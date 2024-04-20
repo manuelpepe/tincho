@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 type ActionType string

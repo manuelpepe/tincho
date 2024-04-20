@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 	"github.com/stretchr/testify/assert"
 )
 

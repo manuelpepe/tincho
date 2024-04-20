@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 var upgrader = websocket.Upgrader{

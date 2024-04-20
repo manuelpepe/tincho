@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 const ROOM_ID_LENGTH = 4

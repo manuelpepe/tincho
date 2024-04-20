@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/manuelpepe/tincho/internal/bots"
-	"github.com/manuelpepe/tincho/internal/front"
-	"github.com/manuelpepe/tincho/internal/tincho"
+	"github.com/manuelpepe/tincho/pkg/bots"
+	"github.com/manuelpepe/tincho/pkg/front"
+	"github.com/manuelpepe/tincho/pkg/tincho"
 )
 
 func main() {

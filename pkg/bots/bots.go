@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/manuelpepe/tincho/internal/tincho"
+	"github.com/manuelpepe/tincho/pkg/tincho"
 )
 
 type Strategy interface {

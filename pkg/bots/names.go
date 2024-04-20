@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 var adjectives = []string{"Big", "Small", "Fast", "Slow", "Bright", "Dark", "Cold", "Hot", "Loud", "Quiet"}

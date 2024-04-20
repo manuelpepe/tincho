@@ -8,9 +8,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/manuelpepe/tincho/internal/bots"
-	"github.com/manuelpepe/tincho/internal/game"
-	"github.com/manuelpepe/tincho/internal/tincho"
+	"github.com/manuelpepe/tincho/pkg/bots"
+	"github.com/manuelpepe/tincho/pkg/game"
+	"github.com/manuelpepe/tincho/pkg/tincho"
 )
 
 var ErrSimTimeout = errors.New("simulation timed out")

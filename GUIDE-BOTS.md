@@ -23,9 +23,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/manuelpepe/tincho/internal/bots"
-	"github.com/manuelpepe/tincho/internal/sim"
-	"github.com/manuelpepe/tincho/internal/tincho"
+	"github.com/manuelpepe/tincho/pkg/bots"
+	"github.com/manuelpepe/tincho/pkg/sim"
+	"github.com/manuelpepe/tincho/pkg/tincho"
 )
 
 // 1.Create strategy implementing bots.Strategy interface

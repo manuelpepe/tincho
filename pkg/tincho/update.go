@@ -1,7 +1,7 @@
 package tincho
 
 import (
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 type UpdateType string

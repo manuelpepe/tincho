@@ -11,8 +11,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/manuelpepe/tincho/internal/bots"
-	"github.com/manuelpepe/tincho/internal/sim"
+	"github.com/manuelpepe/tincho/pkg/bots"
+	"github.com/manuelpepe/tincho/pkg/sim"
 )
 
 func easy() bots.Strategy {

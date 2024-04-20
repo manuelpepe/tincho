@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/manuelpepe/tincho/internal/game"
-	"github.com/manuelpepe/tincho/internal/tincho"
+	"github.com/manuelpepe/tincho/pkg/game"
+	"github.com/manuelpepe/tincho/pkg/tincho"
 )
 
 type EasyStrategy struct {

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/manuelpepe/tincho/internal/game"
+	"github.com/manuelpepe/tincho/pkg/game"
 )
 
 type AddPlayerRequest struct {
