@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/goccy/go-json"
-
 	"github.com/manuelpepe/tincho/internal/tincho"
 )
 
@@ -91,87 +89,93 @@ func (b *Bot) Start() error {
 	}
 }
 
-func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.Update) (tincho.Action, error) {
-	b.logger.Debug(fmt.Sprintf("Bot %s received update: %s", player.ID, update.Type), "update", update)
-	switch update.Type {
+func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.Typed) (tincho.Action, error) {
+	typed, ok := update.(tincho.Typed)
+	if !ok {
+		return tincho.Action{}, fmt.Errorf("update is not Typed")
+	}
+
+	b.logger.Debug(fmt.Sprintf("Bot %s received update: %s", player.ID, typed.GetType()), "update", update)
+
+	switch typed.GetType() {
 	case tincho.UpdateTypeGameStart:
-		var data tincho.UpdateStartNextRoundData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateStartNextRoundData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.GameStart(player, data)
+		return b.strategy.GameStart(player, up.Data)
 	case tincho.UpdateTypePlayersChanged:
-		var data tincho.UpdatePlayersChangedData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdatePlayersChangedData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.PlayersChanged(player, data)
+		return b.strategy.PlayersChanged(player, up.Data)
 	case tincho.UpdateTypePlayerFirstPeeked:
-		var data tincho.UpdatePlayerFirstPeekedData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdatePlayerFirstPeekedData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.PlayerFirstPeeked(player, data)
+		return b.strategy.PlayerFirstPeeked(player, up.Data)
 	case tincho.UpdateTypeTurn:
-		var data tincho.UpdateTurnData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateTurnData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.Turn(player, data)
+		return b.strategy.Turn(player, up.Data)
 	case tincho.UpdateTypeDraw:
-		var data tincho.UpdateDrawData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateDrawData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.Draw(player, data)
+		return b.strategy.Draw(player, up.Data)
 	case tincho.UpdateTypePeekCard:
-		var data tincho.UpdatePeekCardData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdatePeekCardData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.PeekCard(player, data)
+		return b.strategy.PeekCard(player, up.Data)
 	case tincho.UpdateTypeSwapCards:
-		var data tincho.UpdateSwapCardsData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateSwapCardsData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.SwapCards(player, data)
+		return b.strategy.SwapCards(player, up.Data)
 	case tincho.UpdateTypeDiscard:
-		var data tincho.UpdateDiscardData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateDiscardData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.Discard(player, data)
+		return b.strategy.Discard(player, up.Data)
 	case tincho.UpdateTypeFailedDoubleDiscard:
-		var data tincho.UpdateTypeFailedDoubleDiscardData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateTypeFailedDoubleDiscardData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.FailedDoubleDiscard(player, data)
+		return b.strategy.FailedDoubleDiscard(player, up.Data)
 	case tincho.UpdateTypeCut:
-		var data tincho.UpdateCutData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateCutData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.Cut(player, data)
+		return b.strategy.Cut(player, up.Data)
 	case tincho.UpdateTypeError:
-		var data tincho.UpdateErrorData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateErrorData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.Error(player, data)
+		return b.strategy.Error(player, up.Data)
 	case tincho.UpdateTypeStartNextRound:
-		var data tincho.UpdateStartNextRoundData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateStartNextRoundData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.StartNextRound(player, data)
+		return b.strategy.StartNextRound(player, up.Data)
 	case tincho.UpdateTypeEndGame:
-		var data tincho.UpdateEndGameData
-		if err := json.Unmarshal(update.Data, &data); err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Unmarshal: %w", err)
+		up, ok := update.(tincho.Update[tincho.UpdateEndGameData])
+		if !ok {
+			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
-		return b.strategy.EndGame(player, data)
+		return b.strategy.EndGame(player, up.Data)
 	}
 	return tincho.Action{}, nil
 }

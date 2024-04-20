@@ -2,7 +2,6 @@ package tincho
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -131,17 +130,12 @@ func (r *Room) addPlayer(player *Connection) error {
 
 	r.connections[player.ID] = player
 	go r.watchPlayer(player)
-	data, err := json.Marshal(UpdatePlayersChangedData{
-		Players: r.state.GetPlayers(),
-	})
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-	update := Update{
+	r.BroadcastUpdate(Update[UpdatePlayersChangedData]{
 		Type: UpdateTypePlayersChanged,
-		Data: data,
-	}
-	r.BroadcastUpdate(update)
+		Data: UpdatePlayersChangedData{
+			Players: r.state.GetPlayers(),
+		},
+	})
 	return nil
 }
 
@@ -179,6 +173,8 @@ func (r *Room) Start() {
 			r.doAction(action)
 		case <-r.Context.Done():
 			r.logger.Info("Stopping room")
+			r.RWMutex.Lock()
+			defer r.RWMutex.Unlock()
 			r.close()
 			return
 		}

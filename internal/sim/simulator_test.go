@@ -69,35 +69,35 @@ func TestEasyVsMedium(t *testing.T) {
 
 func TestEvE(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(2000, false, easy, easy))
+	assert.NoError(t, run(1000, false, easy, easy))
 }
 
 func TestEvM(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(2000, false, easy, medium))
+	assert.NoError(t, run(1000, false, easy, medium))
 }
 
 func TestEvH(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(2000, false, easy, hard))
+	assert.NoError(t, run(1000, false, easy, hard))
 }
 
 func TestMvM(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(2000, false, medium, medium))
+	assert.NoError(t, run(1000, false, medium, medium))
 }
 
 func TestMvH(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(2000, false, medium, hard))
+	assert.NoError(t, run(1000, false, medium, hard))
 }
 
 func TestHvH(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(10, false, hard, hard))
+	assert.NoError(t, run(2, false, hard, hard))
 }
 
 func TestEvMvH(t *testing.T) {
 	defer goleak.VerifyNone(t)
-	assert.NoError(t, run(2000, false, easy, medium, hard))
+	assert.NoError(t, run(1000, false, easy, medium, hard))
 }

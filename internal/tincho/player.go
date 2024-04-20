@@ -10,7 +10,7 @@ type Connection struct {
 	*game.Player
 	SessionToken string
 	Actions      chan Action
-	Updates      chan Update
+	Updates      chan Typed
 }
 
 func NewConnection(id game.PlayerID) *Connection {
@@ -18,7 +18,7 @@ func NewConnection(id game.PlayerID) *Connection {
 		Player:       game.NewPlayer(id),
 		SessionToken: generateRandomString(20),
 		Actions:      make(chan Action),
-		Updates:      make(chan Update, 20),
+		Updates:      make(chan Typed, 20),
 	}
 }
 
@@ -27,7 +27,7 @@ func (p *Connection) QueueAction(action Action) {
 	p.Actions <- action
 }
 
-func (p *Connection) SendUpdateOrDrop(update Update) {
+func (p *Connection) SendUpdateOrDrop(update Typed) {
 	// TODO: instead of default dropping maybe this could block until player reconnects
 	// 	and timeout on room close (important so goroutine it doesn't get stuck forever).
 	//  also could kick player of room after a certain timeout.

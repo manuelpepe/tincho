@@ -1,8 +1,6 @@
 package tincho
 
 import (
-	"encoding/json"
-
 	"github.com/manuelpepe/tincho/internal/game"
 )
 
@@ -26,9 +24,34 @@ const (
 	UpdateTypeRejoin              UpdateType = "rejoin_state"
 )
 
-type Update struct {
-	Type UpdateType      `json:"type"`
-	Data json.RawMessage `json:"data"`
+type UpdateData interface {
+	UpdatePlayersChangedData |
+		UpdateGameConfig |
+		UpdateStartNextRoundData |
+		UpdatePlayerFirstPeekedData |
+		UpdateTurnData |
+		UpdateDrawData |
+		UpdatePeekCardData |
+		UpdateSwapCardsData |
+		UpdateDiscardData |
+		UpdateTypeFailedDoubleDiscardData |
+		UpdateCutData |
+		UpdateErrorData |
+		UpdateEndGameData |
+		UpdateTypeRejoinData
+}
+
+type Update[T UpdateData] struct {
+	Type UpdateType `json:"type"`
+	Data T          `json:"data"`
+}
+
+type Typed interface {
+	GetType() UpdateType
+}
+
+func (u Update[T]) GetType() UpdateType {
+	return u.Type
 }
 
 type UpdatePlayersChangedData struct {
