@@ -34,6 +34,14 @@ type MyBotStrategy struct {
 }
 
 // 2. Implement methods you need from bots.Strategy
+func (s *MyBotStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+}
+
+func (s *MyBotStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+}
+
 func (s *MyBotStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
 	if data.Player != player.ID {
 		return tincho.Action{}, nil
