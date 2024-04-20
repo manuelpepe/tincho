@@ -131,19 +131,17 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 						select {
 						case <-ctx.Done():
 							return
-						default:
+						case errs <- fmt.Errorf("error on round: %w", err):
+							return
 						}
-						errs <- fmt.Errorf("error on round: %w", err)
-						return
 					}
 
 					select {
 					case <-ctx.Done():
 						return
-					default:
+					case outs <- result:
 					}
 
-					outs <- result
 				}
 			}
 		}()
@@ -153,9 +151,6 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 	var finalResChan = make(chan Summary)
 	var finalErrChan = make(chan error)
 	go func() {
-		defer close(outs)
-		defer close(errs)
-
 		summary := Summary{
 			Strats: make([]StratSummary, 0, len(strats)),
 			Rounds: MinMaxMeanSum{Min: 9999},
@@ -219,9 +214,9 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 			select {
 			case <-ctx.Done():
 				return
-			default:
+			case pending <- struct{}{}:
 			}
-			pending <- struct{}{}
+
 		}
 	}()
 
