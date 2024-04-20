@@ -78,7 +78,11 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 		name := game.PlayerID(fmt.Sprintf("strat-%d", ix))
 		bot := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection(name), strat)
 		room.AddPlayer(bot.Player())
-		go bot.Start()
+		go func() {
+			if err := bot.Start(); err != nil {
+				logger.Error("Bot failed with error", "error", err)
+			}
+		}()
 		players[name] = b{Ix: ix, Bot: &bot}
 	}
 
