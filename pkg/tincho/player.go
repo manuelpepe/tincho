@@ -6,6 +6,23 @@ import (
 	"github.com/manuelpepe/tincho/pkg/game"
 )
 
+// MarshalledPlayer is a struct used to marshal a Player into JSON.
+type MarshalledPlayer struct {
+	ID               game.PlayerID `json:"id"`
+	Points           int           `json:"points"`
+	PendingFirstPeek bool          `json:"pending_first_peek"`
+	CardsInHand      int           `json:"cards_in_hand"`
+}
+
+func NewMarshalledPlayer(p *game.Player) MarshalledPlayer {
+	return MarshalledPlayer{
+		ID:               p.ID,
+		Points:           p.Points,
+		PendingFirstPeek: p.PendingFirstPeek,
+		CardsInHand:      len(p.Hand),
+	}
+}
+
 type Connection struct {
 	*game.Player
 	SessionToken string

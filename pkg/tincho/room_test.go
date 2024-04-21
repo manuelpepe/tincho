@@ -119,7 +119,7 @@ func TestDoubleDiscard(t *testing.T) {
 		u1 := assertRecieved[UpdateStartNextRoundData](t, ws1, UpdateTypeGameStart)
 		u2 := assertRecieved[UpdateStartNextRoundData](t, ws2, UpdateTypeGameStart)
 		expected := UpdateStartNextRoundData{
-			Players: []game.MarshalledPlayer{
+			Players: []MarshalledPlayer{
 				{ID: "p1", PendingFirstPeek: true, CardsInHand: 4},
 				{ID: "p2", PendingFirstPeek: true, CardsInHand: 4},
 			},
@@ -244,7 +244,7 @@ func TestBasicGame(t *testing.T) {
 		u1 := assertRecieved[UpdateStartNextRoundData](t, ws1, UpdateTypeGameStart)
 		u2 := assertRecieved[UpdateStartNextRoundData](t, ws2, UpdateTypeGameStart)
 		expected := UpdateStartNextRoundData{
-			Players: []game.MarshalledPlayer{
+			Players: []MarshalledPlayer{
 				{ID: "p1", PendingFirstPeek: true, CardsInHand: 4},
 				{ID: "p2", PendingFirstPeek: true, CardsInHand: 4},
 			},

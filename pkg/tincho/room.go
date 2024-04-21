@@ -91,11 +91,11 @@ func (r *Room) close() {
 	}
 }
 
-func (r *Room) getMarshalledPlayers() []game.MarshalledPlayer {
+func (r *Room) getMarshalledPlayers() []MarshalledPlayer {
 	ps := r.state.GetPlayers()
-	marshalled := make([]game.MarshalledPlayer, 0, len(ps))
+	marshalled := make([]MarshalledPlayer, 0, len(ps))
 	for _, p := range ps {
-		marshalled = append(marshalled, p.Marshalled())
+		marshalled = append(marshalled, NewMarshalledPlayer(p))
 	}
 	return marshalled
 }

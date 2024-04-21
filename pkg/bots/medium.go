@@ -21,7 +21,7 @@ func NewMediumStrategy() *MediumStrategy {
 	return &MediumStrategy{}
 }
 
-func (s *MediumStrategy) ResetHand(self *tincho.Connection, players []game.MarshalledPlayer) {
+func (s *MediumStrategy) ResetHand(self *tincho.Connection, players []tincho.MarshalledPlayer) {
 	for _, p := range players {
 		if p.ID == self.ID {
 			s.hand = make(KnownHand, p.CardsInHand)

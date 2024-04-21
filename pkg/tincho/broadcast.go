@@ -187,9 +187,9 @@ func (r *Room) broadcastCut(playerID game.PlayerID, withCount bool, declared int
 	for ix := range players {
 		hands[ix] = players[ix].Hand
 	}
-	marshalled := make([]game.MarshalledPlayer, 0, len(players))
+	marshalled := make([]MarshalledPlayer, 0, len(players))
 	for _, p := range players {
-		marshalled = append(marshalled, p.Marshalled())
+		marshalled = append(marshalled, NewMarshalledPlayer(p))
 	}
 	r.BroadcastUpdate(Update[UpdateCutData]{
 		Type: UpdateTypeCut,
