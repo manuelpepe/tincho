@@ -46,6 +46,41 @@ type Summary struct {
 	Turns      MinMaxMeanSum
 }
 
+func (s *Summary) record(result Result) error {
+	if s == nil {
+		return errors.New("nil summary")
+	}
+	s.TotalGames++
+
+	s.Rounds.Sum += result.TotalRounds
+	s.Rounds.Min = min(result.TotalRounds, s.Rounds.Min)
+	s.Rounds.Max = max(result.TotalRounds, s.Rounds.Max)
+
+	s.Turns.Sum += result.TotalTurns
+	s.Turns.Min = min(result.TotalTurns, s.Turns.Min)
+	s.Turns.Max = max(result.TotalTurns, s.Turns.Max)
+
+	winnerSummary := s.Strats[result.Winner]
+	winnerSummary.Wins++
+
+	winnerSummary.Rounds.Sum += result.TotalRounds
+	winnerSummary.Rounds.Min = min(result.TotalRounds, winnerSummary.Rounds.Min)
+	winnerSummary.Rounds.Max = max(result.TotalRounds, winnerSummary.Rounds.Max)
+	winnerSummary.Rounds.Mean = winnerSummary.Rounds.Sum / winnerSummary.Wins
+
+	winnerSummary.Turns.Sum += result.TotalTurns
+	winnerSummary.Turns.Min = min(result.TotalTurns, winnerSummary.Turns.Min)
+	winnerSummary.Turns.Max = max(result.TotalTurns, winnerSummary.Turns.Max)
+	winnerSummary.Turns.Mean = winnerSummary.Turns.Sum / winnerSummary.Wins
+
+	s.Strats[result.Winner] = winnerSummary
+
+	s.Rounds.Mean = s.Rounds.Sum / s.TotalGames
+	s.Turns.Mean = s.Turns.Sum / s.TotalGames
+
+	return nil
+}
+
 func (s Summary) AsText() string {
 	res := ""
 	for i, strat := range s.Strats {
@@ -159,6 +194,7 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 			Rounds: MinMaxMeanSum{Min: 9999},
 			Turns:  MinMaxMeanSum{Min: 9999},
 		}
+
 		for i := 0; i < len(strats); i++ {
 			summary.Strats = append(summary.Strats, StratSummary{
 				Rounds: MinMaxMeanSum{Min: 9999},
@@ -169,44 +205,12 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 		for i := 0; i < rounds; i++ {
 			select {
 			case result := <-outs:
-				summary.TotalGames++
-
-				summary.Rounds.Sum += result.TotalRounds
-				summary.Rounds.Min = min(result.TotalRounds, summary.Rounds.Min)
-				summary.Rounds.Max = max(result.TotalRounds, summary.Rounds.Max)
-
-				summary.Turns.Sum += result.TotalTurns
-				summary.Turns.Min = min(result.TotalTurns, summary.Turns.Min)
-				summary.Turns.Max = max(result.TotalTurns, summary.Turns.Max)
-
-				winnerSummary := summary.Strats[result.Winner]
-				winnerSummary.Wins++
-
-				winnerSummary.Rounds.Sum += result.TotalRounds
-				winnerSummary.Rounds.Min = min(result.TotalRounds, winnerSummary.Rounds.Min)
-				winnerSummary.Rounds.Max = max(result.TotalRounds, winnerSummary.Rounds.Max)
-
-				winnerSummary.Turns.Sum += result.TotalTurns
-				winnerSummary.Turns.Min = min(result.TotalTurns, winnerSummary.Turns.Min)
-				winnerSummary.Turns.Max = max(result.TotalTurns, winnerSummary.Turns.Max)
-
-				summary.Strats[result.Winner] = winnerSummary
+				summary.record(result)
 			case err := <-errs:
 				finalErrChan <- err
 				return
 			}
 		}
-
-		for ix, strat := range summary.Strats {
-			if strat.Wins > 0 {
-				strat.Rounds.Mean = strat.Rounds.Sum / strat.Wins
-				strat.Turns.Mean = strat.Turns.Sum / strat.Wins
-			}
-			summary.Strats[ix] = strat
-		}
-
-		summary.Rounds.Mean = summary.Rounds.Sum / summary.TotalGames
-		summary.Turns.Mean = summary.Turns.Sum / summary.TotalGames
 
 		finalResChan <- summary
 	}()
@@ -219,7 +223,6 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 				return
 			case pending <- struct{}{}:
 			}
-
 		}
 	}()
 
