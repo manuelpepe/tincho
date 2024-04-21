@@ -55,7 +55,7 @@ func (u Update[T]) GetType() UpdateType {
 }
 
 type UpdatePlayersChangedData struct {
-	Players []*game.Player `json:"players"`
+	Players []game.MarshalledPlayer `json:"players"`
 }
 
 type UpdateGameConfig struct {
@@ -67,8 +67,8 @@ type UpdateGameConfig struct {
 }
 
 type UpdateStartNextRoundData struct {
-	Players    []*game.Player `json:"players"`
-	TopDiscard game.Card      `json:"topDiscard"`
+	Players    []game.MarshalledPlayer `json:"players"`
+	TopDiscard game.Card               `json:"topDiscard"`
 }
 
 type UpdatePlayerFirstPeekedData struct {
@@ -114,11 +114,11 @@ type UpdateTypeFailedDoubleDiscardData struct {
 }
 
 type UpdateCutData struct {
-	WithCount bool           `json:"withCount"`
-	Declared  int            `json:"declared"`
-	Player    game.PlayerID  `json:"player"`
-	Players   []*game.Player `json:"players"`
-	Hands     [][]game.Card  `json:"hands"`
+	WithCount bool                    `json:"withCount"`
+	Declared  int                     `json:"declared"`
+	Player    game.PlayerID           `json:"player"`
+	Players   []game.MarshalledPlayer `json:"players"`
+	Hands     [][]game.Card           `json:"hands"`
 }
 
 type UpdateErrorData struct {
@@ -130,11 +130,11 @@ type UpdateEndGameData struct {
 }
 
 type UpdateTypeRejoinData struct {
-	Players         []*game.Player `json:"players"`
-	CurrentTurn     game.PlayerID  `json:"currentTurn"`
-	CardInHand      bool           `json:"cardInHand"`
-	CardInHandVal   *game.Card     `json:"cardInHandValue"`
-	LastDiscarded   *game.Card     `json:"lastDiscarded"`
-	CardsInDeck     int            `json:"cardsInDeck"`
-	CardsInDrawPile int            `json:"cardsInDrawPile"`
+	Players         []game.MarshalledPlayer `json:"players"`
+	CurrentTurn     game.PlayerID           `json:"currentTurn"`
+	CardInHand      bool                    `json:"cardInHand"`
+	CardInHandVal   *game.Card              `json:"cardInHandValue"`
+	LastDiscarded   *game.Card              `json:"lastDiscarded"`
+	CardsInDeck     int                     `json:"cardsInDeck"`
+	CardsInDrawPile int                     `json:"cardsInDrawPile"`
 }

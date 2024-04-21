@@ -119,9 +119,9 @@ func TestDoubleDiscard(t *testing.T) {
 		u1 := assertRecieved[UpdateStartNextRoundData](t, ws1, UpdateTypeGameStart)
 		u2 := assertRecieved[UpdateStartNextRoundData](t, ws2, UpdateTypeGameStart)
 		expected := UpdateStartNextRoundData{
-			Players: []*game.Player{
-				{ID: "p1", PendingFirstPeek: true, Hand: make(game.Hand, 4)},
-				{ID: "p2", PendingFirstPeek: true, Hand: make(game.Hand, 4)},
+			Players: []game.MarshalledPlayer{
+				{ID: "p1", PendingFirstPeek: true, CardsInHand: 4},
+				{ID: "p2", PendingFirstPeek: true, CardsInHand: 4},
 			},
 			TopDiscard: deck[8],
 		}
@@ -244,9 +244,9 @@ func TestBasicGame(t *testing.T) {
 		u1 := assertRecieved[UpdateStartNextRoundData](t, ws1, UpdateTypeGameStart)
 		u2 := assertRecieved[UpdateStartNextRoundData](t, ws2, UpdateTypeGameStart)
 		expected := UpdateStartNextRoundData{
-			Players: []*game.Player{
-				{ID: "p1", PendingFirstPeek: true, Hand: make(game.Hand, 4)},
-				{ID: "p2", PendingFirstPeek: true, Hand: make(game.Hand, 4)},
+			Players: []game.MarshalledPlayer{
+				{ID: "p1", PendingFirstPeek: true, CardsInHand: 4},
+				{ID: "p2", PendingFirstPeek: true, CardsInHand: 4},
 			},
 			TopDiscard: deck[8],
 		}

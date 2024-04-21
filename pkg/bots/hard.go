@@ -27,10 +27,10 @@ func NewHardStrategy() *HardStrategy {
 	}
 }
 
-func (s *HardStrategy) resetHand(self *tincho.Connection, players []*game.Player) {
+func (s *HardStrategy) resetHand(self *tincho.Connection, players []game.MarshalledPlayer) {
 	for _, p := range players {
 		if p.ID == self.ID {
-			s.hand = make(KnownHand, len(p.Hand))
+			s.hand = make(KnownHand, p.CardsInHand)
 			return
 		}
 	}
@@ -70,7 +70,7 @@ func (s *HardStrategy) repeatedCards() (int, int, bool) {
 	return 0, 0, false
 }
 
-func (s *HardStrategy) setPlayers(self *tincho.Connection, players []*game.Player) {
+func (s *HardStrategy) setPlayers(self *tincho.Connection, players []game.MarshalledPlayer) {
 	s.players = make([]game.PlayerID, 0)
 	for _, p := range players {
 		if p.ID == self.ID {

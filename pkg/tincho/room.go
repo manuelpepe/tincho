@@ -91,6 +91,15 @@ func (r *Room) close() {
 	}
 }
 
+func (r *Room) getMarshalledPlayers() []game.MarshalledPlayer {
+	ps := r.state.GetPlayers()
+	marshalled := make([]game.MarshalledPlayer, 0, len(ps))
+	for _, p := range ps {
+		marshalled = append(marshalled, p.Marshalled())
+	}
+	return marshalled
+}
+
 func (r *Room) GetPlayer(id game.PlayerID) (*Connection, bool) {
 	r.RWMutex.RLock()
 	defer r.RWMutex.RUnlock()
@@ -133,7 +142,7 @@ func (r *Room) addPlayer(player *Connection) error {
 	r.BroadcastUpdate(Update[UpdatePlayersChangedData]{
 		Type: UpdateTypePlayersChanged,
 		Data: UpdatePlayersChangedData{
-			Players: r.state.GetPlayers(),
+			Players: r.getMarshalledPlayers(),
 		},
 	})
 	return nil

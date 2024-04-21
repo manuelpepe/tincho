@@ -22,17 +22,26 @@ func NewPlayer(id PlayerID) *Player {
 	}
 }
 
-// marshalledPlayer is a struct used to marshal a Player into JSON.
-type marshalledPlayer struct {
+// MarshalledPlayer is a struct used to marshal a Player into JSON.
+type MarshalledPlayer struct {
 	ID               PlayerID `json:"id"`
 	Points           int      `json:"points"`
 	PendingFirstPeek bool     `json:"pending_first_peek"`
 	CardsInHand      int      `json:"cards_in_hand"`
 }
 
+func (p *Player) Marshalled() MarshalledPlayer {
+	return MarshalledPlayer{
+		ID:               p.ID,
+		Points:           p.Points,
+		PendingFirstPeek: p.PendingFirstPeek,
+		CardsInHand:      len(p.Hand),
+	}
+}
+
 // MarshalJSON implements json.Marshaller
 func (p *Player) MarshalJSON() ([]byte, error) {
-	return json.Marshal(marshalledPlayer{
+	return json.Marshal(MarshalledPlayer{
 		ID:               p.ID,
 		Points:           p.Points,
 		PendingFirstPeek: p.PendingFirstPeek,
@@ -46,7 +55,7 @@ func (p *Player) MarshalJSON() ([]byte, error) {
 // The core app wouldn't normally unmarshall a player struct, so this is mostly
 // implemented for bots and testing.
 func (p *Player) UnmarshalJSON(data []byte) error {
-	var mp marshalledPlayer
+	var mp MarshalledPlayer
 	if err := json.Unmarshal(data, &mp); err != nil {
 		return err
 	}

@@ -78,7 +78,7 @@ func (r *Room) sendRejoinState(player *Connection, cardsInDeck int, cardsInDrawP
 	r.TargetedUpdate(player.ID, Update[UpdateTypeRejoinData]{
 		Type: UpdateTypeRejoin,
 		Data: UpdateTypeRejoinData{
-			Players:         r.state.GetPlayers(),
+			Players:         r.getMarshalledPlayers(),
 			CurrentTurn:     curTurn,
 			CardInHand:      r.state.GetPendingStorage() != game.Card{},
 			CardInHandVal:   cardInHandVal,
@@ -104,7 +104,7 @@ func (r *Room) broadcastStartGame(topDiscard game.Card) error {
 	r.BroadcastUpdate(Update[UpdateStartNextRoundData]{
 		Type: UpdateTypeGameStart,
 		Data: UpdateStartNextRoundData{
-			Players:    r.state.GetPlayers(),
+			Players:    r.getMarshalledPlayers(),
 			TopDiscard: topDiscard,
 		},
 	})
@@ -187,13 +187,17 @@ func (r *Room) broadcastCut(playerID game.PlayerID, withCount bool, declared int
 	for ix := range players {
 		hands[ix] = players[ix].Hand
 	}
+	marshalled := make([]game.MarshalledPlayer, 0, len(players))
+	for _, p := range players {
+		marshalled = append(marshalled, p.Marshalled())
+	}
 	r.BroadcastUpdate(Update[UpdateCutData]{
 		Type: UpdateTypeCut,
 		Data: UpdateCutData{
 			Player:    playerID,
 			WithCount: withCount,
 			Declared:  declared,
-			Players:   players,
+			Players:   marshalled,
 			Hands:     hands,
 		},
 	})
@@ -204,7 +208,7 @@ func (r *Room) broadcastNextRound(topDiscard game.Card) error {
 	r.BroadcastUpdate(Update[UpdateStartNextRoundData]{
 		Type: UpdateTypeStartNextRound,
 		Data: UpdateStartNextRoundData{
-			Players:    r.state.GetPlayers(),
+			Players:    r.getMarshalledPlayers(),
 			TopDiscard: topDiscard,
 		},
 	})
