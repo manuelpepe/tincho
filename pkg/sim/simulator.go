@@ -136,7 +136,6 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...fun
 						case <-ctx.Done():
 							return
 						case errs <- fmt.Errorf("error on round: %w", err):
-							return
 						}
 					}
 
