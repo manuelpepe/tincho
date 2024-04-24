@@ -31,9 +31,7 @@ func (s *MediumStrategy) ResetHand(self *tincho.Connection, players []tincho.Mar
 }
 
 func (s *MediumStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
-	s.firstTurn = true
-	s.ResetHand(player, data.Players)
-	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+	return s.StartNextRound(player, data)
 }
 
 func (s *MediumStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {

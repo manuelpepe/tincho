@@ -95,11 +95,6 @@ func (s *HardStrategy) getSwap() (game.PlayerID, int, game.PlayerID, int) {
 }
 
 func (s *HardStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
-	s.firstTurn = true
-	s.lastDiscarded = data.TopDiscard
-	s.resetHand(player, data.Players)
-	s.setPlayers(player, data.Players)
-	s.resetPlayersHands()
 	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
 }
 

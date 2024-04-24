@@ -20,8 +20,7 @@ func NewEasyStrategy() *EasyStrategy {
 }
 
 func (s *EasyStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
-	s.firstTurn = true
-	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+	return s.StartNextRound(player, data)
 }
 
 func (s *EasyStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
