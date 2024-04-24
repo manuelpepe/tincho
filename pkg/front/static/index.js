@@ -761,7 +761,8 @@ window.onload = function () {
         if (!roomid || !username) {
             return false;
         }
-        conn = new WebSocket("ws://" + location.host + "/join?room=" + roomid + "&player=" + username + "&password=" + password);
+        let wsProtocol = location.protocol === "http:" ? "ws" : "wss";
+        conn = new WebSocket(wsProtocol + "://" + location.host + "/join?room=" + roomid + "&player=" + username + "&password=" + password);
         conn.onerror = () => setError("Error connecting to room");
         conn.onclose = () => {
             console.log("connection closed");
@@ -806,7 +807,7 @@ window.onload = function () {
 
     buttonNewRoom.onclick = async () => {
         const password = createMenuPassword.value;
-        await fetch("http://" + location.host + "/new", {
+        await fetch(location.protocol + "//" + location.host + "/new", {
             method: "POST",
             body: JSON.stringify({
                 "max_players": parseInt(createMenuMaxPlayers.value),
@@ -828,7 +829,7 @@ window.onload = function () {
             return false;
         }
         const botdiff = selectBotDiff.options[selectBotDiff.selectedIndex].value;
-        fetch("http://" + location.host + "/add-bot?difficulty=" + botdiff + "&room=" + THIS_ROOM)
+        fetch(location.protocol + "//" + location.host + "/add-bot?difficulty=" + botdiff + "&room=" + THIS_ROOM)
             .then(response => response.text())
             .then(data => console.log(data));
         return false;
