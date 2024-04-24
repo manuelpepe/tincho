@@ -111,6 +111,17 @@ func (r *Room) broadcastStartGame(topDiscard game.Card) error {
 	return nil
 }
 
+func (r *Room) broadcastNextRound(topDiscard game.Card) error {
+	r.BroadcastUpdate(Update[UpdateStartNextRoundData]{
+		Type: UpdateTypeStartNextRound,
+		Data: UpdateStartNextRoundData{
+			Players:    r.getMarshalledPlayers(),
+			TopDiscard: topDiscard,
+		},
+	})
+	return nil
+}
+
 func (r *Room) broadcastPlayerFirstPeeked(playerID game.PlayerID, cards []game.Card) error {
 	// broadcast UpdateTypePlayerPeeked without cards
 	r.BroadcastUpdateExcept(Update[UpdatePlayerFirstPeekedData]{
@@ -199,17 +210,6 @@ func (r *Room) broadcastCut(playerID game.PlayerID, withCount bool, declared int
 			Declared:  declared,
 			Players:   marshalled,
 			Hands:     hands,
-		},
-	})
-	return nil
-}
-
-func (r *Room) broadcastNextRound(topDiscard game.Card) error {
-	r.BroadcastUpdate(Update[UpdateStartNextRoundData]{
-		Type: UpdateTypeStartNextRound,
-		Data: UpdateStartNextRoundData{
-			Players:    r.getMarshalledPlayers(),
-			TopDiscard: topDiscard,
 		},
 	})
 	return nil
