@@ -11,8 +11,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/manuelpepe/tincho/pkg/bots"
 	"github.com/manuelpepe/tincho/pkg/front"
+	"github.com/manuelpepe/tincho/pkg/metrics"
 	"github.com/manuelpepe/tincho/pkg/middleware"
 	"github.com/manuelpepe/tincho/pkg/tincho"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -35,7 +37,9 @@ func main() {
 
 	r := mux.NewRouter()
 	r.Use(middleware.LogRequestMiddleweare(logger))
+	r.Use(metrics.MetricsMiddleware)
 
+	r.Handle("/metrics", promhttp.Handler())
 	r.HandleFunc("/new", handlers.NewRoom)
 	r.HandleFunc("/list", handlers.ListRooms)
 	r.HandleFunc("/join", handlers.JoinRoom)
