@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/manuelpepe/tincho/pkg/game"
+	"github.com/manuelpepe/tincho/pkg/metrics"
 )
 
 var upgrader = websocket.Upgrader{
@@ -64,11 +65,11 @@ func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warn(fmt.Sprintf("Error creating room: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("error: %s", err)))
-	} else {
-		h.logger.Info(fmt.Sprintf("New room created: %s", roomID))
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(roomID))
 	}
+	h.logger.Info(fmt.Sprintf("New room created: %s", roomID))
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(roomID))
+	metrics.IncGamesTotal()
 }
 
 type RoomInfo struct {
@@ -153,6 +154,7 @@ func (h *Handlers) connect(w http.ResponseWriter, r *http.Request, playerID game
 		return
 	}
 	h.logger.Info(fmt.Sprintf("Player %s joined room %s", playerID, room.ID))
+	metrics.IncConnectionsTotal(false)
 }
 
 func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, conn *Connection, room *Room) {
@@ -173,6 +175,7 @@ func (h *Handlers) reconnect(w http.ResponseWriter, r *http.Request, conn *Conne
 		return
 	}
 	h.logger.Info(fmt.Sprintf("Player %s reconnected to room %s", conn.Player.ID, room.ID))
+	metrics.IncConnectionsTotal(true)
 }
 
 const TOKEN_COOKIE_NAME = "session_token"
@@ -290,6 +293,7 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 				_, message, err := ws.ReadMessage()
 				if err != nil {
 					logger.Error(fmt.Sprintf("Error reading message from player %s: %s", player.ID, err), "err", err)
+					logger.Info(fmt.Sprintf("Stopping socket read loop for player %s", player.ID))
 					stopWS()
 					return
 				}
@@ -300,7 +304,7 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 				}
 				conn.QueueAction(action)
 			case <-ctx.Done():
-				logger.Info(fmt.Sprintf("Stopping socket read for player %s", player.ID))
+				logger.Info(fmt.Sprintf("Stopping socket read loop for player %s", player.ID))
 				return
 			}
 		}
