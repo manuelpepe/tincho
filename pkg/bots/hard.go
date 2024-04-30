@@ -25,7 +25,7 @@ func NewHardStrategy() *HardStrategy {
 	}
 }
 
-func (s *HardStrategy) resetHand(self *tincho.Connection, players []tincho.MarshalledPlayer) {
+func (s *HardStrategy) resetHand(self tincho.MarshalledPlayer, players []tincho.MarshalledPlayer) {
 	for _, p := range players {
 		if p.ID == self.ID {
 			s.hand = make(KnownHand, p.CardsInHand)
@@ -68,7 +68,7 @@ func (s *HardStrategy) repeatedCards() (int, int, bool) {
 	return 0, 0, false
 }
 
-func (s *HardStrategy) setPlayers(self *tincho.Connection, players []tincho.MarshalledPlayer) {
+func (s *HardStrategy) setPlayers(self tincho.MarshalledPlayer, players []tincho.MarshalledPlayer) {
 	s.players = make([]game.PlayerID, 0)
 	for _, p := range players {
 		if p.ID == self.ID {
@@ -92,11 +92,11 @@ func (s *HardStrategy) getSwap() (game.PlayerID, int, game.PlayerID, int) {
 	return p1, ix1, p2, ix2
 }
 
-func (s *HardStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+func (s *HardStrategy) GameStart(player tincho.MarshalledPlayer, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	return &tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *HardStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+func (s *HardStrategy) StartNextRound(player tincho.MarshalledPlayer, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	s.firstTurn = true
 	s.lastDiscarded = data.TopDiscard
 	s.resetHand(player, data.Players)
@@ -105,7 +105,7 @@ func (s *HardStrategy) StartNextRound(player *tincho.Connection, data tincho.Upd
 	return &tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *HardStrategy) PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.TypedAction, error) {
+func (s *HardStrategy) PlayerFirstPeeked(player tincho.MarshalledPlayer, data tincho.UpdatePlayerFirstPeekedData) (tincho.TypedAction, error) {
 	if data.Player == player.ID {
 		s.hand.Replace(0, data.Cards[0])
 		s.hand.Replace(1, data.Cards[1])
@@ -113,7 +113,7 @@ func (s *HardStrategy) PlayerFirstPeeked(player *tincho.Connection, data tincho.
 	return nil, nil
 }
 
-func (s *HardStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
+func (s *HardStrategy) Turn(player tincho.MarshalledPlayer, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -143,7 +143,7 @@ func (s *HardStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnDat
 	}
 }
 
-func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
+func (s *HardStrategy) Draw(player tincho.MarshalledPlayer, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -200,7 +200,7 @@ func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawDat
 	}, nil
 }
 
-func (s *HardStrategy) PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.TypedAction, error) {
+func (s *HardStrategy) PeekCard(player tincho.MarshalledPlayer, data tincho.UpdatePeekCardData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -208,7 +208,7 @@ func (s *HardStrategy) PeekCard(player *tincho.Connection, data tincho.UpdatePee
 	return nil, nil
 }
 
-func (s *HardStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.TypedAction, error) {
+func (s *HardStrategy) SwapCards(player tincho.MarshalledPlayer, data tincho.UpdateSwapCardsData) (tincho.TypedAction, error) {
 	myIX := slices.Index(data.Players, player.ID)
 	if myIX == -1 {
 		return nil, nil
@@ -229,7 +229,7 @@ func (s *HardStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSw
 	return nil, nil
 }
 
-func (s *HardStrategy) Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.TypedAction, error) {
+func (s *HardStrategy) Discard(player tincho.MarshalledPlayer, data tincho.UpdateDiscardData) (tincho.TypedAction, error) {
 	s.lastDiscarded = data.Cards[len(data.Cards)-1]
 	if data.Player != player.ID {
 		if len(data.CardsPositions) > 1 {
@@ -240,7 +240,7 @@ func (s *HardStrategy) Discard(player *tincho.Connection, data tincho.UpdateDisc
 	return nil, nil
 }
 
-func (s *HardStrategy) FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.TypedAction, error) {
+func (s *HardStrategy) FailedDoubleDiscard(player tincho.MarshalledPlayer, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.TypedAction, error) {
 	s.lastDiscarded = data.TopOfDiscard
 	if data.Player != player.ID {
 		s.cards[player.ID] += 1

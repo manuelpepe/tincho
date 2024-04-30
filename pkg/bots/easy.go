@@ -18,16 +18,16 @@ func NewEasyStrategy() *EasyStrategy {
 	return &EasyStrategy{}
 }
 
-func (s *EasyStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+func (s *EasyStrategy) GameStart(player tincho.MarshalledPlayer, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	return s.StartNextRound(player, data)
 }
 
-func (s *EasyStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+func (s *EasyStrategy) StartNextRound(player tincho.MarshalledPlayer, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	s.firstTurn = true
 	return &tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *EasyStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
+func (s *EasyStrategy) Turn(player tincho.MarshalledPlayer, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -53,19 +53,19 @@ func (s *EasyStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnDat
 	}
 }
 
-func (s *EasyStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
+func (s *EasyStrategy) Draw(player tincho.MarshalledPlayer, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
 	return &tincho.Action[tincho.ActionDiscardData]{
 		Type: tincho.ActionDiscard,
 		Data: tincho.ActionDiscardData{
-			CardPosition: rand.Intn(len(player.Hand)),
+			CardPosition: rand.Intn(player.CardsInHand),
 		},
 	}, nil
 }
 
-func (s *EasyStrategy) Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.TypedAction, error) {
+func (s *EasyStrategy) Error(player tincho.MarshalledPlayer, data tincho.UpdateErrorData) (tincho.TypedAction, error) {
 	return nil, fmt.Errorf("recieved error update: %s", data.Message)
 }
 

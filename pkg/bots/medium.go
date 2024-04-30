@@ -20,7 +20,7 @@ func NewMediumStrategy() *MediumStrategy {
 	return &MediumStrategy{}
 }
 
-func (s *MediumStrategy) ResetHand(self *tincho.Connection, players []tincho.MarshalledPlayer) {
+func (s *MediumStrategy) ResetHand(self tincho.MarshalledPlayer, players []tincho.MarshalledPlayer) {
 	for _, p := range players {
 		if p.ID == self.ID {
 			s.hand = make(KnownHand, p.CardsInHand)
@@ -29,17 +29,17 @@ func (s *MediumStrategy) ResetHand(self *tincho.Connection, players []tincho.Mar
 	}
 }
 
-func (s *MediumStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) GameStart(player tincho.MarshalledPlayer, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	return s.StartNextRound(player, data)
 }
 
-func (s *MediumStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) StartNextRound(player tincho.MarshalledPlayer, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	s.firstTurn = true
 	s.ResetHand(player, data.Players)
 	return &tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *MediumStrategy) PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) PlayerFirstPeeked(player tincho.MarshalledPlayer, data tincho.UpdatePlayerFirstPeekedData) (tincho.TypedAction, error) {
 	if data.Player == player.ID {
 		s.hand.Replace(0, data.Cards[0])
 		s.hand.Replace(1, data.Cards[1])
@@ -47,7 +47,7 @@ func (s *MediumStrategy) PlayerFirstPeeked(player *tincho.Connection, data tinch
 	return nil, nil
 }
 
-func (s *MediumStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) Turn(player tincho.MarshalledPlayer, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -76,7 +76,7 @@ func (s *MediumStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnD
 	}
 }
 
-func (s *MediumStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) Draw(player tincho.MarshalledPlayer, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -116,7 +116,7 @@ func (s *MediumStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawD
 	}, nil
 }
 
-func (s *MediumStrategy) PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) PeekCard(player tincho.MarshalledPlayer, data tincho.UpdatePeekCardData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
 		return nil, nil
 	}
@@ -124,7 +124,7 @@ func (s *MediumStrategy) PeekCard(player *tincho.Connection, data tincho.UpdateP
 	return nil, nil
 }
 
-func (s *MediumStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) SwapCards(player tincho.MarshalledPlayer, data tincho.UpdateSwapCardsData) (tincho.TypedAction, error) {
 	myIX := slices.Index(data.Players, player.ID)
 	if myIX == -1 {
 		return nil, nil
@@ -136,6 +136,6 @@ func (s *MediumStrategy) SwapCards(player *tincho.Connection, data tincho.Update
 	return nil, nil
 }
 
-func (s *MediumStrategy) Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.TypedAction, error) {
+func (s *MediumStrategy) Error(player tincho.MarshalledPlayer, data tincho.UpdateErrorData) (tincho.TypedAction, error) {
 	return nil, fmt.Errorf("recieved error update: %s", data.Message)
 }
