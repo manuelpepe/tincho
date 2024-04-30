@@ -1,8 +1,6 @@
 package bots
 
 import (
-	"encoding/json"
-	"fmt"
 	"math/rand"
 	"slices"
 
@@ -94,107 +92,96 @@ func (s *HardStrategy) getSwap() (game.PlayerID, int, game.PlayerID, int) {
 	return p1, ix1, p2, ix2
 }
 
-func (s *HardStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
-	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+func (s *HardStrategy) GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
+	return &tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *HardStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error) {
+func (s *HardStrategy) StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error) {
 	s.firstTurn = true
 	s.lastDiscarded = data.TopDiscard
 	s.resetHand(player, data.Players)
 	s.setPlayers(player, data.Players)
 	s.resetPlayersHands()
-	return tincho.Action{Type: tincho.ActionFirstPeek}, nil
+	return &tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionFirstPeek}, nil
 }
 
-func (s *HardStrategy) PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error) {
+func (s *HardStrategy) PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.TypedAction, error) {
 	if data.Player == player.ID {
 		s.hand.Replace(0, data.Cards[0])
 		s.hand.Replace(1, data.Cards[1])
 	}
-	return tincho.Action{}, nil
+	return nil, nil
 }
 
-func (s *HardStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error) {
+func (s *HardStrategy) Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
-		return tincho.Action{}, nil
+		return nil, nil
 	}
 	pointsInHand, knowFullHand := s.hand.KnownPoints()
 	if knowFullHand && pointsInHand <= 6 {
-		data, err := json.Marshal(tincho.ActionCutData{
-			WithCount: true,
-			Declared:  pointsInHand,
-		})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-		}
-		return tincho.Action{Type: tincho.ActionCut, Data: data}, nil
+		return &tincho.Action[tincho.ActionCutData]{
+			Type: tincho.ActionCut,
+			Data: tincho.ActionCutData{
+				WithCount: true,
+				Declared:  pointsInHand,
+			}}, nil
 	} else {
 		if s.lastDiscarded != (game.Card{}) {
 			highestVal, found := s.hand.GetHighestValueCard()
 			if found && s.hand[highestVal].Value > s.lastDiscarded.Value || s.lastDiscarded.IsJoker() || s.lastDiscarded.IsTwelveOfDiamonds() {
-				data, err := json.Marshal(tincho.ActionDrawData{Source: game.DrawSourceDiscard})
-				if err != nil {
-					return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-				}
-				return tincho.Action{Type: tincho.ActionDraw, Data: data}, nil
+				return &tincho.Action[tincho.ActionDrawData]{
+					Type: tincho.ActionDraw,
+					Data: tincho.ActionDrawData{Source: game.DrawSourceDiscard},
+				}, nil
 			}
-
-		}
-		data, err := json.Marshal(tincho.ActionDrawData{Source: game.DrawSourcePile})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
 		}
 		s.firstTurn = false
-		return tincho.Action{Type: tincho.ActionDraw, Data: data}, nil
+		return &tincho.Action[tincho.ActionDrawData]{
+			Type: tincho.ActionDraw,
+			Data: tincho.ActionDrawData{Source: game.DrawSourcePile},
+		}, nil
 	}
 }
 
-func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error) {
+func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
-		return tincho.Action{}, nil
+		return nil, nil
 	}
 	unkownCard, hasUnkownCard := s.hand.GetUnkownCard()
 	if hasUnkownCard {
 		if data.Source == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectPeekOwnCard {
-			res, err := json.Marshal(tincho.ActionPeekOwnCardData{CardPosition: unkownCard})
-			if err != nil {
-				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-			}
 			s.hand.Replace(unkownCard, data.Card)
-			return tincho.Action{Type: tincho.ActionPeekOwnCard, Data: json.RawMessage(res)}, nil
+			return &tincho.Action[tincho.ActionPeekOwnCardData]{
+				Type: tincho.ActionPeekOwnCard,
+				Data: tincho.ActionPeekOwnCardData{CardPosition: unkownCard},
+			}, nil
 		} else if data.Source == game.DrawSourcePile && data.Card.GetEffect() == game.CardEffectSwapCards {
 			p1, c1, p2, c2 := s.getSwap()
-			res, err := json.Marshal(tincho.ActionSwapCardsData{
-				CardPositions: []int{c1, c2},
-				Players:       []game.PlayerID{p1, p2},
-			})
-			if err != nil {
-				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-			}
-			return tincho.Action{Type: tincho.ActionSwapCards, Data: json.RawMessage(res)}, nil
+			return &tincho.Action[tincho.ActionSwapCardsData]{
+				Type: tincho.ActionSwapCards,
+				Data: tincho.ActionSwapCardsData{
+					CardPositions: []int{c1, c2},
+					Players:       []game.PlayerID{p1, p2},
+				}}, nil
 		} else {
-			res, err := json.Marshal(tincho.ActionDiscardData{CardPosition: unkownCard})
-			if err != nil {
-				return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-			}
 			s.hand.Replace(unkownCard, data.Card)
-			return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
+			return &tincho.Action[tincho.ActionDiscardData]{
+				Type: tincho.ActionDiscard,
+				Data: tincho.ActionDiscardData{CardPosition: unkownCard},
+			}, nil
 		}
 	}
 
 	// double discard if possible, doesn't have to be worth it
 	if c1, c2, ok := s.repeatedCards(); ok {
-		res, err := json.Marshal(tincho.ActionDiscardData{
-			CardPosition:  c1,
-			CardPosition2: &c2,
-		})
-		if err != nil {
-			return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-		}
 		s.hand.Replace(c1, data.Card)
 		s.hand.Remove(c2)
-		return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
+		return &tincho.Action[tincho.ActionDiscardData]{
+			Type: tincho.ActionDiscard,
+			Data: tincho.ActionDiscardData{
+				CardPosition:  c1,
+				CardPosition2: &c2,
+			}}, nil
 	}
 
 	// discard highest value card
@@ -204,28 +191,27 @@ func (s *HardStrategy) Draw(player *tincho.Connection, data tincho.UpdateDrawDat
 	} else if s.hand[discardIx].Value <= data.Card.Value && !data.Card.IsTwelveOfDiamonds() && !data.Card.IsJoker() {
 		discardIx = -1
 	}
-	res, err := json.Marshal(tincho.ActionDiscardData{CardPosition: discardIx})
-	if err != nil {
-		return tincho.Action{}, fmt.Errorf("json.Marshal: %w", err)
-	}
 	if discardIx > -1 {
 		s.hand.Replace(discardIx, data.Card)
 	}
-	return tincho.Action{Type: tincho.ActionDiscard, Data: json.RawMessage(res)}, nil
+	return &tincho.Action[tincho.ActionDiscardData]{
+		Type: tincho.ActionDiscard,
+		Data: tincho.ActionDiscardData{CardPosition: discardIx},
+	}, nil
 }
 
-func (s *HardStrategy) PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error) {
+func (s *HardStrategy) PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.TypedAction, error) {
 	if data.Player != player.ID {
-		return tincho.Action{}, nil
+		return nil, nil
 	}
 	s.hand.Replace(data.CardPosition, data.Card)
-	return tincho.Action{}, nil
+	return nil, nil
 }
 
-func (s *HardStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error) {
+func (s *HardStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.TypedAction, error) {
 	myIX := slices.Index(data.Players, player.ID)
 	if myIX == -1 {
-		return tincho.Action{}, nil
+		return nil, nil
 	}
 
 	if myIX == 0 && data.Players[1] == player.ID {
@@ -240,10 +226,10 @@ func (s *HardStrategy) SwapCards(player *tincho.Connection, data tincho.UpdateSw
 		s.hand.Forget(cardPos)
 	}
 
-	return tincho.Action{}, nil
+	return nil, nil
 }
 
-func (s *HardStrategy) Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.Action, error) {
+func (s *HardStrategy) Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.TypedAction, error) {
 	s.lastDiscarded = data.Cards[len(data.Cards)-1]
 	if data.Player != player.ID {
 		if len(data.CardsPositions) > 1 {
@@ -251,13 +237,13 @@ func (s *HardStrategy) Discard(player *tincho.Connection, data tincho.UpdateDisc
 			s.cards[player.ID] -= 1
 		}
 	}
-	return tincho.Action{}, nil
+	return nil, nil
 }
 
-func (s *HardStrategy) FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.Action, error) {
+func (s *HardStrategy) FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.TypedAction, error) {
 	s.lastDiscarded = data.TopOfDiscard
 	if data.Player != player.ID {
 		s.cards[player.ID] += 1
 	}
-	return tincho.Action{}, nil
+	return nil, nil
 }

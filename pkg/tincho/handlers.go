@@ -297,10 +297,10 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 					stopWS()
 					return
 				}
-				var action Action
-				if err := json.Unmarshal(message, &action); err != nil {
-					logger.Error("error unmarshalling action", "err", err)
-					return // TODO: Prevent disconnect
+				action, err := NewActionFromRawMessage(message)
+				if err != nil {
+					logger.Error(fmt.Sprintf("Error unmarshalling action from player %s: %s", player.ID, err), "err", err)
+					continue
 				}
 				conn.QueueAction(action)
 			case <-ctx.Done():
@@ -311,4 +311,14 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 	}()
 
 	return stopWS
+}
+
+func unmarshallTypeFromMessage(message []byte) string {
+	var actionType struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(message, &actionType); err != nil {
+		return ""
+	}
+	return actionType.Type
 }

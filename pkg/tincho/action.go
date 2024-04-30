@@ -21,13 +21,104 @@ const (
 	ActionCut            ActionType = "cut"
 )
 
-type Action struct {
-	Type     ActionType      `json:"type"`
-	Data     json.RawMessage `json:"data"`
+type ActionData interface {
+	ActionDrawData |
+		ActionPeekOwnCardData |
+		ActionPeekCartaAjenaData |
+		ActionSwapCardsData |
+		ActionDiscardData |
+		ActionCutData |
+		ActionWithoutData
+}
+
+// TypedAction is an interface used to pass around Action[T] types without needing to
+// know the exact type of T. Do not implement this interface, use Action[T] instead.
+type TypedAction interface {
+	GetType() ActionType
+	SetPlayerID(game.PlayerID)
+	GetPlayerID() game.PlayerID
+}
+
+type Action[T ActionData] struct {
+	Type     ActionType `json:"type"`
+	Data     T          `json:"data"`
 	PlayerID game.PlayerID
 }
 
+func (a *Action[T]) GetType() ActionType {
+	if a == nil {
+		return ""
+	}
+	return a.Type
+}
+
+func (a *Action[T]) SetPlayerID(playerID game.PlayerID) {
+	a.PlayerID = playerID
+}
+
+func (a *Action[T]) GetPlayerID() game.PlayerID {
+	return a.PlayerID
+}
+
+func NewActionFromRawMessage(message []byte) (TypedAction, error) {
+	var actionType struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(message, &actionType); err != nil {
+		return nil, err
+	}
+	var action TypedAction
+	switch actionType.Type {
+	case string(ActionStart):
+		action = &Action[ActionWithoutData]{Type: ActionStart}
+	case string(ActionFirstPeek):
+		action = &Action[ActionWithoutData]{Type: ActionFirstPeek}
+	case string(ActionDraw):
+		var act Action[ActionDrawData]
+		if err := json.Unmarshal(message, &act); err != nil {
+			return nil, err
+		}
+		action = &act
+	case string(ActionPeekOwnCard):
+		var act Action[ActionPeekOwnCardData]
+		if err := json.Unmarshal(message, &act); err != nil {
+			return nil, err
+		}
+		action = &act
+	case string(ActionPeekCartaAjena):
+		var act Action[ActionPeekCartaAjenaData]
+		if err := json.Unmarshal(message, &act); err != nil {
+			return nil, err
+		}
+		action = &act
+	case string(ActionSwapCards):
+		var act Action[ActionSwapCardsData]
+		if err := json.Unmarshal(message, &act); err != nil {
+			return nil, err
+		}
+		action = &act
+	case string(ActionDiscard):
+		var act Action[ActionDiscardData]
+		if err := json.Unmarshal(message, &act); err != nil {
+			return nil, err
+		}
+		action = &act
+	case string(ActionCut):
+		var act Action[ActionCutData]
+		if err := json.Unmarshal(message, &act); err != nil {
+			return nil, err
+		}
+		action = &act
+	default:
+		return nil, fmt.Errorf("unknown action type: %s", actionType.Type)
+	}
+
+	return action, nil
+}
+
 type Game_DrawSource string
+
+type ActionWithoutData struct{}
 
 type ActionDrawData struct {
 	Source game.DrawSource `json:"source"`
@@ -60,7 +151,7 @@ type ActionCutData struct {
 
 var ErrNotRoomLeader = errors.New("not room leader")
 
-func (r *Room) doStartGame(action Action) error {
+func (r *Room) doStartGame(action Action[ActionWithoutData]) error {
 	if r.state.GetPlayers()[0].ID != action.PlayerID {
 		return ErrNotRoomLeader
 	}
@@ -77,7 +168,7 @@ func (r *Room) doStartGame(action Action) error {
 	return nil
 }
 
-func (r *Room) doPeekTwo(action Action) error {
+func (r *Room) doPeekTwo(action Action[ActionWithoutData]) error {
 	peekedCards, err := r.state.GetFirstPeek(action.PlayerID)
 	if err != nil {
 		return fmt.Errorf("GetFirstPeek: %w", err)
@@ -93,31 +184,24 @@ func (r *Room) doPeekTwo(action Action) error {
 	return nil
 }
 
-func (r *Room) doDraw(action Action) error {
-	var data ActionDrawData
-	if err := json.Unmarshal(action.Data, &data); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-	card, err := r.state.Draw(data.Source)
+func (r *Room) doDraw(action Action[ActionDrawData]) error {
+	card, err := r.state.Draw(action.Data.Source)
 	if err != nil {
 		return err
 	}
-	if err := r.broadcastDraw(action.PlayerID, data.Source, card); err != nil {
+	if err := r.broadcastDraw(action.PlayerID, action.Data.Source, card); err != nil {
 		return fmt.Errorf("broadcastDraw: %w", err)
 	}
 	return nil
 }
 
-func (r *Room) doDiscard(action Action) error {
-	var data ActionDiscardData
-	if err := json.Unmarshal(action.Data, &data); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-
+func (r *Room) doDiscard(action Action[ActionDiscardData]) error {
 	var positions []int
 	var cycledPiles game.CycledPiles
 	var values []game.Card
 	var err error
+
+	data := action.Data
 
 	if data.CardPosition2 == nil {
 		var value game.Card
@@ -162,12 +246,8 @@ func (r *Room) doDiscard(action Action) error {
 	return nil
 }
 
-func (r *Room) doCut(action Action) error {
-	var data ActionCutData
-	if err := json.Unmarshal(action.Data, &data); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-
+func (r *Room) doCut(action Action[ActionCutData]) error {
+	data := action.Data
 	scores, finished, err := r.state.Cut(data.WithCount, data.Declared)
 	if err != nil {
 		return err
@@ -194,48 +274,36 @@ func (r *Room) doCut(action Action) error {
 	return nil
 }
 
-func (r *Room) doEffectPeekOwnCard(action Action) error {
-	var data ActionPeekOwnCardData
-	if err := json.Unmarshal(action.Data, &data); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-	card, discarded, cycledPiles, err := r.state.UseEffectPeekOwnCard(data.CardPosition)
+func (r *Room) doEffectPeekOwnCard(action Action[ActionPeekOwnCardData]) error {
+	card, discarded, cycledPiles, err := r.state.UseEffectPeekOwnCard(action.Data.CardPosition)
 	if err != nil {
 		return err
 	}
-	err = r.broadcastPeek(action.PlayerID, action.PlayerID, data.CardPosition, card, discarded, cycledPiles)
+	err = r.broadcastPeek(action.PlayerID, action.PlayerID, action.Data.CardPosition, card, discarded, cycledPiles)
 	if err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
 	return nil
 }
 
-func (r *Room) doEffectPeekCartaAjena(action Action) error {
-	var data ActionPeekCartaAjenaData
-	if err := json.Unmarshal(action.Data, &data); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-	card, discarded, cycledPiles, err := r.state.UseEffectPeekCartaAjena(data.Player, data.CardPosition)
+func (r *Room) doEffectPeekCartaAjena(action Action[ActionPeekCartaAjenaData]) error {
+	card, discarded, cycledPiles, err := r.state.UseEffectPeekCartaAjena(action.Data.Player, action.Data.CardPosition)
 	if err != nil {
 		return err
 	}
-	err = r.broadcastPeek(action.PlayerID, data.Player, data.CardPosition, card, discarded, cycledPiles)
+	err = r.broadcastPeek(action.PlayerID, action.Data.Player, action.Data.CardPosition, card, discarded, cycledPiles)
 	if err != nil {
 		return fmt.Errorf("broadcastDiscard: %w", err)
 	}
 	return nil
 }
 
-func (r *Room) doEffectSwapCards(action Action) error {
-	var data ActionSwapCardsData
-	if err := json.Unmarshal(action.Data, &data); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
-	}
-	discarded, cycledPiles, err := r.state.UseEffectSwapCards(data.Players, data.CardPositions)
+func (r *Room) doEffectSwapCards(action Action[ActionSwapCardsData]) error {
+	discarded, cycledPiles, err := r.state.UseEffectSwapCards(action.Data.Players, action.Data.CardPositions)
 	if err != nil {
 		return err
 	}
-	err = r.broadcastSwapCards(action.PlayerID, data.CardPositions, data.Players, discarded, cycledPiles)
+	err = r.broadcastSwapCards(action.PlayerID, action.Data.CardPositions, action.Data.Players, discarded, cycledPiles)
 	if err != nil {
 		return fmt.Errorf("broadcastSwapCards: %w", err)
 	}

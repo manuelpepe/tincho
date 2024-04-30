@@ -121,7 +121,7 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 		players[name] = b{Ix: ix, Bot: &bot}
 	}
 
-	players["strat-0"].Bot.Player().QueueAction(tincho.Action{Type: tincho.ActionStart})
+	players["strat-0"].Bot.Player().QueueAction(&tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionStart})
 
 	select {
 	case <-ctx.Done():

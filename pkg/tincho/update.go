@@ -46,7 +46,7 @@ type Update[T UpdateData] struct {
 	Data T          `json:"data"`
 }
 
-type Typed interface {
+type TypedUpdate interface {
 	GetType() UpdateType
 }
 

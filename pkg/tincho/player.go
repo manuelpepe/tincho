@@ -26,25 +26,25 @@ func NewMarshalledPlayer(p *game.Player) MarshalledPlayer {
 type Connection struct {
 	*game.Player
 	SessionToken string
-	Actions      chan Action
-	Updates      chan Typed
+	Actions      chan TypedAction
+	Updates      chan TypedUpdate
 }
 
 func NewConnection(id game.PlayerID) *Connection {
 	return &Connection{
 		Player:       game.NewPlayer(id),
 		SessionToken: generateRandomString(20),
-		Actions:      make(chan Action),
-		Updates:      make(chan Typed, 20),
+		Actions:      make(chan TypedAction),
+		Updates:      make(chan TypedUpdate, 20),
 	}
 }
 
-func (p *Connection) QueueAction(action Action) {
-	action.PlayerID = p.ID
+func (p *Connection) QueueAction(action TypedAction) {
+	action.SetPlayerID(p.ID)
 	p.Actions <- action
 }
 
-func (p *Connection) SendUpdateOrDrop(update Typed) {
+func (p *Connection) SendUpdateOrDrop(update TypedUpdate) {
 	// TODO: instead of default dropping maybe this could block until player reconnects
 	// 	and timeout on room close (important so goroutine it doesn't get stuck forever).
 	//  also could kick player of room after a certain timeout.

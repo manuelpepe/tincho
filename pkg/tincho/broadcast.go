@@ -6,7 +6,7 @@ import (
 	"github.com/manuelpepe/tincho/pkg/game"
 )
 
-func (r *Room) BroadcastUpdate(update Typed) {
+func (r *Room) BroadcastUpdate(update TypedUpdate) {
 	for _, player := range r.state.GetPlayers() {
 		conn, ok := r.getPlayer(player.ID)
 		if !ok {
@@ -17,7 +17,7 @@ func (r *Room) BroadcastUpdate(update Typed) {
 	}
 }
 
-func (r *Room) BroadcastUpdateExcept(update Typed, player game.PlayerID) {
+func (r *Room) BroadcastUpdateExcept(update TypedUpdate, player game.PlayerID) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID != player {
 			conn, ok := r.getPlayer(p.ID)
@@ -30,7 +30,7 @@ func (r *Room) BroadcastUpdateExcept(update Typed, player game.PlayerID) {
 	}
 }
 
-func (r *Room) TargetedUpdate(player game.PlayerID, update Typed) {
+func (r *Room) TargetedUpdate(player game.PlayerID, update TypedUpdate) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID == player {
 			conn, ok := r.getPlayer(p.ID)

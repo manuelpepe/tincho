@@ -9,19 +9,19 @@ import (
 )
 
 type Strategy interface {
-	PlayersChanged(player *tincho.Connection, data tincho.UpdatePlayersChangedData) (tincho.Action, error)
-	GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
-	StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.Action, error)
-	PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.Action, error)
-	Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.Action, error)
-	Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.Action, error)
-	PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.Action, error)
-	SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.Action, error)
-	Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.Action, error)
-	FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.Action, error)
-	Cut(player *tincho.Connection, data tincho.UpdateCutData) (tincho.Action, error)
-	Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.Action, error)
-	EndGame(player *tincho.Connection, data tincho.UpdateEndGameData) (tincho.Action, error)
+	PlayersChanged(player *tincho.Connection, data tincho.UpdatePlayersChangedData) (tincho.TypedAction, error)
+	GameStart(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error)
+	StartNextRound(player *tincho.Connection, data tincho.UpdateStartNextRoundData) (tincho.TypedAction, error)
+	PlayerFirstPeeked(player *tincho.Connection, data tincho.UpdatePlayerFirstPeekedData) (tincho.TypedAction, error)
+	Turn(player *tincho.Connection, data tincho.UpdateTurnData) (tincho.TypedAction, error)
+	Draw(player *tincho.Connection, data tincho.UpdateDrawData) (tincho.TypedAction, error)
+	PeekCard(player *tincho.Connection, data tincho.UpdatePeekCardData) (tincho.TypedAction, error)
+	SwapCards(player *tincho.Connection, data tincho.UpdateSwapCardsData) (tincho.TypedAction, error)
+	Discard(player *tincho.Connection, data tincho.UpdateDiscardData) (tincho.TypedAction, error)
+	FailedDoubleDiscard(player *tincho.Connection, data tincho.UpdateTypeFailedDoubleDiscardData) (tincho.TypedAction, error)
+	Cut(player *tincho.Connection, data tincho.UpdateCutData) (tincho.TypedAction, error)
+	Error(player *tincho.Connection, data tincho.UpdateErrorData) (tincho.TypedAction, error)
+	EndGame(player *tincho.Connection, data tincho.UpdateEndGameData) (tincho.TypedAction, error)
 }
 
 type Bot struct {
@@ -79,7 +79,7 @@ func (b *Bot) Start() error {
 			if err != nil {
 				return fmt.Errorf("error responding to update: %w", err)
 			}
-			if action.Type != "" {
+			if action != nil && action.GetType() != "" {
 				b.player.QueueAction(action)
 			}
 		case <-b.ctx.Done():
@@ -89,86 +89,86 @@ func (b *Bot) Start() error {
 	}
 }
 
-func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.Typed) (tincho.Action, error) {
+func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.TypedUpdate) (tincho.TypedAction, error) {
 	switch update.GetType() {
 	case tincho.UpdateTypeGameStart:
 		up, ok := update.(tincho.Update[tincho.UpdateStartNextRoundData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.GameStart(player, up.Data)
 	case tincho.UpdateTypePlayersChanged:
 		up, ok := update.(tincho.Update[tincho.UpdatePlayersChangedData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.PlayersChanged(player, up.Data)
 	case tincho.UpdateTypePlayerFirstPeeked:
 		up, ok := update.(tincho.Update[tincho.UpdatePlayerFirstPeekedData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.PlayerFirstPeeked(player, up.Data)
 	case tincho.UpdateTypeTurn:
 		up, ok := update.(tincho.Update[tincho.UpdateTurnData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.Turn(player, up.Data)
 	case tincho.UpdateTypeDraw:
 		up, ok := update.(tincho.Update[tincho.UpdateDrawData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.Draw(player, up.Data)
 	case tincho.UpdateTypePeekCard:
 		up, ok := update.(tincho.Update[tincho.UpdatePeekCardData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.PeekCard(player, up.Data)
 	case tincho.UpdateTypeSwapCards:
 		up, ok := update.(tincho.Update[tincho.UpdateSwapCardsData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.SwapCards(player, up.Data)
 	case tincho.UpdateTypeDiscard:
 		up, ok := update.(tincho.Update[tincho.UpdateDiscardData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.Discard(player, up.Data)
 	case tincho.UpdateTypeFailedDoubleDiscard:
 		up, ok := update.(tincho.Update[tincho.UpdateTypeFailedDoubleDiscardData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.FailedDoubleDiscard(player, up.Data)
 	case tincho.UpdateTypeCut:
 		up, ok := update.(tincho.Update[tincho.UpdateCutData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.Cut(player, up.Data)
 	case tincho.UpdateTypeError:
 		up, ok := update.(tincho.Update[tincho.UpdateErrorData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.Error(player, up.Data)
 	case tincho.UpdateTypeStartNextRound:
 		up, ok := update.(tincho.Update[tincho.UpdateStartNextRoundData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.StartNextRound(player, up.Data)
 	case tincho.UpdateTypeEndGame:
 		up, ok := update.(tincho.Update[tincho.UpdateEndGameData])
 		if !ok {
-			return tincho.Action{}, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
 		}
 		return b.strategy.EndGame(player, up.Data)
 	}
-	return tincho.Action{}, nil
+	return nil, nil
 }

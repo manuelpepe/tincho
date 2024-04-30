@@ -26,7 +26,7 @@ type Room struct {
 	connections map[game.PlayerID]*Connection
 
 	// actions recieved from all players
-	actionsChan chan Action
+	actionsChan chan TypedAction
 
 	// channel used to update goroutine state
 	playersChan chan AddPlayerRequest
@@ -45,7 +45,7 @@ func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context
 		closeRoom:   ctxCancel,
 		logger:      logger,
 		ID:          roomID,
-		actionsChan: make(chan Action),
+		actionsChan: make(chan TypedAction),
 		playersChan: make(chan AddPlayerRequest),
 		maxPlayers:  maxPlayers,
 		state:       game.NewTinchoWithDeck(deck),
@@ -178,7 +178,7 @@ func (r *Room) Start() {
 				}
 			}
 		case action := <-r.actionsChan:
-			r.logger.Info(fmt.Sprintf("Recieved action from %s", action.PlayerID), "action", action)
+			r.logger.Info(fmt.Sprintf("Recieved action from %s", action.GetPlayerID()), "action", action)
 			r.doAction(action)
 		case <-r.Context.Done():
 			r.logger.Info("Stopping room")
@@ -193,83 +193,123 @@ func (r *Room) Start() {
 var ErrNotYourTurn = fmt.Errorf("not your turn")
 var ErrActionOnClosedRoom = errors.New("action on closed room")
 
-func (r *Room) doAction(action Action) {
+func (r *Room) doAction(action TypedAction) {
 	if r.HasClosed() {
 		r.logger.Error(ErrActionOnClosedRoom.Error())
-		r.TargetedError(action.PlayerID, ErrActionOnClosedRoom)
+		r.TargetedError(action.GetPlayerID(), ErrActionOnClosedRoom)
 		return
 	}
 
 	r.RWMutex.Lock()
 	defer r.RWMutex.Unlock()
 
-	switch action.Type {
+	switch action.GetType() {
 	case ActionStart:
-		if err := r.doStartGame(action); err != nil {
-			r.logger.Warn("error starting game", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionWithoutData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doStartGame(*act); err != nil {
+			r.logger.Warn("error starting game", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 		return
 	case ActionFirstPeek:
-		if err := r.doPeekTwo(action); err != nil {
-			r.logger.Warn("error on first peek", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionWithoutData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doPeekTwo(*act); err != nil {
+			r.logger.Warn("error on first peek", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 		return
 	}
-	if !r.state.Playing() || action.PlayerID != r.state.PlayerToPlay().ID {
+	if !r.state.Playing() || action.GetPlayerID() != r.state.PlayerToPlay().ID {
 		r.logger.Warn(
-			fmt.Sprintf("Player %s tried to perform action out of turn", action.PlayerID),
-			"player_id", action.PlayerID,
+			fmt.Sprintf("Player %s tried to perform action out of turn", action.GetPlayerID()),
+			"player_id", action.GetPlayerID(),
 			"action", action)
-		r.TargetedError(action.PlayerID, ErrNotYourTurn)
+		r.TargetedError(action.GetPlayerID(), ErrNotYourTurn)
 		return
 	}
 
-	switch action.Type {
+	switch action.GetType() {
 	case ActionDraw:
-		if err := r.doDraw(action); err != nil {
-			r.logger.Warn("error on draw", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionDrawData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doDraw(*act); err != nil {
+			r.logger.Warn("error on draw", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 	case ActionDiscard:
-		if err := r.doDiscard(action); err != nil {
-			r.logger.Warn("error on discard", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionDiscardData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doDiscard(*act); err != nil {
+			r.logger.Warn("error on discard", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 	case ActionCut:
-		if err := r.doCut(action); err != nil {
-			r.logger.Warn("error on cut", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionCutData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doCut(*act); err != nil {
+			r.logger.Warn("error on cut", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 	case ActionPeekOwnCard:
-		if err := r.doEffectPeekOwnCard(action); err != nil {
-			r.logger.Warn("error on peek own", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionPeekOwnCardData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doEffectPeekOwnCard(*act); err != nil {
+			r.logger.Warn("error on peek own", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 		return
 	case ActionPeekCartaAjena:
-		if err := r.doEffectPeekCartaAjena(action); err != nil {
-			r.logger.Warn("error on peek carta ajena", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionPeekCartaAjenaData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doEffectPeekCartaAjena(*act); err != nil {
+			r.logger.Warn("error on peek carta ajena", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 		return
 	case ActionSwapCards:
-		if err := r.doEffectSwapCards(action); err != nil {
-			r.logger.Warn("error on swap cards", "err", err, "player_id", action.PlayerID)
-			r.TargetedError(action.PlayerID, err)
+		act, ok := action.(*Action[ActionSwapCardsData])
+		if !ok {
+			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			return
+		}
+		if err := r.doEffectSwapCards(*act); err != nil {
+			r.logger.Warn("error on swap cards", "err", err, "player_id", act.PlayerID)
+			r.TargetedError(act.PlayerID, err)
 			return
 		}
 		return
 	default:
-		r.logger.Warn("unknown action", "player_id", action.PlayerID, "action", action)
+		r.logger.Warn("unknown action", "player_id", action.GetPlayerID(), "action", action)
 	}
 }
 
