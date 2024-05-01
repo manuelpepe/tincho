@@ -79,19 +79,19 @@ func (g *Service) GetRoomPassword(roomID string) string {
 	return g.passwords[roomID]
 }
 
-func (g *Service) JoinRoom(roomID string, player *Connection, password string) error {
+func (g *Service) JoinRoom(roomID string, conn *Connection, password string) error {
 	if pass, exists := g.passwords[roomID]; exists && pass != password {
 		return fmt.Errorf("invalid password")
 	}
-	return g.JoinRoomWithoutPassword(roomID, player)
+	return g.JoinRoomWithoutPassword(roomID, conn)
 }
 
-func (g *Service) JoinRoomWithoutPassword(roomID string, player *Connection) error {
+func (g *Service) JoinRoomWithoutPassword(roomID string, conn *Connection) error {
 	room, exists := g.GetRoom(roomID)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrRoomNotFound, roomID)
 	}
-	if err := room.AddPlayer(player); err != nil {
+	if err := room.AddConnection(conn); err != nil {
 		return err
 	}
 	return nil

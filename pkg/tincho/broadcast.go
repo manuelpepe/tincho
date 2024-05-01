@@ -8,7 +8,7 @@ import (
 
 func (r *Room) BroadcastUpdate(update TypedUpdate) {
 	for _, player := range r.state.GetPlayers() {
-		conn, ok := r.getPlayer(player.ID)
+		conn, ok := r.getConnection(player.ID)
 		if !ok {
 			// TODO: probably should stop everything as this shouldn-t happen
 			continue
@@ -20,7 +20,7 @@ func (r *Room) BroadcastUpdate(update TypedUpdate) {
 func (r *Room) BroadcastUpdateExcept(update TypedUpdate, player game.PlayerID) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID != player {
-			conn, ok := r.getPlayer(p.ID)
+			conn, ok := r.getConnection(p.ID)
 			if !ok {
 				// TODO: probably should stop everything as this shouldn-t happen
 				continue
@@ -33,7 +33,7 @@ func (r *Room) BroadcastUpdateExcept(update TypedUpdate, player game.PlayerID) {
 func (r *Room) TargetedUpdate(player game.PlayerID, update TypedUpdate) {
 	for _, p := range r.state.GetPlayers() {
 		if p.ID == player {
-			conn, ok := r.getPlayer(p.ID)
+			conn, ok := r.getConnection(p.ID)
 			if !ok {
 				// TODO: probably should stop everything as this shouldn-t happen
 				continue
@@ -63,14 +63,14 @@ func (r *Room) broadcastGameConfig(cardInDeck int) error {
 	return nil
 }
 
-func (r *Room) sendRejoinState(player *Connection) error {
+func (r *Room) sendRejoinState(conn *Connection) error {
 	playerToPlay := r.state.PlayerToPlay().ID
 	pendStorage := r.state.GetPendingStorage()
 	cardsInDeck := r.state.CountBaseDeck()
 	cardsInDrawPile := r.state.CountDrawPile()
 	var lastDrawSource *game.DrawSource
 	var cardInHandVal *game.Card
-	if (player.ID == playerToPlay && pendStorage != game.Card{}) {
+	if (conn.ID == playerToPlay && pendStorage != game.Card{}) {
 		cardInHandVal = &pendStorage
 		ds := r.state.LastDrawSource()
 		lastDrawSource = &ds
@@ -80,7 +80,7 @@ func (r *Room) sendRejoinState(player *Connection) error {
 		v := r.state.LastDiscarded()
 		lastDiscarded = &v
 	}
-	r.TargetedUpdate(player.ID, Update[UpdateTypeRejoinData]{
+	r.TargetedUpdate(conn.ID, Update[UpdateTypeRejoinData]{
 		Type: UpdateTypeRejoin,
 		Data: UpdateTypeRejoinData{
 			Players:          r.getMarshalledPlayers(),

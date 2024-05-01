@@ -26,12 +26,12 @@ type Strategy interface {
 
 type Bot struct {
 	ctx      context.Context
-	player   *tincho.Connection
+	conn     *tincho.Connection
 	strategy Strategy
 	logger   *slog.Logger
 }
 
-func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Connection, difficulty string) (Bot, error) {
+func NewBot(logger *slog.Logger, ctx context.Context, conn *tincho.Connection, difficulty string) (Bot, error) {
 	var strategy Strategy
 	switch difficulty {
 	case "easy":
@@ -46,24 +46,24 @@ func NewBot(logger *slog.Logger, ctx context.Context, player *tincho.Connection,
 	}
 	return Bot{
 		ctx:      ctx,
-		player:   player,
+		conn:     conn,
 		strategy: strategy,
 		logger:   logger,
 	}, nil
 
 }
 
-func NewBotFromStrategy(logger *slog.Logger, ctx context.Context, player *tincho.Connection, strategy Strategy) Bot {
+func NewBotFromStrategy(logger *slog.Logger, ctx context.Context, conn *tincho.Connection, strategy Strategy) Bot {
 	return Bot{
 		ctx:      ctx,
-		player:   player,
+		conn:     conn,
 		strategy: strategy,
 		logger:   logger,
 	}
 }
 
-func (b *Bot) Player() *tincho.Connection {
-	return b.player
+func (b *Bot) Connection() *tincho.Connection {
+	return b.conn
 }
 
 func (b *Bot) Strategy() Strategy {
@@ -71,26 +71,26 @@ func (b *Bot) Strategy() Strategy {
 }
 
 func (b *Bot) Start() error {
-	b.logger.Info(fmt.Sprintf("Bot %s started", b.player.ID))
+	b.logger.Info(fmt.Sprintf("Bot %s started", b.conn.ID))
 	for {
 		select {
-		case update := <-b.player.Updates:
-			action, err := b.RespondToUpdate(b.player, update)
+		case update := <-b.conn.Updates:
+			action, err := b.RespondToUpdate(b.conn, update)
 			if err != nil {
 				return fmt.Errorf("error responding to update: %w", err)
 			}
 			if action != nil && action.GetType() != "" {
-				b.player.QueueAction(action)
+				b.conn.QueueAction(action)
 			}
 		case <-b.ctx.Done():
-			b.logger.Info(fmt.Sprintf("Bot %s finished", b.player.ID))
+			b.logger.Info(fmt.Sprintf("Bot %s finished", b.conn.ID))
 			return nil
 		}
 	}
 }
 
-func (b *Bot) RespondToUpdate(player *tincho.Connection, update tincho.TypedUpdate) (tincho.TypedAction, error) {
-	p := tincho.NewMarshalledPlayer(player.Player)
+func (b *Bot) RespondToUpdate(conn *tincho.Connection, update tincho.TypedUpdate) (tincho.TypedAction, error) {
+	p := tincho.NewMarshalledPlayer(conn.Player)
 	switch update.GetType() {
 	case tincho.UpdateTypeGameStart:
 		up, ok := update.(tincho.Update[tincho.UpdateStartNextRoundData])

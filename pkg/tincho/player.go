@@ -39,27 +39,27 @@ func NewConnection(id game.PlayerID) *Connection {
 	}
 }
 
-func (p *Connection) QueueAction(action TypedAction) {
-	action.SetPlayerID(p.ID)
-	p.Actions <- action
+func (c *Connection) QueueAction(action TypedAction) {
+	action.SetPlayerID(c.ID)
+	c.Actions <- action
 }
 
-func (p *Connection) SendUpdateOrDrop(update TypedUpdate) {
+func (c *Connection) SendUpdateOrDrop(update TypedUpdate) {
 	// TODO: instead of default dropping maybe this could block until player reconnects
 	// 	and timeout on room close (important so goroutine it doesn't get stuck forever).
 	//  also could kick player of room after a certain timeout.
 	select {
-	case p.Updates <- update:
+	case c.Updates <- update:
 	default:
-		slog.Error("Dropping update", "player", p.ID, "update", update)
+		slog.Error("Dropping update", "player", c.ID, "update", update)
 	}
 }
 
-func (p *Connection) ClearPendingUpdates() {
+func (c *Connection) ClearPendingUpdates() {
 loop:
 	for {
 		select {
-		case <-p.Updates:
+		case <-c.Updates:
 		default:
 			break loop
 		}

@@ -37,9 +37,9 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("error getting room index"))
 		return
 	}
-	player := tincho.NewConnection(RandomBotName())
-	newLogger := h.logger.With("player", player.ID)
-	bot, err := NewBot(newLogger, room.Context, player, difficulty)
+	conn := tincho.NewConnection(RandomBotName())
+	newLogger := h.logger.With("player", conn.ID)
+	bot, err := NewBot(newLogger, room.Context, conn, difficulty)
 	if err != nil {
 		h.logger.Error("Error creating bot", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -54,11 +54,11 @@ func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
 		// probably should tear down room and remove players or fallback to some known behaviour with an
 		// error sent to all players.
 	}()
-	if err := h.service.JoinRoom(roomID, player, h.service.GetRoomPassword(roomID)); err != nil {
+	if err := h.service.JoinRoom(roomID, conn, h.service.GetRoomPassword(roomID)); err != nil {
 		h.logger.Error("Error joining room", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error joining room"))
 		return
 	}
-	h.logger.Info(fmt.Sprintf("Bot %s joined room %s", player.ID, roomID))
+	h.logger.Info(fmt.Sprintf("Bot %s joined room %s", conn.ID, roomID))
 }

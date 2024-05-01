@@ -139,7 +139,7 @@ func (h *Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	curPlayer, exists := room.GetPlayer(playerID)
+	curPlayer, exists := room.GetConnection(playerID)
 	if !exists {
 		h.connect(w, r, playerID, room, password)
 	} else if curPlayer.SessionToken == sessionToken {

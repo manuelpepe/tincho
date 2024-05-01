@@ -112,7 +112,7 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 	for ix, strat := range strats {
 		name := game.PlayerID(fmt.Sprintf("strat-%d", ix))
 		bot := bots.NewBotFromStrategy(logger, ctx, tincho.NewConnection(name), strat)
-		room.AddPlayer(bot.Player())
+		room.AddConnection(bot.Connection())
 		go func() {
 			if err := bot.Start(); err != nil {
 				logger.Error("Bot failed with error", "error", err)
@@ -121,7 +121,7 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 		players[name] = b{Ix: ix, Bot: &bot}
 	}
 
-	players["strat-0"].Bot.Player().QueueAction(&tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionStart})
+	players["strat-0"].Bot.Connection().QueueAction(&tincho.Action[tincho.ActionWithoutData]{Type: tincho.ActionStart})
 
 	select {
 	case <-ctx.Done():

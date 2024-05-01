@@ -11,9 +11,9 @@ import (
 	"github.com/manuelpepe/tincho/pkg/metrics"
 )
 
-type AddPlayerRequest struct {
-	Player *Connection
-	Res    chan error
+type AddConnectionRequest struct {
+	Conn *Connection
+	Res  chan error
 }
 
 // Room represents an ongoing game and contains all necessary state to represent it.
@@ -30,7 +30,7 @@ type Room struct {
 	actionsChan chan TypedAction
 
 	// channel used to update goroutine state
-	playersChan chan AddPlayerRequest
+	connectionsChan chan AddConnectionRequest
 
 	maxPlayers int
 
@@ -42,16 +42,16 @@ type Room struct {
 
 func NewRoomWithDeck(logger *slog.Logger, ctx context.Context, ctxCancel context.CancelFunc, roomID string, deck game.Deck, maxPlayers int) Room {
 	return Room{
-		Context:     ctx,
-		closeRoom:   ctxCancel,
-		logger:      logger,
-		ID:          roomID,
-		actionsChan: make(chan TypedAction),
-		playersChan: make(chan AddPlayerRequest),
-		maxPlayers:  maxPlayers,
-		state:       game.NewTinchoWithDeck(deck),
-		connections: make(map[game.PlayerID]*Connection),
-		closed:      false,
+		Context:         ctx,
+		closeRoom:       ctxCancel,
+		logger:          logger,
+		ID:              roomID,
+		actionsChan:     make(chan TypedAction),
+		connectionsChan: make(chan AddConnectionRequest),
+		maxPlayers:      maxPlayers,
+		state:           game.NewTinchoWithDeck(deck),
+		connections:     make(map[game.PlayerID]*Connection),
+		closed:          false,
 	}
 }
 
@@ -101,13 +101,13 @@ func (r *Room) getMarshalledPlayers() []MarshalledPlayer {
 	return marshalled
 }
 
-func (r *Room) GetPlayer(id game.PlayerID) (*Connection, bool) {
+func (r *Room) GetConnection(id game.PlayerID) (*Connection, bool) {
 	r.RWMutex.RLock()
 	defer r.RWMutex.RUnlock()
-	return r.getPlayer(id)
+	return r.getConnection(id)
 }
 
-func (r *Room) getPlayer(id game.PlayerID) (*Connection, bool) {
+func (r *Room) getConnection(id game.PlayerID) (*Connection, bool) {
 	_, exists := r.state.GetPlayer(id)
 	if !exists {
 		return nil, false
@@ -119,27 +119,27 @@ func (r *Room) getPlayer(id game.PlayerID) (*Connection, bool) {
 	return conn, true
 }
 
-func (r *Room) AddPlayer(p *Connection) error {
-	req := AddPlayerRequest{
-		Player: p,
-		Res:    make(chan error),
+func (r *Room) AddConnection(c *Connection) error {
+	req := AddConnectionRequest{
+		Conn: c,
+		Res:  make(chan error),
 	}
-	r.playersChan <- req
+	r.connectionsChan <- req
 	return <-req.Res
 }
 
-func (r *Room) addPlayer(player *Connection) error {
+func (r *Room) addPlayer(conn *Connection) error {
 	r.RWMutex.Lock()
 	if len(r.state.GetPlayers()) >= r.maxPlayers {
 		return fmt.Errorf("room is full")
 	}
-	if err := r.state.AddPlayer(player.Player); err != nil {
+	if err := r.state.AddPlayer(conn.Player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
 	r.RWMutex.Unlock()
 
-	r.connections[player.ID] = player
-	go r.watchPlayer(player)
+	r.connections[conn.ID] = conn
+	go r.watchPlayer(conn)
 	r.BroadcastUpdate(Update[UpdatePlayersChangedData]{
 		Type: UpdateTypePlayersChanged,
 		Data: UpdatePlayersChangedData{
@@ -160,22 +160,22 @@ func (r *Room) Start() {
 	defer metrics.IncGamesEnded()
 	for {
 		select {
-		case req := <-r.playersChan:
-			if r.IsPlayerInRoom(req.Player.ID) {
-				req.Player.ClearPendingUpdates()
-				if err := r.sendRejoinState(req.Player); err != nil {
-					r.logger.Error("r.sendRejoinState: %s", err, "player", req.Player)
+		case req := <-r.connectionsChan:
+			if r.IsPlayerInRoom(req.Conn.ID) {
+				req.Conn.ClearPendingUpdates()
+				if err := r.sendRejoinState(req.Conn); err != nil {
+					r.logger.Error("r.sendRejoinState: %s", err, "player", req.Conn)
 					req.Res <- err
 				} else {
-					r.logger.Info(fmt.Sprintf("Player rejoined #%s: %s", r.ID, req.Player.ID))
+					r.logger.Info(fmt.Sprintf("Player rejoined #%s: %s", r.ID, req.Conn.ID))
 					req.Res <- nil
 				}
 			} else {
-				if err := r.addPlayer(req.Player); err != nil {
-					r.logger.Error("r.addPlayer: %s", err, "player", req.Player)
+				if err := r.addPlayer(req.Conn); err != nil {
+					r.logger.Error("r.addPlayer: %s", "err", err, "player", req.Conn.Player)
 					req.Res <- err
 				} else {
-					r.logger.Info(fmt.Sprintf("Player joined #%s: %s", r.ID, req.Player.ID))
+					r.logger.Info(fmt.Sprintf("Player joined #%s: %s", r.ID, req.Conn.ID))
 					req.Res <- nil
 				}
 			}
@@ -316,14 +316,14 @@ func (r *Room) doAction(action TypedAction) {
 }
 
 // watchPlayer functions as a goroutine that watches for new actions from a given player.
-func (r *Room) watchPlayer(player *Connection) {
-	r.logger.Info(fmt.Sprintf("Started watch loop for player '%s' on room '%s'", player.ID, r.ID))
+func (r *Room) watchPlayer(conn *Connection) {
+	r.logger.Info(fmt.Sprintf("Started watch loop for player '%s' on room '%s'", conn.ID, r.ID))
 	for {
 		select {
-		case action := <-player.Actions:
+		case action := <-conn.Actions:
 			r.actionsChan <- action
 		case <-r.Context.Done():
-			r.logger.Info(fmt.Sprintf("Stopping watch loop for player '%s' on room '%s'", player.ID, r.ID))
+			r.logger.Info(fmt.Sprintf("Stopping watch loop for player '%s' on room '%s'", conn.ID, r.ID))
 			return
 		}
 
