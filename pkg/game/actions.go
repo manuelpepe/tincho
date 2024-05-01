@@ -160,6 +160,10 @@ func (t *Tincho) Discard(position int) (DiscardedCard, CycledPiles, error) {
 		return Card{}, false, errors.New("can't discard without drawing")
 	}
 
+	if position == -1 && t.lastDrawSource == DrawSourceDiscard {
+		return Card{}, false, fmt.Errorf("can't discard card drawn from discard pile")
+	}
+
 	player := t.players[t.currentTurn]
 	if position < -1 || position >= len(player.Hand) {
 		return Card{}, false, fmt.Errorf("invalid card position: %d", position)

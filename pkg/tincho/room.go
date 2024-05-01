@@ -161,7 +161,7 @@ func (r *Room) Start() {
 		case req := <-r.playersChan:
 			if r.IsPlayerInRoom(req.Player.ID) {
 				req.Player.ClearPendingUpdates()
-				if err := r.sendRejoinState(req.Player, r.state.CountBaseDeck(), r.state.CountDrawPile()); err != nil {
+				if err := r.sendRejoinState(req.Player); err != nil {
 					r.logger.Error("r.sendRejoinState: %s", err, "player", req.Player)
 					req.Res <- err
 				} else {

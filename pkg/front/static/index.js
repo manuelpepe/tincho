@@ -275,7 +275,7 @@ window.onload = function () {
      */
     async function showDraw(player, source, card, effect) {
         const playerDraw = PLAYERS[player].draw;
-        setDrawScreen(player == THIS_PLAYER, effect);
+        setDrawScreen(player == THIS_PLAYER, effect, source);
         switch (source) {
             case "pile":
                 await drawCard(deckPile, playerDraw);
@@ -663,7 +663,7 @@ window.onload = function () {
             setCardInDraw(data.currentTurn, data.cardInHandValue)
         }
         if (data.currentTurn == THIS_PLAYER && data.cardInHand) {
-            setDrawScreen(true, "none");
+            setDrawScreen(true, "none", data.cardInHandSource);
         } else {
             setTurnScreen(data.currentTurn == THIS_PLAYER);
         }

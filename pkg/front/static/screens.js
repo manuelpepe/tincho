@@ -93,12 +93,15 @@ export function setTurnScreen(isCurPlayer) {
 
 /** 
  * @param {boolean} isCurPlayer
- * @param {string} effect */
-export function setDrawScreen(isCurPlayer, effect) {
+ * @param {string} effect 
+ * @param {string} source */
+export function setDrawScreen(isCurPlayer, effect, source) {
     hideAllButtons();
     if (isCurPlayer) {
         hide(buttonDraw);
-        show(buttonDiscard);
+        if (source == "pile") {
+            show(buttonDiscard);
+        }
         show(buttonDiscardTwo);
         hide(cutUI);
         showEffectButton(effect);

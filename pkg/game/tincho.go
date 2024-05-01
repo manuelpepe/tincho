@@ -106,6 +106,10 @@ func (t *Tincho) GetPendingStorage() Card {
 	return t.pendingStorage
 }
 
+func (t *Tincho) LastDrawSource() DrawSource {
+	return t.lastDrawSource
+}
+
 // Playing returns whether the game has started or not. The game starts after all players complete their first peek.
 func (t *Tincho) Playing() bool {
 	return t.playing

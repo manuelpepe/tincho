@@ -63,12 +63,17 @@ func (r *Room) broadcastGameConfig(cardInDeck int) error {
 	return nil
 }
 
-func (r *Room) sendRejoinState(player *Connection, cardsInDeck int, cardsInDrawPile int) error {
-	curTurn := r.state.PlayerToPlay().ID
+func (r *Room) sendRejoinState(player *Connection) error {
+	playerToPlay := r.state.PlayerToPlay().ID
 	pendStorage := r.state.GetPendingStorage()
+	cardsInDeck := r.state.CountBaseDeck()
+	cardsInDrawPile := r.state.CountDrawPile()
+	var lastDrawSource *game.DrawSource
 	var cardInHandVal *game.Card
-	if (player.ID == curTurn && pendStorage != game.Card{}) {
+	if (player.ID == playerToPlay && pendStorage != game.Card{}) {
 		cardInHandVal = &pendStorage
+		ds := r.state.LastDrawSource()
+		lastDrawSource = &ds
 	}
 	var lastDiscarded *game.Card
 	if r.state.CountDiscardPile() > 0 {
@@ -78,13 +83,14 @@ func (r *Room) sendRejoinState(player *Connection, cardsInDeck int, cardsInDrawP
 	r.TargetedUpdate(player.ID, Update[UpdateTypeRejoinData]{
 		Type: UpdateTypeRejoin,
 		Data: UpdateTypeRejoinData{
-			Players:         r.getMarshalledPlayers(),
-			CurrentTurn:     curTurn,
-			CardInHand:      r.state.GetPendingStorage() != game.Card{},
-			CardInHandVal:   cardInHandVal,
-			LastDiscarded:   lastDiscarded,
-			CardsInDeck:     cardsInDeck,
-			CardsInDrawPile: cardsInDrawPile,
+			Players:          r.getMarshalledPlayers(),
+			CurrentTurn:      playerToPlay,
+			CardInHand:       r.state.GetPendingStorage() != game.Card{},
+			CardInHandVal:    cardInHandVal,
+			CardInHandSource: lastDrawSource,
+			LastDiscarded:    lastDiscarded,
+			CardsInDeck:      cardsInDeck,
+			CardsInDrawPile:  cardsInDrawPile,
 		},
 	})
 	return nil
