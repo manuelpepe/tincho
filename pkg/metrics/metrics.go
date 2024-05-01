@@ -64,6 +64,28 @@ var (
 		},
 		[]string{"reconnection"},
 	)
+
+	websocketIncoming = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "tincho_websocket_incoming",
+			Help: "Tracks the number of incoming websocket messages.",
+		},
+	)
+
+	websocketOutgoing = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "tincho_websocket_outgoing",
+			Help: "Tracks the number of outgoing websocket messages.",
+		},
+	)
+
+	websocketIncomingSize = promauto.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "tincho_websocket_incoming_size_bytes",
+			Help:    "Tracks the size of incoming websocket messages.",
+			Buckets: prometheus.LinearBuckets(0, 20, 10),
+		},
+	)
 )
 
 func MetricsMiddleware(next http.Handler) http.Handler {
@@ -101,4 +123,16 @@ func IncGamesEnded() {
 
 func IncConnectionsTotal(reconnection bool) {
 	connectionsTotal.WithLabelValues(strconv.FormatBool(reconnection)).Inc()
+}
+
+func IncWebsocketIncoming() {
+	websocketIncoming.Inc()
+}
+
+func IncWebsocketOutgoing() {
+	websocketOutgoing.Inc()
+}
+
+func ObserveWebsocketIncomingSize(size float64) {
+	websocketIncomingSize.Observe(size)
 }

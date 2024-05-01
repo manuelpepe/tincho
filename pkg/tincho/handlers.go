@@ -270,6 +270,7 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 		for {
 			select {
 			case update := <-conn.Updates:
+				metrics.IncWebsocketOutgoing()
 				logger.Info(
 					fmt.Sprintf("Sending update to player %s", player.ID),
 					"update", update,
@@ -315,6 +316,8 @@ func handleWS(ws *websocket.Conn, conn *Connection, room *Room, logger *slog.Log
 					stopWS()
 					return
 				}
+				metrics.IncWebsocketIncoming()
+				metrics.ObserveWebsocketIncomingSize(float64(len(message)))
 				action, err := NewActionFromRawMessage(message)
 				if err != nil {
 					logger.Error(fmt.Sprintf("Error unmarshalling action from player %s: %s", player.ID, err), "err", err)
