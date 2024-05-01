@@ -34,6 +34,18 @@ type RoomConfig struct {
 	DeckOptions DeckOptions `json:"deck"`
 }
 
+func (rc RoomConfig) Validate() error {
+	if rc.MaxPlayers <= 1 {
+		return errors.New("max players should be greater than 1")
+	}
+
+	playerLimit := 10
+	if rc.MaxPlayers > playerLimit {
+		return fmt.Errorf("max players should be less than %d", playerLimit)
+	}
+	return nil
+}
+
 type DeckOptions struct {
 	Extended bool `json:"extended"`
 	Chaos    bool `json:"chaos"`
@@ -57,6 +69,12 @@ func (h *Handlers) NewRoom(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warn(fmt.Sprintf("Error decoding room config: %s", err), "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error decoding room config"))
+		return
+	}
+	if err := roomConfig.Validate(); err != nil {
+		h.logger.Warn(fmt.Sprintf("Error validating room config: %s", err), "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("error validating room config"))
 		return
 	}
 	deck := buildDeck(roomConfig.DeckOptions)

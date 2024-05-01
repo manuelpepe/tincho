@@ -101,6 +101,7 @@
 - [x] The click handler doesn't work after swapping cards.
 * [x] Most of the time in simulations is spent in json.Unmarshall calls in the bot handler. Remove json.RawMessage.
 - [x] Prevent discarding drawed card if it was drawed from the discard pile
+* [x] Limit the max number of players per room
 
 ### Fixes
 
