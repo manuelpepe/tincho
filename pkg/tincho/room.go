@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/manuelpepe/tincho/pkg/game"
+	"github.com/manuelpepe/tincho/pkg/metrics"
 )
 
 type AddPlayerRequest struct {
@@ -156,6 +157,7 @@ func (r *Room) IsPlayerInRoom(playerID game.PlayerID) bool {
 func (r *Room) Start() {
 	r.logger.Info("Starting room")
 	r.started = true
+	defer metrics.IncGamesEnded()
 	for {
 		select {
 		case req := <-r.playersChan:

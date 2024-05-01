@@ -43,10 +43,17 @@ var (
 		[]string{"method", "code"},
 	)
 
-	gamesTotal = promauto.NewCounter(
+	gamesStarted = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Name: "tincho_games_total",
-			Help: "Tracks the number of games played.",
+			Name: "tincho_games_started",
+			Help: "Tracks the number of games started.",
+		},
+	)
+
+	gamesEnded = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "tincho_games_ended",
+			Help: "Tracks the number of games ended.",
 		},
 	)
 
@@ -85,7 +92,11 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 }
 
 func IncGamesTotal() {
-	gamesTotal.Inc()
+	gamesStarted.Inc()
+}
+
+func IncGamesEnded() {
+	gamesEnded.Inc()
 }
 
 func IncConnectionsTotal(reconnection bool) {
