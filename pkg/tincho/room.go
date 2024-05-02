@@ -130,13 +130,14 @@ func (r *Room) AddConnection(c *Connection) error {
 
 func (r *Room) addPlayer(conn *Connection) error {
 	r.RWMutex.Lock()
+	defer r.RWMutex.Unlock()
+
 	if len(r.state.GetPlayers()) >= r.maxPlayers {
 		return fmt.Errorf("room is full")
 	}
 	if err := r.state.AddPlayer(conn.Player); err != nil {
 		return fmt.Errorf("tsm.AddPlayer: %w", err)
 	}
-	r.RWMutex.Unlock()
 
 	r.connections[conn.ID] = conn
 	go r.watchPlayer(conn)
@@ -163,16 +164,12 @@ func (r *Room) Start() {
 		case req := <-r.connectionsChan:
 			if r.IsPlayerInRoom(req.Conn.ID) {
 				req.Conn.ClearPendingUpdates()
-				if err := r.sendRejoinState(req.Conn); err != nil {
-					r.logger.Error("r.sendRejoinState: %s", err, "player", req.Conn)
-					req.Res <- err
-				} else {
-					r.logger.Info(fmt.Sprintf("Player rejoined #%s: %s", r.ID, req.Conn.ID))
-					req.Res <- nil
-				}
+				r.sendRejoinState(req.Conn)
+				r.logger.Info(fmt.Sprintf("Player rejoined #%s: %s", r.ID, req.Conn.ID))
+				req.Res <- nil
 			} else {
 				if err := r.addPlayer(req.Conn); err != nil {
-					r.logger.Error("r.addPlayer: %s", "err", err, "player", req.Conn.Player)
+					r.logger.Error("Error adding new player to room", "err", err, "player_id", req.Conn.Player.ID)
 					req.Res <- err
 				} else {
 					r.logger.Info(fmt.Sprintf("Player joined #%s: %s", r.ID, req.Conn.ID))
@@ -209,24 +206,24 @@ func (r *Room) doAction(action TypedAction) {
 	case ActionStart:
 		act, ok := action.(*Action[ActionWithoutData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doStartGame(*act); err != nil {
-			r.logger.Warn("error starting game", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error starting game", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 		return
 	case ActionFirstPeek:
 		act, ok := action.(*Action[ActionWithoutData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doPeekTwo(*act); err != nil {
-			r.logger.Warn("error on first peek", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on first peek", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 		return
@@ -244,69 +241,69 @@ func (r *Room) doAction(action TypedAction) {
 	case ActionDraw:
 		act, ok := action.(*Action[ActionDrawData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doDraw(*act); err != nil {
-			r.logger.Warn("error on draw", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on draw", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 	case ActionDiscard:
 		act, ok := action.(*Action[ActionDiscardData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doDiscard(*act); err != nil {
-			r.logger.Warn("error on discard", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on discard", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 	case ActionCut:
 		act, ok := action.(*Action[ActionCutData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doCut(*act); err != nil {
-			r.logger.Warn("error on cut", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on cut", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 	case ActionPeekOwnCard:
 		act, ok := action.(*Action[ActionPeekOwnCardData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doEffectPeekOwnCard(*act); err != nil {
-			r.logger.Warn("error on peek own", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on peek own", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 		return
 	case ActionPeekCartaAjena:
 		act, ok := action.(*Action[ActionPeekCartaAjenaData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doEffectPeekCartaAjena(*act); err != nil {
-			r.logger.Warn("error on peek carta ajena", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on peek carta ajena", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 		return
 	case ActionSwapCards:
 		act, ok := action.(*Action[ActionSwapCardsData])
 		if !ok {
-			r.logger.Error("error casting action", "action", act, "player_id", act.PlayerID)
+			r.logger.Error("error casting action", "action", act, "player_id", act.GetPlayerID())
 			return
 		}
 		if err := r.doEffectSwapCards(*act); err != nil {
-			r.logger.Warn("error on swap cards", "err", err, "player_id", act.PlayerID)
-			r.TargetedError(act.PlayerID, err)
+			r.logger.Warn("error on swap cards", "err", err, "player_id", act.GetPlayerID())
+			r.TargetedError(act.GetPlayerID(), err)
 			return
 		}
 		return

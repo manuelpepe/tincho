@@ -57,6 +57,9 @@ func (a *Action[T]) SetPlayerID(playerID game.PlayerID) {
 }
 
 func (a *Action[T]) GetPlayerID() game.PlayerID {
+	if a == nil {
+		return "<UNSET>"
+	}
 	return a.PlayerID
 }
 

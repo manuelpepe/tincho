@@ -63,7 +63,7 @@ func (r *Room) broadcastGameConfig(cardInDeck int) error {
 	return nil
 }
 
-func (r *Room) sendRejoinState(conn *Connection) error {
+func (r *Room) sendRejoinState(conn *Connection) {
 	playerToPlay := r.state.PlayerToPlay().ID
 	pendStorage := r.state.GetPendingStorage()
 	cardsInDeck := r.state.CountBaseDeck()
@@ -93,7 +93,6 @@ func (r *Room) sendRejoinState(conn *Connection) error {
 			CardsInDrawPile:  cardsInDrawPile,
 		},
 	})
-	return nil
 }
 
 func (r *Room) broadcastPassTurn() error {
