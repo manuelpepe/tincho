@@ -140,49 +140,55 @@ func Play(ctx context.Context, logger *slog.Logger, strats ...bots.Strategy) (Re
 	}
 }
 
-func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...func() bots.Strategy) (Summary, error) {
+type StrategyFactory = func() bots.Strategy
+
+// A worker consumes signals from a pending channel and starts a match with the given strategies,
+// sending results to the outs channel and errors to the errs channel.
+// The worker exits on ctx.Done().
+func worker(ctx context.Context, logger *slog.Logger, pending <-chan struct{}, outs chan<- Result, errs chan<- error, strats ...StrategyFactory) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pending:
+			bots := make([]bots.Strategy, 0, len(strats))
+			for _, strat := range strats {
+				bots = append(bots, strat())
+			}
+
+			result, err := Play(ctx, logger, bots...)
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				case errs <- fmt.Errorf("error on round: %w", err):
+				}
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case outs <- result:
+			}
+
+		}
+	}
+}
+
+func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...StrategyFactory) (Summary, error) {
 	if rounds < 1 {
 		return Summary{}, fmt.Errorf("invalid number of rounds: %d", rounds)
 	}
 
 	ctx, cancelPendingGames := context.WithCancel(ctx)
 
+	// start worker goroutines
+	routines := min(rounds, 10000)
+	pending := make(chan struct{})
 	outs := make(chan Result)
 	errs := make(chan error)
-
-	// start worker goroutines
-	pending := make(chan struct{})
-	routines := min(rounds, 10000)
 	for i := 0; i < routines; i++ {
-		go func() {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-pending:
-					bots := make([]bots.Strategy, 0, len(strats))
-					for _, strat := range strats {
-						bots = append(bots, strat())
-					}
-
-					result, err := Play(ctx, logger, bots...)
-					if err != nil {
-						select {
-						case <-ctx.Done():
-							return
-						case errs <- fmt.Errorf("error on round: %w", err):
-						}
-					}
-
-					select {
-					case <-ctx.Done():
-						return
-					case outs <- result:
-					}
-
-				}
-			}
-		}()
+		go worker(ctx, logger, pending, outs, errs)
 	}
 
 	// start summarizing goroutine
