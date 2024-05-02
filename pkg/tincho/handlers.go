@@ -24,8 +24,8 @@ type Handlers struct {
 	logger  *slog.Logger
 }
 
-func NewHandlers(logger *slog.Logger, service *Service) Handlers {
-	return Handlers{service: service, logger: logger.With("component", "tincho-handlers")}
+func NewHandlers(logger *slog.Logger, service *Service) *Handlers {
+	return &Handlers{service: service, logger: logger.With("component", "tincho-handlers")}
 }
 
 type RoomConfig struct {

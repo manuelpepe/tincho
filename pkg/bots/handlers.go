@@ -13,8 +13,8 @@ type Handlers struct {
 	logger  *slog.Logger
 }
 
-func NewHandlers(logger *slog.Logger, service *tincho.Service) Handlers {
-	return Handlers{service: service, logger: logger.With("component", "bots-handlers")}
+func NewHandlers(logger *slog.Logger, service *tincho.Service) *Handlers {
+	return &Handlers{service: service, logger: logger.With("component", "bots-handlers")}
 }
 
 func (h *Handlers) AddBot(w http.ResponseWriter, r *http.Request) {
