@@ -65,18 +65,12 @@ var (
 		[]string{"reconnection"},
 	)
 
-	websocketIncoming = promauto.NewCounter(
+	websocketMessages = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "tincho_websocket_incoming",
-			Help: "Tracks the number of incoming websocket messages.",
+			Name: "tincho_websocket_messages_total",
+			Help: "Tracks the number of incoming and outgoing websocket messages.",
 		},
-	)
-
-	websocketOutgoing = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Name: "tincho_websocket_outgoing",
-			Help: "Tracks the number of outgoing websocket messages.",
-		},
+		[]string{"direction"},
 	)
 
 	websocketIncomingSize = promauto.NewHistogram(
@@ -126,11 +120,11 @@ func IncConnectionsTotal(reconnection bool) {
 }
 
 func IncWebsocketIncoming() {
-	websocketIncoming.Inc()
+	websocketMessages.WithLabelValues("incoming").Inc()
 }
 
 func IncWebsocketOutgoing() {
-	websocketOutgoing.Inc()
+	websocketMessages.WithLabelValues("outgoing").Inc()
 }
 
 func ObserveWebsocketIncomingSize(size float64) {
