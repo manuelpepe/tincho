@@ -150,7 +150,7 @@ func (r *Room) addPlayer(conn *Connection) error {
 	return nil
 }
 
-func (r *Room) IsPlayerInRoom(playerID game.PlayerID) bool {
+func (r *Room) isPlayerInRoom(playerID game.PlayerID) bool {
 	_, exists := r.state.GetPlayer(playerID)
 	return exists
 }
@@ -162,7 +162,7 @@ func (r *Room) Start() {
 	for {
 		select {
 		case req := <-r.connectionsChan:
-			if r.IsPlayerInRoom(req.Conn.ID) {
+			if r.isPlayerInRoom(req.Conn.ID) {
 				req.Conn.ClearPendingUpdates()
 				r.sendRejoinState(req.Conn)
 				r.logger.Info(fmt.Sprintf("Player rejoined #%s: %s", r.ID, req.Conn.ID))
