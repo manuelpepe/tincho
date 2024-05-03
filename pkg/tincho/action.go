@@ -32,7 +32,7 @@ type ActionData interface {
 }
 
 // TypedAction is an interface used to pass around Action[T] types without needing to
-// know the exact type of T. Do not implement this interface, use Action[T] instead.
+// know the exact type of T. Do not implement this interface yourself, use `Action[T ActionData]` instead.
 type TypedAction interface {
 	GetType() ActionType
 	SetPlayerID(game.PlayerID)
