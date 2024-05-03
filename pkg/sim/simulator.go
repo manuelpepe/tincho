@@ -188,7 +188,7 @@ func Compete(ctx context.Context, logger *slog.Logger, rounds int, strats ...Str
 	outs := make(chan Result)
 	errs := make(chan error)
 	for i := 0; i < routines; i++ {
-		go worker(ctx, logger, pending, outs, errs)
+		go worker(ctx, logger, pending, outs, errs, strats...)
 	}
 
 	// start summarizing goroutine
