@@ -101,61 +101,61 @@ func (b *Bot) RespondToUpdate(conn *tincho.Connection, update tincho.TypedUpdate
 	case tincho.UpdateTypePlayersChanged:
 		up, ok := update.(tincho.Update[tincho.UpdatePlayersChangedData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdatePlayersChangedData")
 		}
 		return b.strategy.PlayersChanged(p, up.Data)
 	case tincho.UpdateTypePlayerFirstPeeked:
 		up, ok := update.(tincho.Update[tincho.UpdatePlayerFirstPeekedData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdatePlayerFirstPeekedData")
 		}
 		return b.strategy.PlayerFirstPeeked(p, up.Data)
 	case tincho.UpdateTypeTurn:
 		up, ok := update.(tincho.Update[tincho.UpdateTurnData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateTurnData")
 		}
 		return b.strategy.Turn(p, up.Data)
 	case tincho.UpdateTypeDraw:
 		up, ok := update.(tincho.Update[tincho.UpdateDrawData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateDrawData")
 		}
 		return b.strategy.Draw(p, up.Data)
 	case tincho.UpdateTypePeekCard:
 		up, ok := update.(tincho.Update[tincho.UpdatePeekCardData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdatePeekCardData")
 		}
 		return b.strategy.PeekCard(p, up.Data)
 	case tincho.UpdateTypeSwapCards:
 		up, ok := update.(tincho.Update[tincho.UpdateSwapCardsData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateSwapCardsData")
 		}
 		return b.strategy.SwapCards(p, up.Data)
 	case tincho.UpdateTypeDiscard:
 		up, ok := update.(tincho.Update[tincho.UpdateDiscardData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateDiscardData")
 		}
 		return b.strategy.Discard(p, up.Data)
 	case tincho.UpdateTypeFailedDoubleDiscard:
 		up, ok := update.(tincho.Update[tincho.UpdateTypeFailedDoubleDiscardData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateTypeFailedDoubleDiscardData")
 		}
 		return b.strategy.FailedDoubleDiscard(p, up.Data)
 	case tincho.UpdateTypeCut:
 		up, ok := update.(tincho.Update[tincho.UpdateCutData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateCutData")
 		}
 		return b.strategy.Cut(p, up.Data)
 	case tincho.UpdateTypeError:
 		up, ok := update.(tincho.Update[tincho.UpdateErrorData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateErrorData")
 		}
 		return b.strategy.Error(p, up.Data)
 	case tincho.UpdateTypeStartNextRound:
@@ -167,7 +167,7 @@ func (b *Bot) RespondToUpdate(conn *tincho.Connection, update tincho.TypedUpdate
 	case tincho.UpdateTypeEndGame:
 		up, ok := update.(tincho.Update[tincho.UpdateEndGameData])
 		if !ok {
-			return nil, fmt.Errorf("update data is not UpdateStartNextRoundData")
+			return nil, fmt.Errorf("update data is not UpdateEndGameData")
 		}
 		return b.strategy.EndGame(p, up.Data)
 	}
