@@ -2,6 +2,8 @@
 
 A multiplayer card game for the whole family.
 
+Try it out [here!](https://tincho.manuelpepe.com/)
+
 ## Rules
 
 The game is played in rounds, adding or subtracting points based on the sum of values of cards in their hands. The first player to cross 100 points ends the game.
